@@ -37,10 +37,10 @@ pub(crate) const DISPLAY_MESSAGE_DEFAULT_FMT: &str =
 pub fn resolve_run_shell() -> (String, Vec<String>) {
     #[cfg(windows)]
     {
-        if let Ok(path) = which::which("pwsh") {
+        if let Some(path) = crate::which::which("pwsh") {
             return (path.to_string_lossy().into_owned(), vec!["-NoProfile".to_string(), "-Command".to_string()]);
         }
-        if let Ok(path) = which::which("powershell") {
+        if let Some(path) = crate::which::which("powershell") {
             return (path.to_string_lossy().into_owned(), vec!["-NoProfile".to_string(), "-Command".to_string()]);
         }
         if let Ok(system_root) = std::env::var("SystemRoot").or_else(|_| std::env::var("SYSTEMROOT")) {
@@ -82,18 +82,18 @@ fn resolve_shell_binary(name: &str) -> String {
 
     if is_pwsh {
         // Requested pwsh: verify it exists, fall back to powershell
-        if which::which("pwsh").is_ok() {
+        if crate::which::which("pwsh").is_some() {
             return name.to_string();
         }
-        if let Ok(p) = which::which("powershell") {
+        if let Some(p) = crate::which::which("powershell") {
             return p.to_string_lossy().into_owned();
         }
     } else if is_powershell {
         // Requested powershell: verify it exists, fall back to pwsh
-        if which::which("powershell").is_ok() {
+        if crate::which::which("powershell").is_some() {
             return name.to_string();
         }
-        if let Ok(p) = which::which("pwsh") {
+        if let Some(p) = crate::which::which("pwsh") {
             return p.to_string_lossy().into_owned();
         }
     }
@@ -182,7 +182,7 @@ pub fn build_run_shell_command(shell_cmd: &str) -> std::process::Command {
 
             // .ps1 scripts: use -File which never splits paths at whitespace
             if lower_path.ends_with(".ps1") {
-                let shell = if which::which("pwsh").is_ok() { "pwsh" } else { "powershell" };
+                let shell = if crate::which::which("pwsh").is_some() { "pwsh" } else { "powershell" };
                 let mut c = std::process::Command::new(shell);
                 c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", &file_path]);
                 if !rest_args.is_empty() {

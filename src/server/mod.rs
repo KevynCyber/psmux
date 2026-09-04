@@ -1055,7 +1055,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
         let mut children: Vec<std::process::Child> = Vec::new();
         for ps1 in &scripts {
             // Resolve shell: pwsh (PS7) preferred, fall back to powershell.exe (Windows PS)
-            let shell = if which::which("pwsh").is_ok() { "pwsh" } else { "powershell" };
+            let shell = if crate::which::which("pwsh").is_some() { "pwsh" } else { "powershell" };
             let mut cmd = std::process::Command::new(shell);
             cmd.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps1]);
             if !target_session.is_empty() {

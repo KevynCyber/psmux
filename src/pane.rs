@@ -95,7 +95,7 @@ pub fn spawn_pane_write_queue(
     Box::new(QueuedPaneWriter { tx })
 }
 
-/// Cached resolved shell path to avoid repeated `which::which()` PATH scans.
+/// Cached resolved shell path to avoid repeated `crate::which::which()` PATH scans.
 /// Resolved once on first use, reused for all subsequent pane spawns.
 static CACHED_SHELL_PATH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
 
@@ -160,23 +160,23 @@ pub fn prefer_app_execution_alias(resolved: String) -> String {
 /// attaching over SSH into a graceful degrade instead (issue #167 class).
 pub fn cached_shell() -> Option<&'static str> {
     CACHED_SHELL_PATH.get_or_init(|| {
-        let resolved = which::which("pwsh").ok()
-            .or_else(|| which::which("powershell").ok())
-            .or_else(|| which::which("cmd").ok())
+        let resolved = crate::which::which("pwsh")
+            .or_else(|| crate::which::which("powershell"))
+            .or_else(|| crate::which::which("cmd"))
             .map(|p| prefer_app_execution_alias(p.to_string_lossy().into_owned()));
         if let Some(ref path) = resolved {
             let is_store = path.to_ascii_lowercase().contains("\\windowsapps\\");
             let is_ssh_spawned = std::env::var("SSH_CONNECTION").is_ok()
                 || std::env::var("SSH_CLIENT").is_ok();
             if is_store && is_ssh_spawned {
-                if let Ok(classic) = which::which("powershell") {
+                if let Some(classic) = crate::which::which("powershell") {
                     let classic = classic.to_string_lossy().into_owned();
                     if !classic.to_ascii_lowercase().contains("\\windowsapps\\") {
                         return Some(classic);
                     }
                 }
                 // No classic PowerShell found; cmd.exe is never MSIX-packaged.
-                if let Ok(cmd) = which::which("cmd") {
+                if let Some(cmd) = crate::which::which("cmd") {
                     return Some(cmd.to_string_lossy().into_owned());
                 }
             }
@@ -1263,7 +1263,7 @@ fn resolve_unix_path(cmd: &str) -> String {
             .file_name()
             .and_then(|s| s.to_str())
             .unwrap_or(program);
-        if let Ok(resolved) = which::which(basename) {
+        if let Some(resolved) = crate::which::which(basename) {
             let rest = if parts.len() > 1 { parts[1] } else { "" };
             if rest.is_empty() {
                 return format!("\"{}\"", resolved.to_string_lossy());
@@ -1710,7 +1710,7 @@ pub fn build_command(command: Option<&str>, env_shim: bool, allow_predictions: b
     }
 }
 
-/// Cached resolved default-shell path to avoid repeated `which::which()` scans.
+/// Cached resolved default-shell path to avoid repeated `crate::which::which()` scans.
 static CACHED_DEFAULT_SHELL: std::sync::OnceLock<std::collections::HashMap<String, String>> = std::sync::OnceLock::new();
 static CACHED_DEFAULT_SHELL_MAP: std::sync::Mutex<Option<std::collections::HashMap<String, String>>> = std::sync::Mutex::new(None);
 
@@ -1723,7 +1723,7 @@ fn cached_which(program: &str) -> String {
     if let Some(cached) = map.get(program) {
         return cached.clone();
     }
-    let resolved = which::which(program).ok()
+    let resolved = crate::which::which(program)
         .map(|p| prefer_app_execution_alias(p.to_string_lossy().into_owned()))
         .unwrap_or_else(|| program.to_string());
     map.insert(program.to_string(), resolved.clone());
@@ -1740,7 +1740,7 @@ fn cached_which(program: &str) -> String {
 fn resolve_shell_program(shell_path: &str) -> (String, Vec<String>) {
     // Fast path: whole string is the program (possibly with spaces in path).
     if std::path::Path::new(shell_path).is_file()
-        || which::which(shell_path).is_ok()
+        || crate::which::which(shell_path).is_some()
     {
         return (shell_path.to_string(), vec![]);
     }
