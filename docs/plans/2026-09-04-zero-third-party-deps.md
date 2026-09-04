@@ -97,7 +97,8 @@ ratchet test (tests-rs/test_unsafe_inventory.rs) pins unsafe-block counts per fi
 - A4 (byte-for-byte public behaviour, JSON field order preserved): why -- control-mode consumers may rely on derive order even though whitespace is
   not guaranteed.
 - A5 (ERE + `(?i)` grammar, depth cap 64): why -- corrects plan-v0's oversight that format.rs already emits `(?i)` (ledger 1 ACCEPT); depth cap
-  forecloses ReDoS via nesting (ledger 19 ACCEPT).
+  forecloses ReDoS via nesting (ledger 19 ACCEPT). Extended round 2: replacement-string grammar is regex-crate syntax ($N, ${N}, ${name}, $$ literal)
+  since the replacement grammar was never inventoried before (ledger 31 ACCEPT).
 - A6 (unicode-width None/Some(0) split via general-category data): why -- vt100 cell width test relies on the distinction; naive full-sweep
   differential was oversized so it is kept only as a committed run-length fixture, not a throwaway (ledger 12 PARTIAL).
 - A7 (OnceLock + io::Error, not panic): why -- deliberate small behaviour improvement over today's `.expect()` panic; corrects plan-v0's false
@@ -123,44 +124,59 @@ ratchet test (tests-rs/test_unsafe_inventory.rs) pins unsafe-block counts per fi
 ## Slices
 
 S0. Gate, goldens, ratchets.
-    - tests-rs/test_zero_third_party_deps.rs (#[ignore] until S9) + the unsafe-inventory ratchet test (enforced from S0).
-    - tests-rs/fixtures/: monitor --snapshot golden; `cargo tree -e normal --target x86_64-pc-windows-msvc` crate list.
-    - CI: add `cargo test` on i686 (WoW64 on the x86_64 runner) and on windows-11-arm for aarch64; add `--locked` to all cargo build/test.
-    CRITERIA: both new tests run (gate test ignored, unsafe-inventory ratchet enforced); 2 fixtures committed.
-    SIGNALS: CI matrix shows cargo test on 3 targets, green.
+    - tests-rs/test_zero_third_party_deps.rs (#[ignore] until S9) + the unsafe-inventory ratchet test (enforced from S0); both authored in S0.
+    - tests-rs/fixtures/: monitor --snapshot golden (tests-rs/fixtures/monitor_snapshot.txt); `cargo tree -e normal --target x86_64-pc-windows-msvc`
+    crate list.
+    - CI: add `cargo test` on i686 (WoW64 on the x86_64 runner); pilot `cargo test --target i686-pc-windows-msvc` on the full suite (failures fixed
+    in S0 or job scoped to tests-rs with a ledger note); add windows-11-arm test job as a separate `continue-on-error: true` job (Open Q3
+    unconfirmed); add the test-monitor job diffing `--snapshot` output against the committed golden (normalising line endings); add `--locked` to
+    the 5 invocations (3 build targets, test job build+test, monitor build).
+    CRITERIA: both new tests run (gate test ignored, unsafe-inventory ratchet enforced); 2 fixtures committed; i686 counts as the second enforced
+    test target, arm is informational; monitor golden diffed in CI; `--locked` on all 5 invocations.
+    SIGNALS: CI matrix shows cargo test on 3 targets, i686 enforced green, arm informational.
 
 S1a. Trivial std swaps (one commit each): which -> PATH/PATHEXT walk; glob -> `*` `?` `[..]` matcher over read_dir (server/mod.rs:4239 only); anyhow
 -> io::Error (proxy_pane.rs); base64 STANDARD codec; windows-sys 4 items -> extern "system" decls; parking_lot -> std Mutex/Condvar (tests-rs).
-    CRITERIA: RFC 4648 vectors pass; glob table passes; which finds pwsh/powershell/cmd; proxy_pane tests pass; 6 manifest lines removed.
+which fixture adds an arbitrary extension-less basename plus a PATHEXT order case (pane.rs:1266 uses a variable basename).
+    CRITERIA: RFC 4648 vectors pass; glob table passes; which finds pwsh/powershell/cmd and the extension-less/PATHEXT-order fixture case; proxy_pane
+    tests pass; 6 manifest lines removed.
     SIGNALS: `cargo check` and targeted `cargo test` green.
 
 S1b. chrono -> crates/psmux-time (or src/timefmt.rs): GetLocalTime + GetTimeZoneInformation FFI; strftime specifiers = the set documented in docs/
 for status-line/format strings (grunt inventories docs/*.md + format.rs before coding) plus "%H:%M:%S%.3f"; unknown specifiers echoed exactly as
-chrono does today (verify chrono's behaviour in a fixture).
+chrono does today (verify chrono's behaviour in a fixture). Adds epoch-seconds -> local conversion (FileTimeToLocalFileTime or
+GetTimeZoneInformation math, None on out-of-range) replacing DateTime::from_timestamp(ts,0).into() (format.rs:734); English weekday/month name
+tables for the fixed format "%a %b %e %H:%M:%S %Y" (format.rs:736,1234,1236,1781); fixture covers this exact format string.
     CRITERIA: fixture table generated from chrono 0.4.45 covers 100% of documented specifiers at 3 timestamps, 0 mismatches; format.rs tests pass;
-    chrono manifest line removed.
+    "%a %b %e %H:%M:%S %Y" fixture passes; out-of-range timestamp returns None; chrono manifest line removed.
     SIGNALS: none.
 
 S2. unicode-width -> crates/psmux-unicode: scripts/gen_unicode_width.py (inputs checked in under scripts/unicode/) emits range tables for char width
 Option<usize> and str width. Fixture: expected widths for U+0000..U+10FFFF as run-length ranges, generated once from unicode-width 0.2.2 and
 committed (tests-rs/fixtures/unicode_width_0.2.2.txt).
     CRITERIA: fixture test 0 mismatches; vt100 tests width_thai_441 and issue533_vs16_width pass; cell.rs:52 semantics test (control -> None,
-    combining -> Some(0)) passes; unicode-width removed from root + vt100 manifests.
+    combining -> Some(0)) passes; both call-site fallbacks (src/style.rs:254,483 unwrap_or(0); vt100 cell.rs:52 unwrap_or(1)) stay untouched --
+    replacement returns Option<usize> exactly like unicode-width; unicode-width removed from root + vt100 manifests.
     SIGNALS: none.
 
 S3. serde/serde_json -> crates/psmux-json: Value + parser (depth limit 128, RFC 8259 escapes incl. surrogate pairs, max input guarded by caller) +
 writer + ToJson/FromJson traits. Manual impls for every derived type; a grunt inventories EVERY #[serde(...)] attribute (tag, rename, default, skip,
-flatten) before coding; each attribute gets a round-trip test. tests/monitor takes a path dep. Fixture: JSON emitted by serde_json for each type at
-a sample value, committed; new writer must match after whitespace normalisation, and must parse the old bytes back.
+flatten) before coding; attribute inventory MUST include skip_serializing_if (layout.rs:126 uses skip_serializing_if = "Option::is_none"); each
+attribute gets a round-trip test, field-absence tested for skip_serializing_if. tests/monitor takes a path dep. Fixture: JSON emitted by serde_json
+for each type at a sample value, committed; new writer must match after whitespace normalisation, and must parse the old bytes back.
     CRITERIA: fixture tests pass; malformed/deep-nesting/invalid-escape cases pass; random-bytes no-panic smoke passes; tests-rs control-mode tests
-    pass; 1 round-trip test per serde attribute occurrence; serde + serde_json removed from root + monitor manifests.
+    pass; 1 round-trip test per serde attribute occurrence incl. skip_serializing_if field-absence; serde + serde_json removed from root + monitor
+    manifests.
     SIGNALS: monitor --snapshot golden identical.
 
-S4. regex -> crates/psmux-regex: ERE+`(?i)` parser (depth cap 64, iterative compile) -> NFA -> Pike VM with capture slots; `escape()`. format.rs
-call sites unchanged except the type path; each keeps its own error branch. Fixture: >=100 (pattern, input, expected captures) triples generated
-once from regex 1.13 and committed.
+S4. regex -> crates/psmux-regex: ERE+`(?i)` parser (depth cap 64, iterative compile) -> NFA -> Pike VM with capture slots; `escape()`; replacement-
+string grammar per A5 ($N, ${N}, ${name}, $$ literal). format.rs call sites unchanged except the type path; each keeps its own error branch.
+Substitute is first-occurrence-only (format.rs:834 currently uses Regex::replace, first match only -- must NOT become replace_all). Fixture:
+>=100 (pattern, input, expected captures) triples generated once from regex 1.13 and committed, plus a fixture with 2+ matches asserting only the
+first is replaced, plus $1 and literal-$ replacement-string cases.
     CRITERIA: fixture test (>=100 triples) passes; `(a*)*b` on 10k a-bytes completes < 10 ms; nested-group depth 1000 pattern -> Err with no stack
-    overflow; format.rs tests pass; regex removed.
+    overflow; first-occurrence-only fixture (2+ matches) passes; $1/${name}/$$ replacement-grammar fixtures pass; format.rs tests pass; regex
+    removed.
     SIGNALS: none.
 
 S5. vt100-psmux: drop vte + itoa. src/vt_parser.rs = full DEC ANSI state machine (Paul Williams) including DCS entry/param/passthrough/ignore and
@@ -173,23 +189,30 @@ callback stream (generated once via vte 0.15, committed).
 S6. portable-pty-psmux -> src/pty/ (ConPTY only). Extern decls replace winapi; OnceLock replaces lazy_static+shared_library (A7 error semantics);
 own HANDLE wrapper replaces filedescriptor; io::Error replaces anyhow; delete unix.rs, serial.rs, cmdbuilder `#[cfg(unix)]` halves, and
 nix/libc/serial2/shell-words/downcast-rs/log/winreg. Keep API names used by src/. Port the three flag constants, the supports_passthrough_mode
-RtlGetVersion predicate (unit-tested with injected version numbers) and the Windows cmdbuilder quoting (with its 4 tests).
+RtlGetVersion predicate (unit-tested with injected version numbers) and the Windows cmdbuilder quoting (with its 4 tests). Remove
+crates/portable-pty-psmux from root [workspace] members (Cargo.toml:12-24).
     CRITERIA: cmdbuilder tests pass; version-predicate test passes; spawn/resize/kill succeeds under a `-L` namespace; 12 manifest lines removed
-    from the pty crate (crate folded into src/).
+    from the pty crate (crate folded into src/); crates/portable-pty-psmux removed from [workspace] members.
     SIGNALS: CI smoke ps1 + win10 ssh pipe mouse ps1 green.
 
 S7. crossterm -> src/term/: GetConsoleMode/SetConsoleMode raw mode with the same flag set crossterm applies (grunt quotes crossterm's Windows raw-
-mode flags before coding); alt screen / mouse / bracketed paste as VT sequences; ReadConsoleInputW -> Event (Press/Release/Repeat, mouse, resize);
-VT/CSI input parser for pipe/SSH mode. Event types keep shape. Fixture: INPUT_RECORD -> Event and bytes -> Event tables (copied from crossterm's
-tests where semantics must match).
-    CRITERIA: fixture tests pass; crossterm removed.
+mode flags before coding); alt screen / mouse / bracketed paste as VT sequences; EnableBlinking/DisableBlinking (main.rs:49,4576,4667) emitted as
+CSI ? 12 h / l; ReadConsoleInputW -> Event (Press/Release/Repeat, mouse, resize); VT/CSI input parser for pipe/SSH mode. Event types keep shape.
+Crossterm cannot be removed alone: src/platform.rs:4553 PsmuxBackend wraps ratatui::backend::CrosstermBackend and ratatui's default `crossterm`
+feature pulls ratatui-crossterm -- so S7 also implements ratatui::backend::Backend natively (VT output from the Cell iterator: cursor moves, SGR
+from Style, clear/append_lines) and sets `ratatui = { default-features = false, features = ["std","all-widgets","underline-color"] }` in Cargo.toml.
+Fixture: INPUT_RECORD -> Event and bytes -> Event tables (copied from crossterm's tests where semantics must match).
+    CRITERIA: fixture tests pass; native Backend impl passes the same cell-for-cell fixture S8 uses; blink CSI sequence test passes; ratatui manifest
+    line sets default-features = false with std/all-widgets/underline-color; crossterm removed.
     SIGNALS: win10 ssh pipe mouse ps1 and smoke ps1 green.
 
-S8. ratatui -> crates/psmux-tui: Rect/Position/Size; Style/Color/Modifier; Span/Line/Text; Buffer + diff; Terminal::draw emitting VT to PsmuxWriter;
+S8. ratatui -> crates/psmux-tui: Rect/Position/Size; Style/Color/Modifier; Span/Line/Text; Buffer + diff; Terminal (double buffer, diff, cursor
+restore) + Terminal::draw emitting VT to PsmuxWriter; Frame::set_cursor_position/area/buffer_mut and Block::inner (client.rs:1210,5108,5161,920,5310);
 Paragraph (wrap, align, scroll), Block (borders, 4 BorderTypes, titles), Clear. tests/monitor takes a path dep. Fixture: for each widget config used
 in src/ (grunt enumerates), render into a ratatui Buffer in a test and dump cells+styles to a committed file; psmux-tui must reproduce cell-for-
 cell.
-    CRITERIA: widget fixtures 0 mismatches; ratatui removed from root + monitor.
+    CRITERIA: widget fixtures 0 mismatches; Terminal double-buffer diff + cursor-restore tests pass; Frame API + Block::inner call sites covered;
+    ratatui removed from root + monitor.
     SIGNALS: monitor --snapshot golden identical; CI green.
 
 S9. Zero-dep flip: remove remaining manifest entries, `cargo update`, un-ignore the gate test, replace CI cargo-audit steps with the gate test, pin
@@ -221,7 +244,9 @@ S9: registry+ count 0 (both locks); gate test enforced and green; CI green.
 
 Wrong S5-S8 = garbled rendering, dropped keys, unspawnable panes for every user. Mitigation: one slice per release; `git revert` of the slice
 restores the manifest line and the lock still pins the old crate until S9. After S9, reverting S8 re-resolves from crates.io (acceptable). New
-unsafe surface is ratcheted (A14) so growth is explicit in review.
+unsafe surface is ratcheted (A14) so growth is explicit in review. S7 cannot be reverted as a bare manifest add: since S7 must also implement
+ratatui::backend::Backend natively and flip ratatui to default-features = false (crossterm removal forces this, item 23), a revert of S7 restores
+both the crossterm manifest line AND the prior default-features ratatui config together -- still a real manifest revert, just two lines not one.
 
 ## Risks accepted
 
@@ -259,6 +284,40 @@ Mitigation folded into A3/S9 README note.
 21. parking_lot Condvar (assumptions MAJOR) -> ACCEPT: A11.
 22. posix-helper CI job (assumptions MINOR) -> ACCEPT: External signals note.
 
+## Ledger (round 2)
+
+23. S7 cannot remove crossterm alone: src/platform.rs:4553 PsmuxBackend wraps ratatui::backend::CrosstermBackend, and ratatui's default `crossterm`
+feature pulls ratatui-crossterm (failure CRIT) -> ACCEPT: S7 now also implements ratatui::backend::Backend natively (VT output from the Cell
+iterator: cursor moves, SGR from Style, clear/append_lines) and sets `ratatui = { default-features = false, features = ["std","all-widgets",
+"underline-color"] }`. Rollback of S7 is then a real manifest revert.
+24. windows-11-arm test runner unconfirmed (failure CRIT) -> ACCEPT: S0 adds the arm test job as a separate `continue-on-error: true` job until
+Open Q3 is answered; S0 CRITERIA counts i686 as the second enforced target, arm as informational.
+25. Root [workspace] members is an explicit list (Cargo.toml:12-24) (failure MAJOR) -> ACCEPT: each new path crate is added to `members` in the
+slice that creates it (S2 psmux-unicode, S3 psmux-json, S8 psmux-tui); S6 removes crates/portable-pty-psmux from members.
+26. monitor --snapshot golden has no diff in CI (failure MAJOR) -> ACCEPT: S0 commits tests-rs/fixtures/monitor_snapshot.txt and the test-monitor
+job diffs `--snapshot` output against it (normalising line endings).
+27. No test has ever run on i686 (failure MAJOR) -> ACCEPT: S0 pilots `cargo test --target i686-pc-windows-msvc` on the full suite in CI; failures
+found are fixed in S0 or the job is scoped to tests-rs with a ledger note.
+28. ratatui double-buffer diff lives in Terminal::draw not Backend (failure MAJOR) -> ACCEPT: S8 deliverable list adds Terminal (double buffer,
+diff, cursor restore) explicitly.
+29. `--locked` enumeration (failure MINOR) -> ACCEPT: S0 CRITERIA lists 5 invocations (3 build targets, test job build+test, monitor build).
+30. Substitute uses Regex::replace (first match only) at format.rs:834 (correctness CRIT) -> ACCEPT: S4 CRITERIA adds first-occurrence-only
+semantics and a fixture with 2+ matches.
+31. Replacement-string grammar ($1, ${name}, $$) never inventoried (correctness CRIT) -> ACCEPT: A5 extended with regex-crate replacement syntax
+($N, ${N}, ${name}, $$ literal); S4 fixtures include $1 and literal $ cases.
+32. EnableBlinking/DisableBlinking used at main.rs:49,4576,4667 (correctness MAJOR) -> ACCEPT: S7 emits CSI ? 12 h / l.
+33. layout.rs:126 uses skip_serializing_if = "Option::is_none" (correctness MAJOR) -> ACCEPT: S3 attribute inventory must include
+skip_serializing_if; field-absence tested.
+34. Frame::set_cursor_position/area/buffer_mut and Block::inner used (client.rs:1210,5108,5161,920,5310) (correctness MAJOR) -> ACCEPT: added to
+S8 scope.
+35. Fixed format "%a %b %e %H:%M:%S %Y" at format.rs:736,1234,1236,1781 plus DateTime::from_timestamp(ts,0).into() at format.rs:734 (correctness
+MAJOR x2) -> ACCEPT: S1b scope adds epoch-seconds -> local conversion (FileTimeToLocalFileTime or GetTimeZoneInformation math, None on
+out-of-range) and English weekday/month tables; fixture covers this string.
+36. which::which called with a variable basename at pane.rs:1266 (correctness MINOR) -> ACCEPT: S1a which fixture adds an arbitrary
+extension-less basename and PATHEXT order case.
+37. unwrap_or(0) in src/style.rs:254,483 vs unwrap_or(1) in vt100 cell.rs:52 (correctness MINOR) -> ACCEPT: S2 CRITERIA notes both call-site
+fallbacks stay untouched; replacement returns Option<usize> exactly like unicode-width.
+
 ## Open questions
 
 1. Is a 4.0.0 major bump acceptable at S9?
@@ -270,3 +329,6 @@ Mitigation folded into A3/S9 README note.
 Super-plan run 2026-09-04. 6 Haiku recon grunts; 5 Sonnet adversaries (correctness, failure modes, security, simplicity, assumption audit). Round 2
 and the Sonnet fresh-eyes critic were SKIPPED because the orchestrator hit the context ceiling after arbitration. Recommended next step: `/super-
 plan` round-2 on lenses failure-modes + correctness against this file before implementation via /tdd, slice by slice.
+
+Round 2 run 2026-09-04 (fresh session): 2 Sonnet adversaries (failure-modes, correctness) produced items 23-37; all ACCEPT. Fresh-eyes critic still
+not run.
