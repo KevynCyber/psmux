@@ -4236,11 +4236,9 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                         } else {
                             path_for_glob.to_string()
                         };
-                        if let Ok(entries) = glob::glob(&expanded) {
-                            for entry in entries.flatten() {
-                                if let Ok(contents) = std::fs::read_to_string(&entry) {
-                                    parse_config_content(&mut app, &contents);
-                                }
+                        for entry in crate::globmatch::glob(&expanded) {
+                            if let Ok(contents) = std::fs::read_to_string(&entry) {
+                                parse_config_content(&mut app, &contents);
                             }
                         }
                     } else {
