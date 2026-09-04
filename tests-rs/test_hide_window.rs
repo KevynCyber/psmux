@@ -148,7 +148,7 @@ fn hide_window_stdin_piped_works() {
 #[test]
 fn hide_window_powershell_command() {
     // Test with pwsh/powershell (the actual shell psmux uses for run-shell)
-    let shell = if which::which("pwsh").is_ok() { "pwsh" } else { "powershell" };
+    let shell = if crate::which::which("pwsh").is_some() { "pwsh" } else { "powershell" };
     let output = Command::new(shell)
         .args(["-NoProfile", "-Command", "Write-Output 'ps_hidden_test'"])
         .hide_window()
@@ -168,7 +168,7 @@ fn hide_window_powershell_command() {
 #[test]
 fn hide_window_powershell_exit_codes() {
     // if-shell relies on exit code from shell; verify it works hidden
-    let shell = if which::which("pwsh").is_ok() { "pwsh" } else { "powershell" };
+    let shell = if crate::which::which("pwsh").is_some() { "pwsh" } else { "powershell" };
 
     let success = Command::new(shell)
         .args(["-NoProfile", "-Command", "exit 0"])
@@ -215,7 +215,7 @@ fn build_run_shell_command_applies_hide_window() {
 fn build_run_shell_command_explicit_pwsh() {
     // When shell_cmd starts with "pwsh", build_run_shell_command should
     // still apply hide_window and run correctly
-    let shell = if which::which("pwsh").is_ok() { "pwsh" } else { "powershell" };
+    let shell = if crate::which::which("pwsh").is_some() { "pwsh" } else { "powershell" };
     let cmd_str = format!("{} -NoProfile -Command \"Write-Output 'explicit_shell_test'\"", shell);
     let mut cmd = build_run_shell_command(&cmd_str);
     let output = cmd

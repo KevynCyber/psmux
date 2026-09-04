@@ -33,7 +33,7 @@ fn direct_spawn_powershell_gets_cwd_hook() {
 #[test]
 fn direct_spawn_pwsh_gets_cwd_hook() {
     // pwsh.exe may live in different places; resolve it and skip if absent.
-    let Ok(pwsh) = which::which("pwsh") else { return };
+    let Some(pwsh) = crate::which::which("pwsh") else { return };
     let path = pwsh.to_string_lossy().into_owned();
     let builder = build_command(Some(&path), false, false);
     let dbg = format!("{:?}", builder);

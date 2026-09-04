@@ -1996,7 +1996,7 @@ fn resolve_run_shell_returns_valid_shell() {
     assert!(!args.is_empty(), "shell args should include at least one flag");
     // The returned program should be findable on the system
     assert!(
-        which::which(&prog).is_ok(),
+        crate::which::which(&prog).is_some(),
         "resolved shell '{}' should exist on PATH",
         prog
     );
