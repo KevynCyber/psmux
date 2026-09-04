@@ -1,3 +1,4 @@
+// Covers: ZDEP-009
 // Regression tests for the per-pane writer thread fix (39c9f8a).
 //
 // Writing to a pane used to go straight to the ConPTY input pipe from the
@@ -14,7 +15,7 @@
 
 use super::*;
 
-use parking_lot::{Condvar, Mutex};
+use std::sync::{Condvar, Mutex};
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -46,8 +47,8 @@ struct RecordingWriter {
 
 impl Write for RecordingWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        *self.attempts.lock() += 1;
-        self.bytes.lock().extend_from_slice(buf);
+        *self.attempts.lock().unwrap() += 1;
+        self.bytes.lock().unwrap().extend_from_slice(buf);
         Ok(buf.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {
@@ -71,10 +72,7 @@ struct GateWriter {
 impl Write for GateWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let (lock, cv) = &*self.state;
-        let mut bytes = lock.lock();
-        while !self.open.load(Ordering::SeqCst) {
-            cv.wait(&mut bytes);
-        }
+        let mut bytes = cv.wait_while(lock.lock().unwrap(), |_| !self.open.load(Ordering::SeqCst)).unwrap();
         bytes.extend_from_slice(buf);
         Ok(buf.len())
     }
@@ -101,7 +99,7 @@ fn queued_writes_are_delivered_in_order() {
     assert_eq!(queue.write(b"\n!").unwrap(), 2);
 
     assert!(
-        wait_until("ordered delivery", || *bytes.lock() == b"hello world\n!".to_vec(), Duration::from_secs(5)),
+        wait_until("ordered delivery", || *bytes.lock().unwrap() == b"hello world\n!".to_vec(), Duration::from_secs(5)),
         "queued writes must reach the inner writer in order"
     );
     assert!(!dropped.load(Ordering::SeqCst), "inner writer must stay alive while the pane is open");
@@ -132,7 +130,7 @@ fn write_completes_while_inner_writer_is_blocked() {
         "write must not wait for the inner writer"
     );
     // Nothing has reached the inner writer yet.
-    assert!(state.0.lock().is_empty());
+    assert!(state.0.lock().unwrap().is_empty());
 
     // Let the inner writer drain the queue. Lock-then-notify: the drainer
     // thread checks `open` while HOLDING the state mutex before parking in
@@ -145,10 +143,10 @@ fn write_completes_while_inner_writer_is_blocked() {
     // drainer has not checked yet and will see open=true, or it is already
     // parked and the notify lands.
     open.store(true, Ordering::SeqCst);
-    drop(state.0.lock());
+    drop(state.0.lock().unwrap());
     state.1.notify_all();
     assert!(
-        wait_until("blocked write drains", || *state.0.lock() == b"payload".to_vec(), Duration::from_secs(5)),
+        wait_until("blocked write drains", || *state.0.lock().unwrap() == b"payload".to_vec(), Duration::from_secs(5)),
         "released inner writer must receive the queued bytes"
     );
 
@@ -197,10 +195,10 @@ fn burst_writes_survive_backpressure_and_arrive_complete() {
     // Lock-then-notify — see write_completes_while_inner_writer_is_blocked
     // for why notifying without the state mutex is a lost wakeup.
     open.store(true, Ordering::SeqCst);
-    drop(state.0.lock());
+    drop(state.0.lock().unwrap());
     state.1.notify_all();
     assert!(
-        wait_until("burst arrives intact", || *state.0.lock() == payload, Duration::from_secs(5)),
+        wait_until("burst arrives intact", || *state.0.lock().unwrap() == payload, Duration::from_secs(5)),
         "the full burst must arrive byte-identical and in order"
     );
     drop(queue);

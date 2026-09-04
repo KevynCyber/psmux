@@ -1,3 +1,4 @@
+// Covers: ZDEP-009
 // Regression tests for the transient-write-error fix (60a4650).
 //
 // The queued pane writer used to end its thread on the FIRST failed write,
@@ -15,7 +16,7 @@
 
 use super::*;
 
-use parking_lot::Mutex;
+use std::sync::Mutex;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -58,7 +59,7 @@ impl Write for FailOnNthWriter {
                 "injected transient PTY write failure",
             ));
         }
-        self.bytes.lock().extend_from_slice(buf);
+        self.bytes.lock().unwrap().extend_from_slice(buf);
         Ok(buf.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {
@@ -149,7 +150,7 @@ fn writes_after_a_failure_are_consumed_without_delivery_or_release() {
         "writes after a failure must not be attempted again"
     );
     assert!(
-        bytes.lock().is_empty(),
+        bytes.lock().unwrap().is_empty(),
         "writes after a failure must not reach the broken inner writer"
     );
     assert!(
@@ -180,7 +181,7 @@ fn writes_before_the_failure_are_delivered() {
     let mut queue = spawn_pane_write_queue(Box::new(inner));
     assert_eq!(queue.write(b"ok").unwrap(), 2);
     assert!(
-        wait_until("first write delivered", || !bytes.lock().is_empty(), Duration::from_secs(5)),
+        wait_until("first write delivered", || !bytes.lock().unwrap().is_empty(), Duration::from_secs(5)),
         "the write before the failure must be delivered"
     );
 
@@ -196,7 +197,7 @@ fn writes_before_the_failure_are_delivered() {
         2,
         "only the pre-failure write and the failing write may be attempted"
     );
-    assert_eq!(*bytes.lock(), b"ok".to_vec(), "only the pre-failure write may be delivered");
+    assert_eq!(*bytes.lock().unwrap(), b"ok".to_vec(), "only the pre-failure write may be delivered");
     assert!(!dropped.load(Ordering::SeqCst), "writer must stay alive after the failure");
 
     drop(queue);
