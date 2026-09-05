@@ -326,9 +326,14 @@ operators `&& -- ~~`, nested classes, `[[:bogus:]]` `[[.a.]]` `[[=a=]]`,
 non-ASCII group names) is Err and the fixture records them as
 `unsupported`. Every oracle Err row is Err. Limits: nesting depth > 64
 (groups + classes) is Err, `{m,n}` with n > 1000 is Err, a compiled
-program > 100 000 instructions is Err. Unicode simplification (documented
-divergence from the oracle, fixture rows stay inside it): `\d` is ASCII
-`0-9` only; `\w` is `char::is_alphanumeric() || '_'`; `\s` is
+program > 100 000 instructions is Err. Compile-time native recursion is
+bounded independently of pattern length: stacked quantifiers on one atom
+(e.g. `a{1,1}{1,1}...`) and long `|` alternation chains must return from
+`Regex::new` (Ok or Err) without overflowing a 256 KiB stack; a security
+review on 2026-09-05 found both paths overflowed the default stack at
+~5 000 stacked quantifiers / ~50 000 branches. Unicode simplification
+(documented divergence from the oracle, fixture rows stay inside it):
+`\d` is ASCII `0-9` only; `\w` is `char::is_alphanumeric() || '_'`; `\s` is
 `char::is_whitespace()`; `\b` derives from `\w`. `(?i)`: pattern char x
 matches text char c iff fold-set(x) intersects fold-set(c) where
 fold-set(x) = {x, lower(x), upper(x), lower(upper(x))} using the std
