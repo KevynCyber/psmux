@@ -1,6 +1,5 @@
 allocator-api2 v0.2.21
 anyhow v1.0.104
-arrayvec v0.7.8
 bitflags v2.13.1
 castaway v0.2.4
 cfg-if v1.0.4
@@ -37,7 +36,6 @@ litrs v1.0.0
 lock_api v0.4.14
 log v0.4.33
 lru v0.18.2
-memchr v2.8.3
 nix v0.31.3
 num-conv v0.2.2
 parking_lot v0.12.5
@@ -79,7 +77,6 @@ unicode-segmentation v1.13.3
 unicode-truncate v2.0.1
 unicode-width v0.2.2
 vt100-psmux v0.16.10
-vte v0.15.0
 winapi v0.3.9
 windows-link v0.2.1
 windows-sys v0.61.2

@@ -1623,7 +1623,7 @@ impl Screen {
     // CSI ? h
     pub(crate) fn decset(
         &mut self,
-        params: &vte::Params,
+        params: &crate::vt_parser::Params,
         mut unhandled: impl FnMut(&mut Self),
     ) {
         for param in params {
@@ -1660,7 +1660,7 @@ impl Screen {
     // CSI ? l
     pub(crate) fn decrst(
         &mut self,
-        params: &vte::Params,
+        params: &crate::vt_parser::Params,
         mut unhandled: impl FnMut(&mut Self),
     ) {
         for param in params {
@@ -1700,7 +1700,7 @@ impl Screen {
     // CSI m
     pub(crate) fn sgr(
         &mut self,
-        params: &vte::Params,
+        params: &crate::vt_parser::Params,
         mut unhandled: impl FnMut(&mut Self),
     ) {
         // XXX really i want to just be able to pass in a default Params

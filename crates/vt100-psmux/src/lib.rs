@@ -61,6 +61,7 @@ mod perform;
 mod row;
 mod screen;
 mod term;
+pub mod vt_parser;
 
 pub use attrs::Color;
 pub use callbacks::Callbacks;

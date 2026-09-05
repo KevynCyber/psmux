@@ -81,34 +81,8 @@ path = "tests/vt_parser_no_panic.rs"
 name = "term_itoa_parity"
 path = "tests/term_itoa_parity.rs"
 
-[dependencies.itoa]
-version = "1.0.15"
-
 [dependencies.psmux-unicode]
 path = "../psmux-unicode"
-
-[dependencies.vte]
-version = "0.15.0"
-
-[dev-dependencies.nix]
-version = "0.31"
-features = ["term"]
-
-[dev-dependencies.quickcheck]
-version = "1.0"
-
-[dev-dependencies.rand]
-version = "0.10"
-
-[dev-dependencies.serde]
-version = "1.0.219"
-features = ["derive"]
-
-[dev-dependencies.serde_json]
-version = "1.0.140"
-
-[dev-dependencies.terminal_size]
-version = "0.4.2"
 
 
 

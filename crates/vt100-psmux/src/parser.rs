@@ -1,7 +1,7 @@
 /// A parser for terminal output which produces an in-memory representation of
 /// the terminal contents.
 pub struct Parser<CB: crate::callbacks::Callbacks = ()> {
-    parser: vte::Parser,
+    parser: crate::vt_parser::Parser,
     screen: crate::perform::WrappedScreen<CB>,
 }
 
@@ -11,7 +11,7 @@ impl Parser {
     #[must_use]
     pub fn new(rows: u16, cols: u16, scrollback_len: usize) -> Self {
         Self {
-            parser: vte::Parser::new(),
+            parser: crate::vt_parser::Parser::new(),
             screen: crate::perform::WrappedScreen::new(
                 rows,
                 cols,
@@ -33,7 +33,7 @@ impl<CB: crate::callbacks::Callbacks> Parser<CB> {
         callbacks: CB,
     ) -> Self {
         Self {
-            parser: vte::Parser::new(),
+            parser: crate::vt_parser::Parser::new(),
             screen: crate::perform::WrappedScreen::new_with_callbacks(
                 rows,
                 cols,
