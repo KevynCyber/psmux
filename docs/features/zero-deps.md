@@ -142,3 +142,55 @@ manifest line is removed and `cargo tree` no longer lists `chrono`,
 `iana-time-zone`, `num-traits` (unless pulled by another crate), or
 `windows-link` via chrono.
 Tests: `tests-rs/test_zdep_timefmt.rs`, `tests-rs/test_zdep_time_std.rs`
+
+## ZDEP-012 unicode-width char width replaced by crates/psmux-unicode
+
+`crates/psmux-unicode` (workspace member, zero dependencies) provides
+`char_width(char) -> Option<usize>` with exactly unicode-width 0.2.2's
+`UnicodeWidthChar::width` semantics: `None` for the Cc general category
+(U+0000..U+001F, U+007F..U+009F), `Some(0)` for zero-width characters
+(Mn/Me/Cf, ZWJ, ZWNJ, U+1160..U+11FF Hangul jamo V/T, ...), `Some(2)` for
+East Asian Wide/Fullwidth and emoji-presentation characters, `Some(1)`
+otherwise (including unassigned and private-use code points). The table is
+`crates/psmux-unicode/src/tables.rs`, emitted by
+`scripts/gen_unicode_width.py` from the committed oracle fixture
+`tests-rs/fixtures/unicode_width_0.2.2.txt` (run-length rows
+`<start-hex>..<end-hex>|<N|0|1|2>` covering U+0000..U+10FFFF minus
+surrogates, generated once from unicode-width 0.2.2). Deviation from the
+plan's A6: the generator consumes the oracle fixture, not UCD files, so no
+UCD inputs are checked in and the table equals the fixture by construction.
+Acceptance: the fixture replays with 0 mismatches over every code point;
+`scripts/test_gen_unicode_width.py` regenerates `tables.rs` byte-identical.
+Tests: `crates/psmux-unicode/tests/char_width_fixture.rs`,
+`scripts/test_gen_unicode_width.py`
+
+## ZDEP-013 unicode-width str width replaced by psmux_unicode::str_width
+
+`psmux_unicode::str_width(&str) -> usize` reproduces unicode-width 0.2.2's
+`UnicodeWidthStr::width` for every row of the committed string fixture
+`tests-rs/fixtures/unicode_str_width_0.2.2.txt` (rows
+`<category>|<string with \u{XXXX} escapes>|<width>`, generated once from
+unicode-width 0.2.2). Declared categories, each present in the fixture:
+ascii, cjk, thai clusters (the `width_thai_441` strings), combining marks,
+control characters (C0, DEL, C1, `\n`, `\t`, `\r`), U+FE0F VS16 after an
+emoji-presentation-capable base (the `issue533_vs16_width` strings) and
+after a non-emoji base, U+FE0E VS15 after an emoji base, ZWJ emoji
+sequences, regional-indicator pairs, Hangul jamo L+V+T sequences, empty
+string. The exact widths the crate assigns (notably for control characters
+and VS16) are whatever the fixture records; the implementation is the
+sum of `char_width` plus the sequence rules needed for 0 fixture mismatches.
+Sequences outside the declared categories are an accepted risk (plan ledger
+item 12). All call sites switch to `psmux_unicode` with fallbacks unchanged:
+`UnicodeWidthChar::width(..).unwrap_or(0)` in `src/style.rs` (2 sites),
+`unwrap_or(1)` in `src/client.rs`, `src/preview.rs`,
+`crates/vt100-psmux/src/cell.rs`, `crates/vt100-psmux/src/screen.rs`;
+`UnicodeWidthStr::width` in `src/client.rs`, `src/layout.rs`,
+`src/rendering.rs`, `src/style.rs`, `crates/vt100-psmux/src/screen.rs`
+(`wants_wide_promotion`), `examples/pipeline_diag.rs`,
+`tests-rs/test_client.rs`. The `unicode-width` lines are removed from the
+root and `crates/vt100-psmux` manifests, `Cargo.lock`, and the crate-tree
+golden; `crates/psmux-unicode` is added to `[workspace] members` and as a
+path dependency of both.
+Tests: `crates/psmux-unicode/tests/str_width_fixture.rs`,
+`crates/vt100-psmux/tests/width_thai_441.rs`,
+`crates/vt100-psmux/tests/issue533_vs16_width.rs`
