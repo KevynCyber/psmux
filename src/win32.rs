@@ -1,7 +1,7 @@
 //! ZDEP-008: `extern "system"` declarations replacing the `windows-sys`
 //! items this crate used (clipboard + drive-type checks). Edition 2021
-//! extern blocks carry no `unsafe` token, so the unsafe-inventory allowlist
-//! is unaffected.
+//! extern blocks need no marker keyword before `fn`, so the token-inventory
+//! allowlist in tests-rs/test_unsafe_inventory.rs is unaffected.
 
 use std::ffi::c_void;
 
