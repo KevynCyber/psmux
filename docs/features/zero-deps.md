@@ -393,3 +393,18 @@ mismatch the failure message lists the lines present only in the live tree
 and the lines present only in the golden. ZDEP-003 describes the golden;
 nothing enforced it before this test.
 Tests: `tests-rs/test_zdep_crate_tree.rs`
+
+## ZDEP-020 find_matching_brace balances bare braces inside #{...}
+
+`find_matching_brace` in `src/format.rs` decremented depth on every bare
+`}` but only incremented on `#{`, so a `${1}` group reference in an `s/`
+replacement or a regex bounded repeat such as `o{,1}` inside `#{...}`
+closed the expression early and leaked the tail (`X/:session_name}`) as
+literal text. It now also increments depth on a bare `{` (tmux-style
+balancing); `split_at_depth0` is unchanged.
+Acceptance (session_name `modvar`): `#{s/(mod)var/${1}X/:session_name}`
+-> `modX`; `#{s/o{,1}d/_/:session_name}` -> `m_var`;
+`#{?#{==:#{session_name},modvar},yes,no}` -> `yes`; a literal after the
+expression survives; a simple bare expression is unchanged.
+Tests: `tests-rs/test_zdep_brace_match.rs` (wired via
+`src/tests_zdep_wiring.rs`)

@@ -1912,6 +1912,9 @@ fn find_matching_brace(s: &str, start: usize) -> Option<usize> {
         } else if i + 1 < bytes.len() && bytes[i] == b'#' && bytes[i + 1] == b'{' {
             depth += 1;
             i += 1;
+        } else if bytes[i] == b'{' {
+            // ZDEP-020: balance bare '{' too, so literal braces (${1}, a{,5}) inside the expression don't close it early
+            depth += 1;
         }
         i += 1;
     }
