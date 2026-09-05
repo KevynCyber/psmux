@@ -1970,7 +1970,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                         String::new()
                     };
                     let windows = app.windows.len();
-                    let created = app.created_at.format("%a %b %e %H:%M:%S %Y");
+                    let created = crate::timefmt::display_since(app.created_at);
                     let line = format!("{}: {} windows (created {}){}{}\n", app.session_name, windows, created, group, attached);
                     let _ = resp.send(line);
                 }
@@ -3328,7 +3328,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                     // Warm server's created_at is the warm process start time, not the
                     // user's session-creation time — reset on claim or list-sessions /
                     // session_created / uptime would report the warm pool's age.
-                    app.created_at = chrono::Local::now();
+                    app.created_at = std::time::Instant::now();
                     // Same reason for the status-interval phase: the warm server skips
                     // the timer (see should_run_status_interval_timer), so its last-fire
                     // stamp is the warm start time — reset it so a claimed session fires
@@ -5492,7 +5492,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                         std::process::id(),
                         app.session_name,
                         app.windows.len(),
-                        (chrono::Local::now() - app.created_at).num_seconds(),
+                        app.created_at.elapsed().as_secs(),
                         {
                             crate::paths::port_file(&app.port_file_base())
                         }

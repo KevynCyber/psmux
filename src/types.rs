@@ -5,7 +5,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use crossterm::event::{KeyCode, KeyModifiers};
 use portable_pty::MasterPty;
 use ratatui::prelude::Rect;
-use chrono::Local;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -658,7 +657,7 @@ pub struct AppState {
     pub latest_size_client_id: Option<u64>,
     /// Client registry: all active PERSISTENT and CONTROL clients.
     pub client_registry: std::collections::HashMap<u64, ClientInfo>,
-    pub created_at: chrono::DateTime<Local>,
+    pub created_at: Instant,
     pub next_win_id: usize,
     pub next_pane_id: usize,
     /// Pane ids already auto-healed once by `@heal-crashed-panes`. A pane is
@@ -1227,7 +1226,7 @@ impl AppState {
             latest_client_id: None,
             latest_size_client_id: None,
             client_registry: std::collections::HashMap::new(),
-            created_at: Local::now(),
+            created_at: Instant::now(),
             next_win_id: 1,
             next_pane_id: 1,
             healed_pane_ids: std::collections::HashSet::new(),

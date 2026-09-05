@@ -2,11 +2,9 @@ aho-corasick v1.1.5
 allocator-api2 v0.2.21
 anyhow v1.0.104
 arrayvec v0.7.8
-base64 v0.23.1
 bitflags v2.13.1
 castaway v0.2.4
 cfg-if v1.0.4
-chrono v0.4.45
 compact_str v0.9.1
 convert_case v0.10.0
 critical-section v1.2.0
@@ -24,7 +22,6 @@ either v1.17.0
 equivalent v1.0.2
 filedescriptor v0.8.3
 foldhash v0.2.0
-glob v0.3.4
 hashbrown v0.16.1
 hashbrown v0.17.1
 heck v0.5.0
@@ -44,7 +41,6 @@ lru v0.18.2
 memchr v2.8.3
 nix v0.31.3
 num-conv v0.2.2
-num-traits v0.2.19
 parking_lot v0.12.5
 parking_lot_core v0.9.12
 portable-pty-psmux v0.9.7
@@ -89,7 +85,6 @@ unicode-truncate v2.0.1
 unicode-width v0.2.2
 vt100-psmux v0.16.10
 vte v0.15.0
-which v8.0.5
 winapi v0.3.9
 windows-link v0.2.1
 windows-sys v0.61.2

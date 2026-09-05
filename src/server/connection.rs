@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::net::TcpStream;
 
 use crate::types::{CtrlReq, LayoutKind, WaitForOp, ControlNotification};
@@ -574,7 +574,7 @@ if control_echo || control_noecho {
     {
         let mut ws = write_lock.lock().unwrap();
         if control_noecho {
-            let init_ts = chrono::Utc::now().timestamp();
+            let init_ts = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
             // DCS opener (no newline) immediately followed by %begin
             let _ = ws.write_all(b"\x1bP1000p");
             let _ = writeln!(ws, "%begin {} 1 0", init_ts);
@@ -649,7 +649,7 @@ if control_echo || control_noecho {
         if trimmed.is_empty() { continue; }
 
         cmd_counter += 1;
-        let ts = chrono::Utc::now().timestamp();
+        let ts = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
 
         // Dispatch the command (before acquiring write lock)
         let parsed = crate::cli::normalize_flag_equals(parse_command_line(trimmed));
