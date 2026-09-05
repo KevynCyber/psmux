@@ -87,12 +87,6 @@ anyhow = "1.0.104"
 # Windows only
 [target.'cfg(not(windows))'.dependencies]
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61.2", features = [
-    "Win32_Foundation",
-    "Win32_System_Memory",
-    "Win32_System_DataExchange",
-    "Win32_Storage_FileSystem",
-] }
 
 [[bin]]
 name = "psmux"

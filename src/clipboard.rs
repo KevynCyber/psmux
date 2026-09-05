@@ -14,14 +14,9 @@ use std::thread;
 #[cfg(windows)]
 use std::time::Duration;
 #[cfg(windows)]
-use windows_sys::Win32::Foundation::GlobalFree;
-#[cfg(windows)]
-use windows_sys::Win32::System::DataExchange::{
+use crate::win32::{
     CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData,
-};
-#[cfg(windows)]
-use windows_sys::Win32::System::Memory::{
-    GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock, GMEM_MOVEABLE,
+    GlobalAlloc, GlobalFree, GlobalLock, GlobalSize, GlobalUnlock, GMEM_MOVEABLE,
 };
 
 /// Write `text` to the Windows system clipboard as CF_UNICODETEXT.

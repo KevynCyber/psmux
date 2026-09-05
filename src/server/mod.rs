@@ -58,12 +58,7 @@ fn file_sink_drive_is_remote(path: &str) -> bool {
         return false; // relative or non-drive path: resolved locally
     }
     let root: [u16; 4] = [bytes[0] as u16, b':' as u16, b'\\' as u16, 0];
-    // winbase.h GetDriveTypeW return value (windows-sys 0.61 does not
-    // re-export the DRIVE_* constants).
-    const DRIVE_REMOTE: u32 = 4;
-    unsafe {
-        windows_sys::Win32::Storage::FileSystem::GetDriveTypeW(root.as_ptr()) == DRIVE_REMOTE
-    }
+    unsafe { crate::win32::GetDriveTypeW(root.as_ptr()) == crate::win32::DRIVE_REMOTE }
 }
 
 #[cfg(not(windows))]
