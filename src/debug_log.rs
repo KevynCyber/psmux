@@ -77,7 +77,7 @@ pub fn client_log(component: &str, msg: &str) {
             if let Ok(mut guard) = CLIENT_LOG.lock() {
                 if let Some(ref mut f) = *guard {
                     let _ = writeln!(f, "[{}][log] --- log cap reached ({} entries), further logging suppressed ---",
-                        chrono::Local::now().format("%H:%M:%S%.3f"), CLIENT_LOG_CAP);
+                        crate::timefmt::log_timestamp(), CLIENT_LOG_CAP);
                     let _ = f.flush();
                 }
             }
@@ -87,7 +87,7 @@ pub fn client_log(component: &str, msg: &str) {
     if let Ok(mut guard) = CLIENT_LOG.lock() {
         if let Some(ref mut f) = *guard {
             let _ = writeln!(f, "[{}][{}] {}",
-                chrono::Local::now().format("%H:%M:%S%.3f"), component, msg);
+                crate::timefmt::log_timestamp(), component, msg);
             let _ = f.flush();
         }
     }
@@ -167,7 +167,7 @@ pub fn style_log(component: &str, msg: &str) {
             if let Ok(mut guard) = STYLE_LOG.lock() {
                 if let Some(ref mut f) = *guard {
                     let _ = writeln!(f, "[{}][log] --- log cap reached ---",
-                        chrono::Local::now().format("%H:%M:%S%.3f"));
+                        crate::timefmt::log_timestamp());
                     let _ = f.flush();
                 }
             }
@@ -177,7 +177,7 @@ pub fn style_log(component: &str, msg: &str) {
     if let Ok(mut guard) = STYLE_LOG.lock() {
         if let Some(ref mut f) = *guard {
             let _ = writeln!(f, "[{}][{}] {}",
-                chrono::Local::now().format("%H:%M:%S%.3f"), component, msg);
+                crate::timefmt::log_timestamp(), component, msg);
             let _ = f.flush();
         }
     }
@@ -208,7 +208,7 @@ pub fn input_log(component: &str, msg: &str) {
             if let Ok(mut guard) = INPUT_LOG.lock() {
                 if let Some(ref mut f) = *guard {
                     let _ = writeln!(f, "[{}][log] --- log cap reached ---",
-                        chrono::Local::now().format("%H:%M:%S%.3f"));
+                        crate::timefmt::log_timestamp());
                     let _ = f.flush();
                 }
             }
@@ -218,7 +218,7 @@ pub fn input_log(component: &str, msg: &str) {
     if let Ok(mut guard) = INPUT_LOG.lock() {
         if let Some(ref mut f) = *guard {
             let _ = writeln!(f, "[{}][{}] {}",
-                chrono::Local::now().format("%H:%M:%S%.3f"), component, msg);
+                crate::timefmt::log_timestamp(), component, msg);
             let _ = f.flush();
         }
     }
@@ -249,7 +249,7 @@ pub fn server_log(component: &str, msg: &str) {
             if let Ok(mut guard) = SERVER_LOG.lock() {
                 if let Some(ref mut f) = *guard {
                     let _ = writeln!(f, "[{}][log] --- log cap reached ---",
-                        chrono::Local::now().format("%H:%M:%S%.3f"));
+                        crate::timefmt::log_timestamp());
                     let _ = f.flush();
                 }
             }
@@ -259,7 +259,7 @@ pub fn server_log(component: &str, msg: &str) {
     if let Ok(mut guard) = SERVER_LOG.lock() {
         if let Some(ref mut f) = *guard {
             let _ = writeln!(f, "[{}][{}] {}",
-                chrono::Local::now().format("%H:%M:%S%.3f"), component, msg);
+                crate::timefmt::log_timestamp(), component, msg);
             let _ = f.flush();
         }
     }
@@ -305,7 +305,7 @@ pub fn session_log(component: &str, msg: &str) {
             if let Ok(mut guard) = SESSION_LOG.lock() {
                 if let Some(ref mut f) = *guard {
                     let _ = writeln!(f, "[{}][log] --- log cap reached ---",
-                        chrono::Local::now().format("%H:%M:%S%.3f"));
+                        crate::timefmt::log_timestamp());
                     let _ = f.flush();
                 }
             }
@@ -315,7 +315,7 @@ pub fn session_log(component: &str, msg: &str) {
     if let Ok(mut guard) = SESSION_LOG.lock() {
         if let Some(ref mut f) = *guard {
             let _ = writeln!(f, "[{}][{}] {}",
-                chrono::Local::now().format("%H:%M:%S%.3f"), component, msg);
+                crate::timefmt::log_timestamp(), component, msg);
             let _ = f.flush();
         }
     }

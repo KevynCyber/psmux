@@ -2,7 +2,6 @@ use std::io::{self, Write, BufRead, BufReader};
 use std::time::{Duration, Instant};
 use std::env;
 
-use chrono::Local;
 use crossterm::event::{Event, KeyCode, KeyModifiers, KeyEventKind};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -825,8 +824,7 @@ pub fn render_clock_overlay(f: &mut Frame, area: Rect, colour: Color) {
         &["###", "# #", "###", "  #", "###"],
     ];
     const COLON: [&str; 5] = [" ", "#", " ", "#", " "];
-    let now = Local::now();
-    let time_str = now.format("%H:%M:%S").to_string();
+    let time_str = crate::timefmt::strftime(&crate::timefmt::now(), "%H:%M:%S").unwrap_or_default();
     let total_w: u16 = time_str.chars().map(|c| if c == ':' { 2 } else { 4 }).sum::<u16>() - 1;
     let total_h: u16 = 5;
     if area.width < total_w || area.height < total_h { return; }

@@ -5,6 +5,30 @@
 
 use std::ffi::c_void;
 
+/// ZDEP-010/ZDEP-011: mirrors Win32 `SYSTEMTIME` (field order matches the
+/// real struct so it can be passed by pointer to `GetLocalTime` /
+/// `FileTimeToSystemTime`).
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct SYSTEMTIME {
+    pub wyear: u16,
+    pub wmonth: u16,
+    pub wdayofweek: u16,
+    pub wday: u16,
+    pub whour: u16,
+    pub wminute: u16,
+    pub wsecond: u16,
+    pub wmilliseconds: u16,
+}
+
+/// Mirrors Win32 `FILETIME`: 100-nanosecond intervals since 1601-01-01 UTC.
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct FILETIME {
+    pub dwlowdatetime: u32,
+    pub dwhighdatetime: u32,
+}
+
 #[link(name = "kernel32")]
 extern "system" {
     pub fn GlobalAlloc(uflags: u32, dwbytes: usize) -> *mut c_void;
@@ -13,6 +37,9 @@ extern "system" {
     pub fn GlobalSize(hmem: *mut c_void) -> usize;
     pub fn GlobalFree(hmem: *mut c_void) -> *mut c_void;
     pub fn GetDriveTypeW(lprootpathname: *const u16) -> u32;
+    pub fn GetLocalTime(lpsystemtime: *mut SYSTEMTIME);
+    pub fn FileTimeToLocalFileTime(lpfiletime: *const FILETIME, lplocalfiletime: *mut FILETIME) -> i32;
+    pub fn FileTimeToSystemTime(lpfiletime: *const FILETIME, lpsystemtime: *mut SYSTEMTIME) -> i32;
 }
 
 #[link(name = "user32")]

@@ -40,6 +40,7 @@ mod which;
 mod globmatch;
 #[cfg(windows)]
 mod win32;
+mod timefmt;
 #[cfg(test)]
 mod tests_zdep_wiring;
 

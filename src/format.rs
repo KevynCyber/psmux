@@ -113,8 +113,9 @@ pub fn expand_format_for_window(fmt: &str, app: &AppState, win_idx: usize) -> St
     let mut i = 0;
 
     // Whether the original format contains strftime %-sequences.
-    // If so, we need to escape '%' in expanded variable content so chrono
-    // only interprets the real strftime codes from the original format.
+    // If so, we need to escape '%' in expanded variable content so
+    // timefmt::strftime only interprets the real strftime codes from the
+    // original format.
     let has_strftime = fmt.contains('%');
 
     while i < len {
@@ -219,7 +220,7 @@ pub fn expand_format_for_window(fmt: &str, app: &AppState, win_idx: usize) -> St
                     if let Some(w) = app.windows.get(win_idx) {
                         let active_id = get_active_pane_id(&w.root, &w.active_path).unwrap_or(0);
                         if has_strftime {
-                            // Escape the '%' so chrono doesn't misinterpret %0, %1, etc.
+                            // Escape the '%' so timefmt::strftime doesn't misinterpret %0, %1, etc.
                             result.push_str(&format!("%%{}", active_id));
                         } else {
                             result.push_str(&format!("%{}", active_id));
@@ -242,14 +243,13 @@ pub fn expand_format_for_window(fmt: &str, app: &AppState, win_idx: usize) -> St
     }
     // Expand strftime %-sequences only if the ORIGINAL format contained '%'
     if has_strftime && result.contains('%') {
-        // Use write! to catch chrono format errors instead of panicking.
-        // Expanded variable content has '%' escaped to '%%' above, so chrono
-        // will only interpret the real strftime codes from the original format.
-        use std::fmt::Write;
-        let formatted = chrono::Local::now().format(&result);
-        let mut buf = String::with_capacity(result.len() + 32);
-        if write!(buf, "{}", formatted).is_ok() {
-            result = buf;
+        // `crate::timefmt::strftime` returns `None` on an unknown specifier
+        // (matches the prior strftime crate's write failure on an unknown
+        // specifier). Expanded
+        // variable content has '%' escaped to '%%' above, so it will only
+        // interpret the real strftime codes from the original format.
+        if let Some(formatted) = crate::timefmt::strftime(&crate::timefmt::now(), &result) {
+            result = formatted;
         }
         // On error, keep the pre-strftime result as-is
     }
@@ -404,7 +404,7 @@ fn run_shell_command(cmd: &str, app: &AppState) -> String {
     last_value
 }
 
-/// Escape '%' to '%%' in expanded variable content so chrono's strftime
+/// Escape '%' to '%%' in expanded variable content so timefmt's strftime
 /// doesn't misinterpret user content (pane titles, pane IDs, etc.) as
 /// format specifiers.
 #[inline]
@@ -731,9 +731,10 @@ fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> 
     match m {
         Modifier::Time => {
             if let Ok(ts) = value.parse::<i64>() {
-                if let Some(dt) = chrono::DateTime::from_timestamp(ts, 0) {
-                    let local: chrono::DateTime<chrono::Local> = dt.into();
-                    return local.format("%a %b %e %H:%M:%S %Y").to_string();
+                if let Some(lt) = crate::timefmt::local_from_epoch_secs(ts) {
+                    if let Some(formatted) = crate::timefmt::strftime(&lt, "%a %b %e %H:%M:%S %Y") {
+                        return formatted;
+                    }
                 }
             }
             value.to_string()
@@ -758,10 +759,7 @@ fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> 
         Modifier::ExpandTime => {
             let expanded = expand_format_for_window(value, app, win_idx);
             if expanded.contains('%') {
-                use std::fmt::Write;
-                let formatted = chrono::Local::now().format(&expanded);
-                let mut buf = String::with_capacity(expanded.len() + 32);
-                if write!(buf, "{}", formatted).is_ok() { buf } else { expanded }
+                crate::timefmt::strftime(&crate::timefmt::now(), &expanded).unwrap_or(expanded)
             } else {
                 expanded
             }
@@ -1230,10 +1228,10 @@ fn expand_var_inner(var: &str, app: &AppState, win_idx: usize) -> String {
         "session_attached" => if app.attached_clients > 0 { "1".into() } else { "0".into() },
         "session_windows" => app.windows.len().to_string(),
         "session_id" => format!("${}", app.session_id),
-        "session_created" => app.created_at.timestamp().to_string(),
-        "session_created_string" => app.created_at.format("%a %b %e %H:%M:%S %Y").to_string(),
-        "session_activity" | "session_last_attached" => app.created_at.timestamp().to_string(),
-        "session_activity_string" => app.created_at.format("%a %b %e %H:%M:%S %Y").to_string(),
+        "session_created" => crate::timefmt::epoch_secs_since(app.created_at).to_string(),
+        "session_created_string" => crate::timefmt::display_since(app.created_at),
+        "session_activity" | "session_last_attached" => crate::timefmt::epoch_secs_since(app.created_at).to_string(),
+        "session_activity_string" => crate::timefmt::display_since(app.created_at),
         "session_group" | "session_group_list" => app.session_group.clone().unwrap_or_default(),
         "session_alerts" | "session_stack" => String::new(),
         "session_group_attached" => {
@@ -1270,7 +1268,7 @@ fn expand_var_inner(var: &str, app: &AppState, win_idx: usize) -> String {
         "window_width" => win.area.width.to_string(),
         "window_height" => win.area.height.to_string(),
         "window_format" => "1".into(),
-        "window_activity" => app.created_at.timestamp().to_string(),
+        "window_activity" => crate::timefmt::epoch_secs_since(app.created_at).to_string(),
         "window_silence_flag" => if win.silence_flag { "1".into() } else { "0".into() },
         "window_bell_flag" => if win.bell_flag { "1".into() } else { "0".into() },
         "window_linked" => if win.linked_from.is_some() { "1".into() } else { "0".into() },
@@ -1758,7 +1756,7 @@ fn expand_var_inner(var: &str, app: &AppState, win_idx: usize) -> String {
             let idx = BUFFER_IDX_OVERRIDE.get().unwrap_or(0);
             if idx < app.paste_buffers.len() { format!("buffer{:04}", idx) } else { String::new() }
         }
-        "buffer_created" => app.created_at.timestamp().to_string(),
+        "buffer_created" => crate::timefmt::epoch_secs_since(app.created_at).to_string(),
 
         // ── Client ──
         "client_width" => app.client_area.width.to_string(),
@@ -1777,8 +1775,8 @@ fn expand_var_inner(var: &str, app: &AppState, win_idx: usize) -> String {
         "client_name" | "client_tty" => "client0".into(),
         "client_pid" => std::process::id().to_string(),
         "client_prefix" => if app.client_prefix_active || matches!(app.mode, Mode::Prefix { .. }) { "1".into() } else { "0".into() },
-        "client_activity" | "client_created" => app.created_at.timestamp().to_string(),
-        "client_activity_string" | "client_created_string" => app.created_at.format("%a %b %e %H:%M:%S %Y").to_string(),
+        "client_activity" | "client_created" => crate::timefmt::epoch_secs_since(app.created_at).to_string(),
+        "client_activity_string" | "client_created_string" => crate::timefmt::display_since(app.created_at),
         "client_control_mode" => "0".into(),
         "client_flags" => "focused".into(),
         "client_key_table" => if app.client_prefix_active || matches!(app.mode, Mode::Prefix { .. }) {
@@ -1813,7 +1811,7 @@ fn expand_var_inner(var: &str, app: &AppState, win_idx: usize) -> String {
             crate::session::read_namespace_instance(app.socket_name.as_deref()).unwrap_or_default()
         }
         "version" => VERSION.to_string(),
-        "start_time" => app.created_at.timestamp().to_string(),
+        "start_time" => crate::timefmt::epoch_secs_since(app.created_at).to_string(),
         "socket_path" => {
             format!("{}/default", crate::paths::psmux_dir())
         }

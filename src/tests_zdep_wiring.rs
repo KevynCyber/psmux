@@ -16,3 +16,11 @@ mod tests_zdep_proxy_pane_errors;
 #[cfg(all(test, windows))]
 #[path = "../tests-rs/test_zdep_win32.rs"]
 mod tests_zdep_win32;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_timefmt.rs"]
+mod tests_zdep_timefmt;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_time_std.rs"]
+mod tests_zdep_time_std;

@@ -26,6 +26,7 @@ const ALLOWLIST: &[(&str, usize)] = &[
     ("src/server/mod.rs", 2),
     ("src/session.rs", 1),
     ("src/ssh_input.rs", 26),
+    ("src/timefmt.rs", 3),
     ("src/tree.rs", 1),
     ("src/types.rs", 1),
 ];

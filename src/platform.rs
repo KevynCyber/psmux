@@ -3143,7 +3143,7 @@ pub mod process_info {
         let path = format!("{}/autorename.log", crate::paths::psmux_dir());
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
             use std::io::Write;
-            let _ = writeln!(f, "[{}] {}", chrono::Local::now().format("%H:%M:%S%.3f"), msg);
+            let _ = writeln!(f, "[{}] {}", crate::timefmt::log_timestamp(), msg);
         }
     }
 
