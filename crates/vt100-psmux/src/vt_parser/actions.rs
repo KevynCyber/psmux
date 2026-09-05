@@ -171,7 +171,8 @@ impl Parser {
             Err(err) => {
                 // Dispatch all the valid bytes.
                 let valid_bytes = err.valid_up_to();
-                let parsed = unsafe { str::from_utf8_unchecked(&bytes[..valid_bytes]) };
+                // Safe: `valid_bytes` is the length of the already-validated utf8 prefix.
+                let parsed = str::from_utf8(&bytes[..valid_bytes]).unwrap_or("");
                 Self::ground_dispatch(performer, parsed);
 
                 match err.error_len() {
@@ -224,12 +225,18 @@ impl Parser {
         // Parse the unicode character.
         match str::from_utf8(&self.partial_utf8[..self.partial_utf8_len]) {
             // If the entire buffer is valid, use the first character and continue parsing.
-            Ok(parsed) => {
-                let c = unsafe { parsed.chars().next().unwrap_unchecked() };
-                performer.print(c);
+            Ok(parsed) => match parsed.chars().next() {
+                // A complete, valid utf8 buffer always yields a first character.
+                Some(c) => {
+                    performer.print(c);
 
-                self.partial_utf8_len = 0;
-                c.len_utf8() - old_bytes
+                    self.partial_utf8_len = 0;
+                    c.len_utf8() - old_bytes
+                },
+                None => {
+                    self.partial_utf8_len = 0;
+                    0
+                },
             },
             Err(err) => {
                 let valid_bytes = err.valid_up_to();
@@ -237,15 +244,14 @@ impl Parser {
                 // utf8 character into `partial_utf8`. Since we only care about the
                 // first character, we just ignore the rest.
                 if valid_bytes > 0 {
-                    let c = unsafe {
-                        let parsed = str::from_utf8_unchecked(&self.partial_utf8[..valid_bytes]);
-                        parsed.chars().next().unwrap_unchecked()
-                    };
+                    // Safe: `valid_bytes` is the length of the already-validated utf8 prefix.
+                    let parsed = str::from_utf8(&self.partial_utf8[..valid_bytes]).unwrap_or("");
+                    if let Some(c) = parsed.chars().next() {
+                        performer.print(c);
 
-                    performer.print(c);
-
-                    self.partial_utf8_len = 0;
-                    return valid_bytes - old_bytes;
+                        self.partial_utf8_len = 0;
+                        return valid_bytes - old_bytes;
+                    }
                 }
 
                 match err.error_len() {

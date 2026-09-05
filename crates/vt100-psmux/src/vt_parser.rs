@@ -32,7 +32,7 @@
 //!
 //! One deliberate, behaviour-preserving deviation from vte's own source: the
 //! OSC-dispatch step (in `actions.rs`) builds the `&[&[u8]]` param slice via
-//! a plain `Vec` instead of vte's `MaybeUninit`-array-plus-unsafe-cast trick
+//! a plain `Vec` instead of vte's fixed-size-uninitialized-array trick
 //! (vte needs that trick to stay `no_std`-compatible without allocation;
 //! this crate is std-only, so a `Vec` is simpler and equally exact).
 //!
