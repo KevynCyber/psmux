@@ -7,8 +7,18 @@
 // pattern; `SearchContent` returns `""` on an invalid pattern; all three
 // prepend `(?i)` when case-insensitive. The `regex` manifest line is
 // removed; `psmux-regex` is a workspace member and root path dependency.
+//
+// Substitute/Match cases call the private `crate::format::apply_modifier`
+// directly (as `pub(crate)`, alongside `crate::format::Modifier`) instead
+// of routing through `expand_format_for_window`: with no window configured,
+// the full expander collapses an unresolvable `#{...:target}` to `""`
+// before `apply_modifier` ever runs, and `find_matching_brace` treats any
+// bare `}` as a closer, so patterns containing `${1}` or `a{,5}` terminate
+// the `#{...}` span early. Calling `apply_modifier` directly bypasses both
+// pre-existing, out-of-scope expander limitations while still exercising
+// the exact `psmux_regex` call sites under test.
 
-use crate::format::expand_format_for_window;
+use crate::format::{apply_modifier, expand_format_for_window, Modifier};
 use crate::types::AppState;
 
 fn mock_app() -> AppState {
@@ -17,72 +27,80 @@ fn mock_app() -> AppState {
     app
 }
 
+fn substitute(pattern: &str, replacement: &str, case_insensitive: bool, value: &str) -> String {
+    let app = mock_app();
+    apply_modifier(
+        &Modifier::Substitute {
+            pattern: pattern.to_string(),
+            replacement: replacement.to_string(),
+            case_insensitive,
+        },
+        value,
+        &app,
+        0,
+    )
+}
+
+fn match_regex(pattern: &str, subject: &str, case_insensitive: bool) -> String {
+    let app = mock_app();
+    let value = format!("{},{}", pattern, subject);
+    apply_modifier(
+        &Modifier::Match { regex: true, case_insensitive },
+        &value,
+        &app,
+        0,
+    )
+}
+
 // ---------------------------------------------------------------------
 // Substitute (#{s/pattern/replacement/flags:target})
 // ---------------------------------------------------------------------
 
 #[test]
 fn substitute_replaces_first_occurrence_only_with_two_or_more_matches() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/o/X/:foo boo}", &app, 0);
-    assert_eq!(val, "fXo boo");
+    assert_eq!(substitute("o", "X", false, "foo boo"), "fXo boo");
 }
 
 #[test]
 fn substitute_dollar_group_ref_numeric() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/(o+)/[$1]/:foo}", &app, 0);
-    assert_eq!(val, "f[oo]");
+    assert_eq!(substitute("(o+)", "[$1]", false, "foo"), "f[oo]");
 }
 
 #[test]
 fn substitute_dollar_group_ref_braced() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/(o+)/[${1}]/:foo}", &app, 0);
-    assert_eq!(val, "f[oo]");
+    assert_eq!(substitute("(o+)", "[${1}]", false, "foo"), "f[oo]");
 }
 
 #[test]
 fn substitute_dollar_dollar_is_literal_dollar() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/o/$$/:foo}", &app, 0);
-    assert_eq!(val, "f$o");
+    assert_eq!(substitute("o", "$$", false, "foo"), "f$o");
 }
 
 #[test]
 fn substitute_dollar_followed_by_non_group_stays_literal() {
-    let app = mock_app();
-    assert_eq!(expand_format_for_window("#{s/o/$-1/:foo}", &app, 0), "f$-1o");
-    assert_eq!(expand_format_for_window("#{s/o/$ 1/:foo}", &app, 0), "f$ 1o");
-    assert_eq!(expand_format_for_window("#{s/o/x$/:foo}", &app, 0), "fx$o");
+    assert_eq!(substitute("o", "$-1", false, "foo"), "f$-1o");
+    assert_eq!(substitute("o", "$ 1", false, "foo"), "f$ 1o");
+    assert_eq!(substitute("o", "x$", false, "foo"), "fx$o");
 }
 
 #[test]
 fn substitute_dollar_zero_is_whole_match() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/o+/[$0]/:foo}", &app, 0);
-    assert_eq!(val, "f[oo]");
+    assert_eq!(substitute("o+", "[$0]", false, "foo"), "f[oo]");
 }
 
 #[test]
 fn substitute_dollar_nonexistent_group_is_empty() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/(o)/[$2]/:foo}", &app, 0);
-    assert_eq!(val, "f[]o");
+    assert_eq!(substitute("(o)", "[$2]", false, "foo"), "f[]o");
 }
 
 #[test]
 fn substitute_case_insensitive_flag() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/FOO/bar/i:xfoox}", &app, 0);
-    assert_eq!(val, "xbarx");
+    assert_eq!(substitute("FOO", "bar", true, "xfoox"), "xbarx");
 }
 
 #[test]
 fn substitute_invalid_pattern_leaves_value_unchanged() {
-    let app = mock_app();
-    let val = expand_format_for_window("#{s/a{,5}/X/:a{,5}text}", &app, 0);
-    assert_eq!(val, "a{,5}text");
+    assert_eq!(substitute("a{,5}", "X", false, "a{,5}text"), "a{,5}text");
 }
 
 #[test]
@@ -91,10 +109,8 @@ fn substitute_catastrophic_pattern_does_not_hang() {
     // backtrack; the crate::regex equivalent hung under naive backtracking.
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let app = mock_app();
         let value = "a".repeat(10_000);
-        let expr = format!("#{{s/(a*)*b/X/:{}}}", value);
-        let val = expand_format_for_window(&expr, &app, 0);
+        let val = substitute("(a*)*b", "X", false, &value);
         let _ = tx.send(val);
     });
     let result = rx.recv_timeout(std::time::Duration::from_secs(5))
@@ -108,26 +124,22 @@ fn substitute_catastrophic_pattern_does_not_hang() {
 
 #[test]
 fn match_regex_true_matching() {
-    let app = mock_app();
-    assert_eq!(expand_format_for_window("#{m/r:^pwsh$,pwsh}", &app, 0), "1");
+    assert_eq!(match_regex("^pwsh$", "pwsh", false), "1");
 }
 
 #[test]
 fn match_regex_true_nonmatching() {
-    let app = mock_app();
-    assert_eq!(expand_format_for_window("#{m/r:^pwsh$,bash}", &app, 0), "0");
+    assert_eq!(match_regex("^pwsh$", "bash", false), "0");
 }
 
 #[test]
 fn match_regex_case_insensitive_flag() {
-    let app = mock_app();
-    assert_eq!(expand_format_for_window("#{m/ri:^PWSH$,pwsh}", &app, 0), "1");
+    assert_eq!(match_regex("^PWSH$", "pwsh", true), "1");
 }
 
 #[test]
 fn match_regex_invalid_pattern_returns_zero() {
-    let app = mock_app();
-    assert_eq!(expand_format_for_window("#{m/r:(a,text}", &app, 0), "0");
+    assert_eq!(match_regex("(a", "text", false), "0");
 }
 
 // ---------------------------------------------------------------------
@@ -196,12 +208,22 @@ fn root_manifest_has_no_regex_dependency_line_and_lists_psmux_regex() {
 
 #[test]
 fn format_rs_has_no_regex_crate_token_only_psmux_regex() {
+    // `"psmux_regex::".contains("regex::")` is true, so a plain substring
+    // check for `regex::` is unsatisfiable once the switch lands. Instead
+    // walk every `regex::` occurrence and require it be immediately
+    // preceded by `psmux_` (i.e. every occurrence is part of
+    // `psmux_regex::`, never a bare `regex::` crate reference).
     let src = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/format.rs"))
         .expect("read src/format.rs");
-    assert!(
-        !src.contains("regex::"),
-        "src/format.rs must no longer reference the `regex` crate directly"
-    );
+    for (idx, _) in src.match_indices("regex::") {
+        let prefix_start = idx.saturating_sub(6);
+        let prefix = &src[prefix_start..idx];
+        assert_eq!(
+            prefix, "psmux_",
+            "found bare `regex::` token in src/format.rs not part of `psmux_regex::` at byte {}",
+            idx
+        );
+    }
     assert!(
         src.contains("psmux_regex::"),
         "src/format.rs must call into psmux_regex"
