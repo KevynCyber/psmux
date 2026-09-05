@@ -103,3 +103,42 @@ Tests: `tests-rs/test_zdep_win32.rs`
 `parking_lot` dev-dependency line is removed.
 Tests: `tests-rs/test_pane_writer_queue.rs`,
 `tests-rs/test_pane_writer_transient_error.rs`
+
+## ZDEP-010 chrono strftime replaced by src/timefmt.rs
+
+`src/timefmt.rs` provides `LocalTime` (year, month, day, hour, minute,
+second, millisecond, weekday) obtained from `GetLocalTime` (declared in
+`src/win32.rs`, `#[cfg(windows)]`; unix fallback via `localtime_r` is out of
+scope: psmux is Windows-only) and `strftime(&LocalTime, fmt) -> Option<String>`.
+Supported specifiers are exactly the documented status-line set
+(`docs/configuration.md`): `%H %I %M %S %p %R %d %b %Y %a`, plus `%e`
+(space-padded day), `%.3f` (milliseconds, 3 digits) and `%%`. English
+weekday/month abbreviation tables are built in. Any other `%` sequence
+(including a trailing `%`) returns `None`, mirroring chrono 0.4.45 where
+`write!` of a `DelayedFormat` with an unknown specifier fails and the caller
+keeps the unformatted string (`src/format.rs` `expand_format_for_window`,
+`Modifier::ExpandTime`). `chrono::Local::now().format(..)` call sites in
+`src/format.rs`, `src/debug_log.rs`, `src/window_ops.rs`, `src/platform.rs`,
+`src/client.rs` use `timefmt`. Fixture
+`tests-rs/fixtures/strftime_chrono_0.4.45.txt` is generated once from
+chrono 0.4.45 (3 fixed `LocalTime` values x every supported specifier, the
+fixed formats `%a %b %e %H:%M:%S %Y` and `%H:%M:%S%.3f`, and 3 unknown
+specifiers) and committed; the acceptance test replays it with 0 mismatches.
+Tests: `tests-rs/test_zdep_timefmt.rs`
+
+## ZDEP-011 chrono clock and epoch conversions replaced by std time
+
+`timefmt::local_from_epoch_secs(i64) -> Option<LocalTime>` converts a UTC
+epoch-seconds value to local time via `FileTimeToLocalFileTime` +
+`FileTimeToSystemTime` (`src/win32.rs`), returning `None` when the value is
+outside the FILETIME range (before 1601-01-01 or past year 30827) or the
+conversion fails; `Modifier::Time` in `src/format.rs` uses it and keeps the
+raw value on `None`. `AppState::created_at` (`src/types.rs`) becomes a
+`std::time::Instant` and the session-age computation in `src/server/mod.rs`
+uses `elapsed().as_secs()`; the two `chrono::Utc::now().timestamp()` calls
+in `src/server/connection.rs` use
+`SystemTime::now().duration_since(UNIX_EPOCH)` seconds. The `chrono`
+manifest line is removed and `cargo tree` no longer lists `chrono`,
+`iana-time-zone`, `num-traits` (unless pulled by another crate), or
+`windows-link` via chrono.
+Tests: `tests-rs/test_zdep_timefmt.rs`, `tests-rs/test_zdep_time_std.rs`
