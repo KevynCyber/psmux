@@ -225,7 +225,6 @@ fn paste_states_do_not_zero_latency_flush() {
 #[test]
 fn status_format_inline_styles_end_to_end() {
     use ratatui::style::{Color, Style};
-    use unicode_width::UnicodeWidthStr;
 
     // Simulate what the server sends: status_format with style directives
     let status_format: Vec<String> = vec![
@@ -263,7 +262,7 @@ fn status_format_inline_styles_end_to_end() {
 
         // Also verify padding uses visible width, not raw text length
         let visible_w: usize = parsed_spans.iter()
-            .map(|s| UnicodeWidthStr::width(s.content.as_ref()))
+            .map(|s| psmux_unicode::str_width(s.content.as_ref()))
             .sum();
         assert_eq!(visible_w, 13, "Visible width should be 13 (Custom Line 2), got {}", visible_w);
         // The raw status_format[1] is 23 chars (#[fg=red]Custom Line 2)
