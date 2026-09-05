@@ -43,12 +43,7 @@ pub fn which_in(name: &str, path: &str, pathext: &str) -> Option<PathBuf> {
 /// Try `candidate` as-is (if it already has an extension) before trying
 /// each PATHEXT extension appended, in order.
 fn resolve_in_dir(candidate: &Path, exts: &[&str]) -> Option<PathBuf> {
-    let has_ext = candidate
-        .extension()
-        .map(|e| exts.iter().any(|ext| ext.trim_start_matches('.').eq_ignore_ascii_case(e.to_str().unwrap_or(""))))
-        .unwrap_or(false);
-
-    if has_ext && candidate.is_file() {
+    if candidate.extension().is_some() && candidate.is_file() {
         return Some(candidate.to_path_buf());
     }
 
@@ -58,12 +53,6 @@ fn resolve_in_dir(candidate: &Path, exts: &[&str]) -> Option<PathBuf> {
         if with_ext.is_file() {
             return Some(with_ext);
         }
-    }
-
-    // Fall back to the bare candidate (covers names that already carry a
-    // non-PATHEXT extension or no extension at all but exist verbatim).
-    if candidate.is_file() {
-        return Some(candidate.to_path_buf());
     }
     None
 }
