@@ -113,18 +113,33 @@ fn compile_ast(c: &mut Compiler, ast: &Ast, ci: bool) -> Result<(), Error> {
 }
 
 fn compile_alt(c: &mut Compiler, branches: &[Ast], ci: bool) -> Result<(), Error> {
+    // Iterative rather than recursing on branches[1..]: a chain of N
+    // alternations previously recursed N deep (one native stack frame per
+    // branch), which overflows a small stack well before N reaches the tens
+    // of thousands. Each non-last branch still gets a Split guarding it from
+    // the rest of the chain and a Jmp to the shared end, exactly as the
+    // recursive version produced -- just built in a flat loop.
     if branches.len() == 1 {
         return compile_ast(c, &branches[0], ci);
     }
-    let split_idx = c.emit(Inst::Split(0, 0))?;
-    let a_start = c.here();
-    compile_ast(c, &branches[0], ci)?;
-    let jmp_idx = c.emit(Inst::Jmp(0))?;
-    let b_start = c.here();
-    c.insts[split_idx] = Inst::Split(a_start, b_start);
-    compile_alt(c, &branches[1..], ci)?;
+    let mut jmp_idxs = Vec::new();
+    for (i, branch) in branches.iter().enumerate() {
+        if i + 1 == branches.len() {
+            compile_ast(c, branch, ci)?;
+            break;
+        }
+        let split_idx = c.emit(Inst::Split(0, 0))?;
+        let a_start = c.here();
+        compile_ast(c, branch, ci)?;
+        let jmp_idx = c.emit(Inst::Jmp(0))?;
+        let b_start = c.here();
+        c.insts[split_idx] = Inst::Split(a_start, b_start);
+        jmp_idxs.push(jmp_idx);
+    }
     let end = c.here();
-    c.insts[jmp_idx] = Inst::Jmp(end);
+    for jmp_idx in jmp_idxs {
+        c.insts[jmp_idx] = Inst::Jmp(end);
+    }
     Ok(())
 }
 

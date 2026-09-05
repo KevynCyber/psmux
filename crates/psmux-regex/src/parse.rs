@@ -2,7 +2,13 @@
 //! (docs/features/zero-deps.md ZDEP-017). Depth (groups + classes) is
 //! checked *before* recursing, so a pathologically deep pattern (e.g.
 //! 1,000 nested `(`) returns `Err` after at most 65 stack frames instead
-//! of recursing proportionally to the input.
+//! of recursing proportionally to the input. Stacked quantifiers on a
+//! single atom (`a****...`, `a{1,1}{1,1}...`) are parsed by an iterative
+//! loop here (no native recursion), but each stacked level still produces
+//! a nested `Ast::Repeat`-family node that compile.rs recurses into once
+//! per level -- so `parse_repeat` also bounds stacking count against
+//! MAX_DEPTH, or a pathological input would overflow the stack during
+//! compile instead of parse.
 
 use crate::ast::Ast;
 use crate::error::Error;
@@ -86,7 +92,23 @@ impl Parser {
 
     fn parse_repeat(&mut self) -> Result<Ast, Error> {
         let mut atom = self.parse_atom()?;
+        // Each stacked quantifier (`a**`, `a{1,1}{1,1}`, ...) wraps the atom
+        // in another Ast::Repeat-family node, and compile.rs recurses once
+        // per wrapping level -- so stacking count must be bounded by the
+        // same MAX_DEPTH used for group/class nesting, or a pathological
+        // input (e.g. 6,000 stacked `{1,1}`) blows the native stack during
+        // compile despite parsing itself being an iterative loop here.
+        let mut stack_depth: usize = 0;
         loop {
+            match self.peek() {
+                Some('*') | Some('+') | Some('?') | Some('{') => {
+                    if stack_depth >= MAX_DEPTH {
+                        return Err(Error::new("nesting depth exceeds 64"));
+                    }
+                    stack_depth += 1;
+                }
+                _ => {}
+            }
             match self.peek() {
                 Some('*') => {
                     self.pos += 1;
