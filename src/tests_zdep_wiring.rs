@@ -1,4 +1,4 @@
-// Test-only wiring for the ZDEP-004..019 acceptance tests (kept out of
+// Test-only wiring for the ZDEP-004..020 acceptance tests (kept out of
 // main.rs to respect the file-structure line-count gate).
 
 #[cfg(test)]
@@ -36,3 +36,7 @@ mod tests_zdep_regex_sites;
 #[cfg(test)]
 #[path = "../tests-rs/test_zdep_crate_tree.rs"]
 mod tests_zdep_crate_tree;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_brace_match.rs"]
+mod tests_zdep_brace_match;
