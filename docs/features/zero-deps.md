@@ -300,3 +300,78 @@ normalisation; a monitor unit test parses a fixture line with every key,
 one with `ExitCode: null`, one with `ExitCode` absent, and one malformed
 line.
 Tests: `tests/monitor/src/parse.rs` (unit tests), monitor snapshot golden
+
+## ZDEP-017 psmux-regex crate replaces the regex crate
+
+`crates/psmux-regex` (no dependencies) exposes `Regex::new(&str) ->
+Result<Regex, Error>`, `is_match(&str) -> bool`, `find(&str) ->
+Option<(usize, usize)>`, `captures(&str) -> Option<Captures>` (byte-offset
+spans, `Captures::get(i) -> Option<(usize, usize)>`, `name(&str)`),
+`replace(&str, &str) -> String` (first match only) and `escape(&str) ->
+String`. Semantics reproduce regex 1.13.1 on the supported subset:
+leftmost-first (Perl) alternation, greedy and lazy `* + ? {m} {m,} {m,n}`
+with stacking allowed, captures record the last iteration, empty
+alternatives (`a|`, `(|a)+`) and `()` are valid; `^`/`$` are text-only
+anchors, `.` excludes `\n`, `[^a]` includes `\n`, empty pattern matches
+empty at 0; groups `()` `(?:)` `(?P<n>)` `(?<n>)` with ASCII names
+`[A-Za-z_][A-Za-z0-9_]*` (duplicate name is Err); classes with ranges,
+`]` first literal, `-` first/last literal, escapes, and ASCII-only POSIX
+`[[:name:]]`/`[[:^name:]]`; `\d \w \s \D \W \S \b \B \n \t \r \f \v \a \xHH
+\x{HHHH}` and the escaped literals `\` + any of `. + * ? ( ) | [ ] { } ^ $
+# & - ~ / : ' " , = ! @ % _ ; \` backtick and space; `(?i)` ONLY as a
+leading prefix (repeated prefix ok). Everything else the oracle accepts
+but the engine does not (`\p{..}`, `(?s)` `(?m)` `(?x)` `(?u)` `(?R)`
+`(?-i)` `(?i:..)`, mid-pattern `(?i)`, `\A \z \< \> \u{..}`, class set
+operators `&& -- ~~`, nested classes, `[[:bogus:]]` `[[.a.]]` `[[=a=]]`,
+non-ASCII group names) is Err and the fixture records them as
+`unsupported`. Every oracle Err row is Err. Limits: nesting depth > 64
+(groups + classes) is Err, `{m,n}` with n > 1000 is Err, a compiled
+program > 100 000 instructions is Err. Unicode simplification (documented
+divergence from the oracle, fixture rows stay inside it): `\d` is ASCII
+`0-9` only; `\w` is `char::is_alphanumeric() || '_'`; `\s` is
+`char::is_whitespace()`; `\b` derives from `\w`. `(?i)`: pattern char x
+matches text char c iff fold-set(x) intersects fold-set(c) where
+fold-set(x) = {x, lower(x), upper(x), lower(upper(x))} using the std
+single-char mappings (multi-char results ignored); class membership under
+`(?i)` tests every element of fold-set(c), then negates for `[^..]`
+(reproduces U+00DF~U+1E9E, k~U+212A, s~U+017F, U+03C3~U+03C2,
+U+00E9~U+00C9, `(?i)[a-z]` on U+212A). Matcher is a Pike VM (no
+backtracking): `(a*)*b` on 10 000 `a`s returns no match in under 1 s in
+debug, a 1 000-deep `(` pattern is Err without stack overflow.
+Replacement syntax: `$$` -> `$`, `$name` takes the longest
+`[0-9A-Za-z_]+` run (`$1a` is group "1a" -> empty, `$01` is group 1),
+`${name}`, `$0` whole match, nonexistent or unmatched group -> empty,
+`$` followed by anything else or end -> literal `$`; no match -> text
+unchanged. `escape` escapes exactly `\ . + * ? ( ) | [ ] { } ^ $ # & - ~`.
+Acceptance: every row of the committed oracle fixture
+`crates/psmux-regex/tests/fixtures/regex_1.13.1.txt` (generated once from
+regex 1.13.1; rows `<kind>|<name>|<tab-separated fields>`, field escapes
+`\\ \t \n \r \x{HH}`; kinds `match` (pattern, input, spans as
+`0:0-4;1:-`), `err`, `unsupported`, `replace` (pattern, input,
+replacement, output), `escape` (input, output); >= 100 match rows; the
+replay parser rejects a row with the wrong field count) replays with 0
+mismatches; the two DoS tests above pass.
+Tests: `crates/psmux-regex/tests/regex_fixture.rs`,
+`crates/psmux-regex/tests/no_backtrack.rs`
+
+## ZDEP-018 format.rs regex call sites switched to psmux-regex
+
+The three `regex::` call sites in `src/format.rs` (`Substitute`, `Match`
+with `regex: true`, `SearchContent` incl. its `regex::escape` path)
+switch to `psmux_regex` with unchanged control flow: `Substitute`
+replaces the first match only and leaves the value unchanged on an
+invalid pattern; `Match` returns `"0"` on an invalid pattern;
+`SearchContent` returns `""` on an invalid pattern; all three prepend
+`(?i)` when case-insensitive. The `regex` line is removed from the root
+manifest, `psmux-regex` is added to `[workspace] members` and as a root
+path dependency; the crate-tree golden gains `psmux-regex v0.1.0` and
+loses `regex`, `regex-automata`, `regex-syntax`, `aho-corasick` (`memchr`
+stays, pulled by `vte`).
+Acceptance: `tests-rs/test_zdep_regex_sites.rs` (wired via
+`src/tests_zdep_wiring.rs`) covers Substitute first-occurrence-only with
+2+ matches, `$1`, `${1}`, `$$` and literal-`$` replacements, `(?i)`
+Substitute and Match, an invalid pattern per site, and the escape path in
+SearchContent; `tests-rs/test_format.rs` and
+`tests-rs/test_issue476_bindkey_quoting.rs` pass unchanged; `cargo tree`
+golden matches.
+Tests: `tests-rs/test_zdep_regex_sites.rs`
