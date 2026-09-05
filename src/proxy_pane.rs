@@ -59,14 +59,14 @@ impl ProxyMasterPty {
 }
 
 impl MasterPty for ProxyMasterPty {
-    fn resize(&self, size: PtySize) -> Result<(), anyhow::Error> {
+    fn resize(&self, size: PtySize) -> Result<(), portable_pty::Error> {
         // Send resize command via the control connection to the source server
         let cmd = format!(
             "AUTH {}\npane-forward-resize {} {} {}\n",
             self.control_key, self.forward_id, size.rows, size.cols,
         );
         let addr: std::net::SocketAddr = self.control_addr.parse()
-            .map_err(|e| anyhow::anyhow!("bad control addr: {}", e))?;
+            .map_err(|e| io::Error::other(format!("bad control addr: {}", e)))?;
         // Fire-and-forget resize: short timeout since resize is non-critical
         // (local screen updates immediately, source PTY catches up)
         if let Ok(mut s) = TcpStream::connect_timeout(&addr, Duration::from_millis(50)) {
@@ -80,24 +80,24 @@ impl MasterPty for ProxyMasterPty {
         Ok(())
     }
 
-    fn get_size(&self) -> Result<PtySize, anyhow::Error> {
-        Ok(self.size.lock().map_err(|e| anyhow::anyhow!("{}", e))?.clone())
+    fn get_size(&self) -> Result<PtySize, portable_pty::Error> {
+        Ok(self.size.lock().map_err(|e| io::Error::other(format!("{}", e)))?.clone())
     }
 
-    fn try_clone_reader(&self) -> Result<Box<dyn Read + Send>, anyhow::Error> {
+    fn try_clone_reader(&self) -> Result<Box<dyn Read + Send>, portable_pty::Error> {
         let stream = self.reader_stream.lock()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+            .map_err(|e| io::Error::other(format!("{}", e)))?;
         let cloned = stream.try_clone()
-            .map_err(|e| anyhow::anyhow!("clone reader: {}", e))?;
+            .map_err(|e| io::Error::other(format!("clone reader: {}", e)))?;
         Ok(Box::new(cloned))
     }
 
-    fn take_writer(&self) -> Result<Box<dyn Write + Send>, anyhow::Error> {
+    fn take_writer(&self) -> Result<Box<dyn Write + Send>, portable_pty::Error> {
         let mut guard = self.writer_stream.lock()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+            .map_err(|e| io::Error::other(format!("{}", e)))?;
         guard.take()
             .map(|s| -> Box<dyn Write + Send> { Box::new(s) })
-            .ok_or_else(|| anyhow::anyhow!("writer already taken"))
+            .ok_or_else(|| io::Error::other("writer already taken").into())
     }
 
     // The proxied PTY lives in another process; there is no local fd or

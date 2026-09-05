@@ -37,7 +37,7 @@
 //! # Ok::<(), Error>(())
 //! ```
 //!
-use anyhow::Error;
+pub use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
 #[cfg(unix)]
 use libc;
