@@ -6,26 +6,53 @@
 // ignored rather than causing an error, since the log format may gain new
 // message kinds over time.
 
-use serde::Deserialize;
+use psmux_json::{Error, FromJson, Value};
 
 /// One completed-suite record from results.jsonl. This is the authoritative
 /// record for a finished suite; ExitCode is nullable because SKIP-status
 /// suites never set it in the source script (the hash literal omits the key,
 /// so ConvertTo-Json serializes it as JSON null).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ResultRecord {
-    #[serde(rename = "Name")]
     pub name: String,
-    #[serde(rename = "Status")]
     pub status: String,
-    #[serde(rename = "Passed")]
     pub passed: u32,
-    #[serde(rename = "Failed")]
     pub failed: u32,
-    #[serde(rename = "Duration")]
     pub duration: f64,
-    #[serde(rename = "ExitCode")]
     pub exit_code: Option<i32>,
+}
+
+impl FromJson for ResultRecord {
+    fn from_json(v: &Value) -> Result<Self, Error> {
+        let name = match v.get("Name") {
+            Some(x) => String::from_json(x)?,
+            None => return Err(Error::new("missing required field \"Name\"")),
+        };
+        let status = match v.get("Status") {
+            Some(x) => String::from_json(x)?,
+            None => return Err(Error::new("missing required field \"Status\"")),
+        };
+        let passed = match v.get("Passed") {
+            Some(x) => u32::from_json(x)?,
+            None => return Err(Error::new("missing required field \"Passed\"")),
+        };
+        let failed = match v.get("Failed") {
+            Some(x) => u32::from_json(x)?,
+            None => return Err(Error::new("missing required field \"Failed\"")),
+        };
+        let duration = match v.get("Duration") {
+            Some(x) => f64::from_json(x)?,
+            None => return Err(Error::new("missing required field \"Duration\"")),
+        };
+        // Absent (SKIP suites never set ExitCode in the source script) and
+        // JSON `null` both mean "no exit code" -- Option::<T>::from_json
+        // already maps `null` to `None`; absence needs the same result.
+        let exit_code = match v.get("ExitCode") {
+            Some(x) => Option::<i32>::from_json(x)?,
+            None => None,
+        };
+        Ok(ResultRecord { name, status, passed, failed, duration, exit_code })
+    }
 }
 
 pub fn parse_results_jsonl(text: &str) -> Vec<ResultRecord> {
@@ -35,7 +62,7 @@ pub fn parse_results_jsonl(text: &str) -> Vec<ResultRecord> {
         if line.is_empty() {
             continue;
         }
-        if let Ok(rec) = serde_json::from_str::<ResultRecord>(line) {
+        if let Ok(rec) = psmux_json::from_str::<ResultRecord>(line) {
             out.push(rec);
         }
         // Malformed / partially-written trailing line (crash mid-write):
