@@ -190,9 +190,11 @@ item 12). All call sites switch to `psmux_unicode` with fallbacks unchanged:
 `src/rendering.rs`, `src/style.rs`, `crates/vt100-psmux/src/screen.rs`
 (`wants_wide_promotion`), `examples/pipeline_diag.rs`,
 `tests-rs/test_client.rs`. The `unicode-width` lines are removed from the
-root and `crates/vt100-psmux` manifests, `Cargo.lock`, and the crate-tree
-golden; `crates/psmux-unicode` is added to `[workspace] members` and as a
-path dependency of both.
+root and `crates/vt100-psmux` manifests; `crates/psmux-unicode` is added to
+`[workspace] members` and as a path dependency of both, and the crate-tree
+golden gains `psmux-unicode v0.1.0`. `unicode-width v0.2.2` remains in
+`Cargo.lock` and the golden only as a transitive dependency of
+`ratatui-core` until S8 (plan ledger item 8: tree absence is an S9 check).
 Tests: `crates/psmux-unicode/tests/str_width_fixture.rs`,
 `crates/vt100-psmux/tests/width_thai_441.rs`,
 `crates/vt100-psmux/tests/issue533_vs16_width.rs`
