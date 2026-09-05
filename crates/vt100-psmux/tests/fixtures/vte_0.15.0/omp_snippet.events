@@ -1,0 +1,365 @@
+csi [38;2;140;170;238] - 0 U+006D
+print U+E0B6
+csi [48;2;140;170;238] - 0 U+006D
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+0043
+print U+003A
+print U+0020
+print U+E0B1
+print U+0020
+print U+0072
+print U+0065
+print U+0070
+print U+006F
+print U+0073
+print U+0020
+print U+E0B1
+print U+0020
+print U+0065
+print U+0078
+print U+0061
+print U+006D
+print U+0070
+print U+006C
+print U+0065
+print U+0020
+csi [38;2;140;170;238] - 0 U+006D
+print U+E0B0
+csi [0] - 0 U+006D
+csi [48;2;180;190;254] - 0 U+006D
+csi [38;2;140;170;238] - 0 U+006D
+print U+E0B0
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+F520
+print U+0020
+print U+0030
+print U+006D
+print U+0073
+csi [38;2;180;190;254] - 0 U+006D
+print U+E0B0
+csi [0] - 0 U+006D
+csi [48;2;166;227;161] - 0 U+006D
+csi [38;2;180;190;254] - 0 U+006D
+print U+E0B0
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+F00C
+print U+0020
+csi [49] - 0 U+006D
+csi [38;2;166;227;161] - 0 U+006D
+print U+E0B4
+csi [0] - 0 U+006D
+osc 30;2E,2F,65,78,61,6D,70,6C,65 1
+print U+0020
+osc 37;66,69,6C,65,3A,2F,2F,64,65,76,2D,68,6F,73,74,2F,43,3A,5C,72,65,70,6F,73,5C,65,78,61,6D,70,6C,65 0
+esc - 0 5C
+esc - 0 37
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+csi [38;2;137;180;250] - 0 U+006D
+print U+E0B6
+csi [48;2;137;180;250] - 0 U+006D
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+F489
+print U+0020
+csi [38;2;137;180;250] - 0 U+006D
+print U+E0B2
+csi [0] - 0 U+006D
+csi [48;2;137;180;250] - 0 U+006D
+csi [38;2;137;220;235] - 0 U+006D
+print U+E0B2
+csi [48;2;137;220;235] - 0 U+006D
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+0031
+print U+0031
+print U+003A
+print U+0034
+print U+0034
+print U+003A
+print U+0035
+print U+0032
+print U+0020
+csi [49] - 0 U+006D
+csi [38;2;137;220;235] - 0 U+006D
+print U+E0B4
+csi [0] - 0 U+006D
+esc - 0 38
+execute 0D
+execute 0A
+osc 31,33,33;43;63,6D,64,6C,69,6E,65,5F,75,72,6C,3D,67,69,74,25,32,30,73,74,61,74,75,73 1
+print U+004F
+print U+006E
+print U+0020
+print U+0062
+print U+0072
+print U+0061
+print U+006E
+print U+0063
+print U+0068
+print U+0020
+print U+006D
+print U+0061
+print U+0069
+print U+006E
+execute 0A
+print U+006E
+print U+006F
+print U+0074
+print U+0068
+print U+0069
+print U+006E
+print U+0067
+print U+0020
+print U+0074
+print U+006F
+print U+0020
+print U+0063
+print U+006F
+print U+006D
+print U+006D
+print U+0069
+print U+0074
+print U+002C
+print U+0020
+print U+0077
+print U+006F
+print U+0072
+print U+006B
+print U+0069
+print U+006E
+print U+0067
+print U+0020
+print U+0074
+print U+0072
+print U+0065
+print U+0065
+print U+0020
+print U+0063
+print U+006C
+print U+0065
+print U+0061
+print U+006E
+execute 0A
+osc 31,33,33;44 1
+csi [38;2;140;170;238] - 0 U+006D
+print U+E0B6
+csi [48;2;140;170;238] - 0 U+006D
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+0043
+print U+003A
+print U+0020
+print U+E0B1
+print U+0020
+print U+0072
+print U+0065
+print U+0070
+print U+006F
+print U+0073
+print U+0020
+print U+E0B1
+print U+0020
+print U+0065
+print U+0078
+print U+0061
+print U+006D
+print U+0070
+print U+006C
+print U+0065
+print U+0020
+csi [38;2;140;170;238] - 0 U+006D
+print U+E0B0
+csi [0] - 0 U+006D
+csi [48;2;180;190;254] - 0 U+006D
+csi [38;2;140;170;238] - 0 U+006D
+print U+E0B0
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+F520
+print U+0020
+print U+0030
+print U+006D
+print U+0073
+csi [38;2;180;190;254] - 0 U+006D
+print U+E0B0
+csi [0] - 0 U+006D
+csi [48;2;166;227;161] - 0 U+006D
+csi [38;2;180;190;254] - 0 U+006D
+print U+E0B0
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+F00C
+print U+0020
+csi [49] - 0 U+006D
+csi [38;2;166;227;161] - 0 U+006D
+print U+E0B4
+csi [0] - 0 U+006D
+osc 30;2E,2F,65,78,61,6D,70,6C,65 1
+print U+0020
+osc 37;66,69,6C,65,3A,2F,2F,64,65,76,2D,68,6F,73,74,2F,43,3A,5C,72,65,70,6F,73,5C,65,78,61,6D,70,6C,65 0
+esc - 0 5C
+esc - 0 37
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+print U+0020
+csi [38;2;137;180;250] - 0 U+006D
+print U+E0B6
+csi [48;2;137;180;250] - 0 U+006D
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+F489
+print U+0020
+csi [38;2;137;180;250] - 0 U+006D
+print U+E0B2
+csi [0] - 0 U+006D
+csi [48;2;137;180;250] - 0 U+006D
+csi [38;2;137;220;235] - 0 U+006D
+print U+E0B2
+csi [48;2;137;220;235] - 0 U+006D
+csi [38;2;48;52;70] - 0 U+006D
+print U+0020
+print U+0031
+print U+0031
+print U+003A
+print U+0034
+print U+0034
+print U+003A
+print U+0035
+print U+0032
+print U+0020
+csi [49] - 0 U+006D
+csi [38;2;137;220;235] - 0 U+006D
+print U+E0B4
+csi [0] - 0 U+006D
+esc - 0 38
+execute 0D
+execute 0A

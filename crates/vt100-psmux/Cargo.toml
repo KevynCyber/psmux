@@ -69,6 +69,18 @@ path = "tests/issue502_decsc_altscreen.rs"
 name = "osc7_windows_path"
 path = "tests/osc7_windows_path.rs"
 
+[[test]]
+name = "vt_parser_fixture"
+path = "tests/vt_parser_fixture.rs"
+
+[[test]]
+name = "vt_parser_no_panic"
+path = "tests/vt_parser_no_panic.rs"
+
+[[test]]
+name = "term_itoa_parity"
+path = "tests/term_itoa_parity.rs"
+
 [dependencies.itoa]
 version = "1.0.15"
 

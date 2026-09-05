@@ -1,0 +1,31 @@
+csi [1049] 3F 0 U+0068
+csi [2] - 0 U+004A
+csi [1;1] - 0 U+0048
+print U+4F60
+print U+597D
+print U+4E16
+print U+754C
+print U+0E01
+print U+0E35
+print U+0E48
+print U+1F600
+print U+FE0F
+print U+1F469
+print U+200D
+print U+1F4BB
+print U+0031
+print U+FE0F
+print U+20E3
+csi [5;20] - 0 U+0072
+csi [3] - 0 U+004C
+csi [2] - 0 U+004D
+csi [4] - 0 U+0040
+csi [2] - 0 U+0050
+csi [3] - 0 U+0058
+esc - 0 4D
+execute 09
+execute 09
+print U+0063
+print U+006F
+print U+006C
+csi [1049] 3F 0 U+006C

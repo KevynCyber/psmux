@@ -1,0 +1,20 @@
+print U+0070
+print U+006C
+print U+0061
+print U+0069
+print U+006E
+print U+0020
+print U+00E9
+print U+00E8
+print U+4F60
+print U+597D
+print U+1F600
+print U+1F680
+csi [1] - 0 U+006D
+print U+1F469
+print U+200D
+print U+1F4BB
+print U+0020
+print U+0065
+print U+006E
+print U+0064
