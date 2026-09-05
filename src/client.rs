@@ -10,7 +10,7 @@ use crate::layout::LayoutJson;
 use crate::help;
 use crate::util::{WinTree, base64_encode, quote_arg};
 use crate::session::read_session_key;
-use crate::rendering::{dim_predictions_enabled, map_color, dim_color, centered_rect, fix_border_intersections};
+use crate::rendering::{map_color, dim_color, centered_rect, fix_border_intersections};
 use crate::style::parse_tmux_style_components;
 use crate::config::{parse_key_string, normalize_key_for_binding};
 use crate::clipboard::{copy_to_system_clipboard, read_from_system_clipboard};
@@ -18,19 +18,12 @@ use crate::debug_log::{client_log, client_log_enabled, input_log, input_log_enab
 use crate::layout::RowRunsJson;
 use crate::tree::split_with_gaps;
 
-/// A floating pane (tmux new-pane) as shipped from the server: position, size,
-/// border style, focus, title, and the pane's rendered rows.
-#[derive(serde::Deserialize, Clone, Default)]
-pub(crate) struct FloatJson {
-    #[serde(default)] pub x: u16,
-    #[serde(default)] pub y: u16,
-    #[serde(default)] pub w: u16,
-    #[serde(default)] pub h: u16,
-    #[serde(default)] pub border: String,
-    #[serde(default)] pub focused: bool,
-    #[serde(default)] pub title: String,
-    #[serde(default)] pub rows: Vec<crate::layout::RowRunsJson>,
-}
+#[path = "client_json.rs"]
+mod client_json;
+#[path = "dump_state_json.rs"]
+mod dump_state_json;
+pub(crate) use client_json::{BindingEntry, CustomizeOption, FloatJson, ServerMenuItem, WinStatus};
+pub(crate) use dump_state_json::DumpState;
 
 /// Extract the actual command from a confirm-before argument string.
 /// Handles: `confirm-before -p 'prompt text' kill-pane`
@@ -1726,295 +1719,6 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
     #[allow(unused_assignments)]
     let mut srv_customize_options: Vec<CustomizeOption> = Vec::new();
 
-    #[derive(serde::Deserialize, Default)]
-    struct WinStatus { id: usize, name: String, active: bool, #[serde(default)] activity: bool, #[serde(default)] bell: bool, #[serde(default)] last: bool, #[serde(default)] tab_text: String, #[serde(default)] idx: usize }
-    
-    fn default_base_index() -> usize { 1 }
-    fn default_prediction_dimming() -> bool { dim_predictions_enabled() }
-    fn default_status_left_length() -> usize { 10 }
-    fn default_status_right_length() -> usize { 40 }
-    fn default_status_lines() -> usize { 1 }
-    fn default_status_visible() -> bool { true }
-    fn default_repeat_time() -> u64 { 500 }
-    fn default_bold_is_bright() -> bool { true }
-    fn default_paste_detection() -> bool { true }
-    fn default_mouse_selection() -> bool { true }
-    fn default_scroll_enter_copy_mode() -> bool { true }
-
-    /// A single key binding synced from the server.
-    #[derive(serde::Deserialize, Clone, Debug)]
-    struct BindingEntry {
-        /// Key table name (e.g. "prefix", "root")
-        t: String,
-        /// Key string (e.g. "C-a", "-", "F12")
-        k: String,
-        /// Command string (e.g. "split-window -v")
-        c: String,
-        /// Whether the binding is repeatable
-        #[serde(default)]
-        r: bool,
-    }
-
-    /// A menu item from server-side MenuMode
-    #[derive(serde::Deserialize, Clone, Debug, Default)]
-    struct ServerMenuItem {
-        #[serde(default)]
-        name: Option<String>,
-        #[serde(default)]
-        key: Option<String>,
-        #[serde(default)]
-        sep: bool,
-    }
-
-    /// A customize-mode option row from server
-    #[derive(serde::Deserialize, Clone, Debug, Default)]
-    struct CustomizeOption {
-        /// Original index in the full options list
-        i: usize,
-        /// Option name
-        n: String,
-        /// Current value
-        v: String,
-        /// Scope (server/session/window/pane)
-        s: String,
-    }
-
-    #[derive(serde::Deserialize)]
-    struct DumpState {
-        layout: LayoutJson,
-        windows: Vec<WinStatus>,
-        #[serde(default)]
-        prefix: Option<String>,
-        #[serde(default)]
-        prefix2: Option<String>,
-        #[serde(default)]
-        tree: Vec<WinTree>,
-        #[serde(default = "default_base_index")]
-        base_index: usize,
-        #[serde(default = "default_prediction_dimming")]
-        prediction_dimming: bool,
-        #[serde(default)]
-        status_style: Option<String>,
-        #[serde(default)]
-        status_left: Option<String>,
-        #[serde(default)]
-        status_right: Option<String>,
-        #[serde(default)]
-        pane_border_style: Option<String>,
-        #[serde(default)]
-        pane_active_border_style: Option<String>,
-        #[serde(default)]
-        pane_border_hover_style: Option<String>,
-        #[serde(default)]
-        pane_border_status: Option<String>,
-        #[serde(default)]
-        pane_border_format: Option<String>,
-        #[serde(default)]
-        pane_border_lines: Option<String>,
-        /// copy-mode-line-numbers option (off/default/absolute/relative/hybrid)
-        #[serde(default)]
-        copy_mode_line_numbers: Option<String>,
-        /// Active pane scrollback size, for absolute/hybrid line numbers.
-        #[serde(default)]
-        copy_hsize: usize,
-        #[serde(default)]
-        copy_mode_line_number_style: Option<String>,
-        #[serde(default)]
-        copy_mode_current_line_number_style: Option<String>,
-        /// window-status-format (short key to save bandwidth)
-        #[serde(default)]
-        wsf: Option<String>,
-        /// window-status-current-format
-        #[serde(default)]
-        wscf: Option<String>,
-        /// window-status-separator
-        #[serde(default)]
-        wss: Option<String>,
-        /// window-status-style
-        #[serde(default)]
-        ws_style: Option<String>,
-        /// window-status-current-style
-        #[serde(default)]
-        wsc_style: Option<String>,
-        /// #451: status-left-style (was dropped in modularization)
-        #[serde(default)]
-        status_left_style: Option<String>,
-        /// #451: status-right-style
-        #[serde(default)]
-        status_right_style: Option<String>,
-        /// #451: window-status-activity-style
-        #[serde(default)]
-        wsa_style: Option<String>,
-        /// #451: window-status-bell-style
-        #[serde(default)]
-        wsb_style: Option<String>,
-        /// #451: window-status-last-style
-        #[serde(default)]
-        wsl_style: Option<String>,
-        /// clock-mode active
-        #[serde(default)]
-        clock_mode: bool,
-        /// clock-mode-colour (tmux option)
-        #[serde(default)]
-        clock_colour: Option<String>,
-        /// Dynamic key bindings from server
-        #[serde(default)]
-        bindings: Vec<BindingEntry>,
-        /// When true, hardcoded default keybindings are suppressed (set by unbind-key -a)
-        #[serde(default)]
-        defaults_suppressed: bool,
-        /// scroll-enter-copy-mode option (mirror of server-side AppState field).
-        /// When false, root key bindings that enter copy mode (e.g. PageUp ->
-        /// copy-mode -u) are skipped so the key reaches the PTY (#284).
-        #[serde(default = "default_scroll_enter_copy_mode")]
-        scroll_enter_copy_mode: bool,
-        /// pwsh-mouse-selection option (mirror of server-side AppState field)
-        #[serde(default)]
-        pwsh_mouse_selection: bool,
-        /// mouse-selection option (mirror of server-side AppState field).
-        /// When false, client suppresses its own drag-selection overlay so
-        /// in-pane apps (opencode, etc.) can do their own mouse selection.
-        #[serde(default = "default_mouse_selection")]
-        mouse_selection: bool,
-        /// paste-detection option (mirror of server-side AppState field)
-        #[serde(default = "default_paste_detection")]
-        paste_detection: bool,
-        /// choose-tree-preview option: when true, choose-session and
-        /// choose-tree pickers open with the live preview pane visible.
-        #[serde(default)]
-        choose_tree_preview: bool,
-        /// status-left-length (max display width for left status)
-        #[serde(default = "default_status_left_length")]
-        status_left_length: usize,
-        /// status-right-length (max display width for right status)
-        #[serde(default = "default_status_right_length")]
-        status_right_length: usize,
-        /// Number of status bar lines
-        #[serde(default = "default_status_lines")]
-        status_lines: usize,
-        /// Custom format strings for additional status lines
-        #[serde(default)]
-        status_format: Vec<String>,
-        /// mode-style for copy mode selection highlighting
-        #[serde(default)]
-        mode_style: Option<String>,
-        /// message-style for the status-line message bar (display-message,
-        /// command prompt). #372: previously never sent, so the client
-        /// hard-coded bg=yellow,fg=black and ignored the user's option.
-        #[serde(default)]
-        message_style: Option<String>,
-        /// status-position: "top" or "bottom"
-        #[serde(default)]
-        status_position: Option<String>,
-        /// status-justify: "left", "centre", or "right"
-        #[serde(default)]
-        status_justify: Option<String>,
-        /// Whether the status bar is visible (true) or hidden (false).
-        /// Corresponds to `set-option status on/off`.
-        #[serde(default = "default_status_visible")]
-        status_visible: bool,
-        /// Configured cursor style as DECSCUSR code (0-6) from server.
-        /// Used as fallback when no child process has set a cursor shape.
-        #[serde(default)]
-        cursor_style_code: Option<u8>,
-        /// One-shot clipboard text (base64-encoded) for OSC 52 delivery.
-        #[serde(default)]
-        clipboard_osc52: Option<String>,
-        /// One-shot bell flag: server signals client to emit \x07 to the host terminal.
-        #[serde(default)]
-        bell: bool,
-        /// set-titles: server pushes the expanded set-titles-string here when
-        /// `set-titles on`.  Client emits OSC 0 to its host terminal whenever
-        /// this value changes so external terminal tabs (Windows Terminal,
-        /// iTerm2, etc.) follow the active pane / window title.
-        #[serde(default)]
-        host_title: Option<String>,
-        /// Issue #269: OSC 9;4 progress indicator from the active pane,
-        /// formatted as "<state>;<value>".  Client emits OSC 9;4 to its host
-        /// terminal so apps inside a pane (Copilot CLI, build tools) keep
-        /// driving the Windows Terminal taskbar / tab progress indicator.
-        #[serde(default)]
-        host_progress: Option<String>,
-        /// Repeat key timeout in ms (default: 500, synced from server)
-        #[serde(default = "default_repeat_time")]
-        repeat_time: u64,
-        /// bold-is-bright option (issue #425): controls whether the console
-        /// writer rewrites crossterm's 256-indexed basic colors to standard SGR.
-        /// The writer lives in this client process, so the value is synced from
-        /// the server and pushed into the writer's atomic each frame.
-        #[serde(default = "default_bold_is_bright")]
-        bold_is_bright: bool,
-        /// Whether a pane is currently zoomed (borders should be hidden)
-        #[serde(default)]
-        zoomed: bool,
-        // ── Server-side overlay state ──
-        /// Popup overlay active
-        #[serde(default)]
-        popup_active: bool,
-        #[serde(default)]
-        popup_command: Option<String>,
-        #[serde(default)]
-        popup_width: Option<u16>,
-        #[serde(default)]
-        popup_height: Option<u16>,
-        #[serde(default)]
-        popup_lines: Vec<String>,
-        #[serde(default)]
-        popup_rows: Vec<crate::layout::RowRunsJson>,
-        #[serde(default)]
-        popup_has_pty: bool,
-        /// Cursor of the process running inside a PTY popup, relative to the
-        /// popup's inner (inside-the-border) area.
-        #[serde(default)]
-        popup_cursor_row: Option<u16>,
-        #[serde(default)]
-        popup_cursor_col: Option<u16>,
-        #[serde(default)]
-        popup_hide_cursor: bool,
-        /// Floating panes (tmux new-pane) overlaid on the active window.
-        #[serde(default)]
-        floats: Vec<FloatJson>,
-        /// Confirm overlay active
-        #[serde(default)]
-        confirm_active: bool,
-        #[serde(default)]
-        confirm_prompt: Option<String>,
-        /// Menu overlay active
-        #[serde(default)]
-        menu_active: bool,
-        #[serde(default)]
-        menu_title: Option<String>,
-        #[serde(default)]
-        menu_selected: usize,
-        #[serde(default)]
-        menu_items: Vec<ServerMenuItem>,
-        /// Display-panes overlay active
-        #[serde(default)]
-        display_panes: bool,
-        /// Pane base index for display-panes numbering
-        #[serde(default)]
-        pane_base_index: usize,
-        /// Status bar message from display-message (without -p)
-        #[serde(default)]
-        status_message: Option<String>,
-        /// Customize-mode overlay active
-        #[serde(default)]
-        customize_active: bool,
-        #[serde(default)]
-        customize_selected: usize,
-        #[serde(default)]
-        customize_scroll: usize,
-        #[serde(default)]
-        customize_editing: bool,
-        #[serde(default)]
-        customize_cursor: usize,
-        #[serde(default)]
-        customize_edit_buf: Option<String>,
-        #[serde(default)]
-        customize_filter: Option<String>,
-        #[serde(default)]
-        customize_options: Vec<CustomizeOption>,
-    }
 
     let mut cmd_batch: Vec<String> = Vec::new();
     let mut dump_buf = String::new();
@@ -3062,7 +2766,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                                                 Duration::from_millis(50),
                                                                 Duration::from_millis(100),
                                                             ) {
-                                                                if let Ok(wins) = serde_json::from_str::<Vec<WinTree>>(tree_line.trim()) {
+                                                                if let Ok(wins) = psmux_json::from_str::<Vec<WinTree>>(tree_line.trim()) {
                                                                     let mut win_data = Vec::new();
                                                                     for w in &wins {
                                                                         let panes: Vec<(usize, String)> = w.panes.iter().map(|p| (p.id, p.title.clone())).collect();
@@ -3897,7 +3601,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 {
                                     if let (Some(s), Some(e)) = (rsel_start, rsel_end) {
                                         if rsel_dragged {
-                                            if let Ok(state) = serde_json::from_str::<DumpState>(&prev_dump_buf) {
+                                            if let Ok(state) = psmux_json::from_str::<DumpState>(&prev_dump_buf) {
                                                 let text = extract_selection_text(
                                                     &state.layout,
                                                     last_sent_size.0,
@@ -3943,7 +3647,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                     && rsel_start.is_some() =>
                                 {
                                     if let (Some(s), Some(e)) = (rsel_start, rsel_end) {
-                                        if let Ok(state) = serde_json::from_str::<DumpState>(&prev_dump_buf) {
+                                        if let Ok(state) = psmux_json::from_str::<DumpState>(&prev_dump_buf) {
                                             let text = extract_selection_text(
                                                 &state.layout,
                                                 last_sent_size.0,
@@ -4248,7 +3952,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                                 // active, the Drag/Up arms forward mouse-drag /
                                                 // mouse-up so the app sees the full gesture.
                                                 let pane_handles_mouse =
-                                                    serde_json::from_str::<DumpState>(&prev_dump_buf)
+                                                    psmux_json::from_str::<DumpState>(&prev_dump_buf)
                                                         .map(|s| pane_wants_mouse_json(&s.layout, pane_id))
                                                         .unwrap_or(false);
                                                 if !client_mouse_selection || pane_handles_mouse {
@@ -4292,7 +3996,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                                     last_click = Some((now, (me.column, me.row)));
 
                                                     let word = if click_count == 2 {
-                                                        serde_json::from_str::<DumpState>(&prev_dump_buf).ok()
+                                                        psmux_json::from_str::<DumpState>(&prev_dump_buf).ok()
                                                             .and_then(|s| word_bounds_at(
                                                                 &s.layout,
                                                                 last_sent_size.0,
@@ -4340,7 +4044,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 // TUI apps (htop, Claude Code, etc.) expect right-click as a
                                 // mouse event, NOT clipboard paste.
                                 let tui_active = if !prev_dump_buf.is_empty() {
-                                    serde_json::from_str::<DumpState>(&prev_dump_buf)
+                                    psmux_json::from_str::<DumpState>(&prev_dump_buf)
                                         .map(|s| active_pane_in_alt_screen(&s.layout))
                                         .unwrap_or(false)
                                 } else { false };
@@ -4361,7 +4065,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 } else if rsel_start.is_some() && rsel_dragged {
                                     // pwsh-style: right-click with active selection → copy + clear
                                     if let (Some(s), Some(e)) = (rsel_start, rsel_end) {
-                                        if let Ok(state) = serde_json::from_str::<DumpState>(&prev_dump_buf) {
+                                        if let Ok(state) = psmux_json::from_str::<DumpState>(&prev_dump_buf) {
                                             let text = extract_selection_text(
                                                 &state.layout,
                                                 last_sent_size.0,
@@ -4484,7 +4188,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                         // double/triple-click bounds remain
                                         // intact, then clear transient state.
                                         if let (Some(s), Some(e)) = (rsel_start, rsel_end) {
-                                            if let Ok(state) = serde_json::from_str::<DumpState>(&prev_dump_buf) {
+                                            if let Ok(state) = psmux_json::from_str::<DumpState>(&prev_dump_buf) {
                                                 let text = extract_selection_text(
                                                     &state.layout,
                                                     last_sent_size.0,
@@ -4509,7 +4213,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                         // Legacy: copy-on-release.
                                         rsel_end = Some((me.column, me.row));
                                         if let (Some(s), Some(e)) = (rsel_start, rsel_end) {
-                                            if let Ok(state) = serde_json::from_str::<DumpState>(&prev_dump_buf) {
+                                            if let Ok(state) = psmux_json::from_str::<DumpState>(&prev_dump_buf) {
                                                 let text = extract_selection_text(
                                                     &state.layout,
                                                     last_sent_size.0,
@@ -4830,7 +4534,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
         // Parse the frame (use prev_dump_buf for selection-only redraws)
         let frame_to_parse = if got_frame && dump_buf != prev_dump_buf { &dump_buf } else { &prev_dump_buf };
         let _t_parse = Instant::now();
-        let state: DumpState = match serde_json::from_str(frame_to_parse) {
+        let state: DumpState = match psmux_json::from_str(frame_to_parse) {
             Ok(s) => s,
             Err(_e) => {
                 client_log("parse", &format!("JSON parse error: {} (len={})", _e, frame_to_parse.len()));
@@ -5400,7 +5104,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 Duration::from_millis(150),
                                 Duration::from_millis(300),
                             )?;
-                            let wins: Vec<WinTree> = serde_json::from_str(resp.trim()).ok()?;
+                            let wins: Vec<WinTree> = psmux_json::from_str(resp.trim()).ok()?;
                             let first = wins.first()?;
                             preview_cache.insert(lt_key, (first.id.to_string(), Instant::now()));
                             Some(first.id)

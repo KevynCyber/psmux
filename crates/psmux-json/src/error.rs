@@ -9,7 +9,10 @@ pub struct Error {
 }
 
 impl Error {
-    pub(crate) fn new(msg: impl Into<String>) -> Self {
+    /// Constructs an error with a plain message. Public so downstream
+    /// `FromJson` impls (e.g. rejecting an unknown enum tag) can build their
+    /// own errors without a `From` bridge.
+    pub fn new(msg: impl Into<String>) -> Self {
         Error { msg: msg.into() }
     }
 }

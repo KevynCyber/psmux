@@ -20,6 +20,7 @@ mod popup;
 mod clipboard;
 mod copy_mode;
 mod input;
+mod json_util;
 mod layout;
 mod window_ops;
 mod util;

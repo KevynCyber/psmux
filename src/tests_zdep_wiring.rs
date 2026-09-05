@@ -24,3 +24,7 @@ mod tests_zdep_timefmt;
 #[cfg(test)]
 #[path = "../tests-rs/test_zdep_time_std.rs"]
 mod tests_zdep_time_std;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_json_types.rs"]
+mod tests_zdep_json_types;

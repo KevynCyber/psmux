@@ -1,9 +1,11 @@
 use std::io;
 
-use serde::{Serialize, Deserialize};
-
 use crate::types::{AppState, Node, LayoutKind, Mode};
 use crate::tree::get_split_mut;
+
+#[path = "layout_json.rs"]
+mod layout_json;
+pub use layout_json::{CellJson, CellRunJson, LayoutJson, RowRunsJson};
 
 /// Serialize a vt100 screen region into run-length-encoded rows (rows_v2 format).
 ///
@@ -106,86 +108,6 @@ pub fn cycle_top_layout(app: &mut AppState) {
         }
     } else {
         if let Node::Split { kind, sizes, .. } = &mut win.root { *kind = match *kind { LayoutKind::Horizontal => LayoutKind::Vertical, LayoutKind::Vertical => LayoutKind::Horizontal }; *sizes = vec![50,50]; }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CellJson { pub text: String, pub fg: String, pub bg: String, pub bold: bool, pub italic: bool, pub underline: bool, pub inverse: bool, pub dim: bool, pub blink: bool, pub hidden: bool, pub strikethrough: bool }
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CellRunJson {
-    pub text: String,
-    pub fg: String,
-    pub bg: String,
-    pub flags: u8,
-    pub width: u16,
-    /// OSC 8 hyperlink URI for this run, if any (#361). Omitted from the JSON
-    /// when absent — links are rare, so the per-frame payload is unchanged for
-    /// normal output. The client re-emits OSC 8 around runs that carry it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub link: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct RowRunsJson {
-    pub runs: Vec<CellRunJson>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
-pub enum LayoutJson {
-    #[serde(rename = "split")]
-    Split { kind: String, sizes: Vec<u16>, children: Vec<LayoutJson> },
-    #[serde(rename = "leaf")]
-    Leaf {
-        id: usize,
-        rows: u16,
-        cols: u16,
-        cursor_row: u16,
-        cursor_col: u16,
-        #[serde(default)]
-        alternate_screen: bool,
-        /// True when the pane's app EXPLICITLY enabled a mouse protocol
-        /// (DECSET 1000/1002/1003).  Strict on purpose — no alt-screen or
-        /// fullscreen heuristic — so the client only yields its drag
-        /// selection to apps that really consume mouse events; alt-screen
-        /// apps without mouse support (e.g. `less`) keep psmux selection.
-        #[serde(default)]
-        wants_mouse: bool,
-        #[serde(default)]
-        hide_cursor: bool,
-        #[serde(default)]
-        cursor_shape: u8,
-        active: bool,
-        copy_mode: bool,
-        scroll_offset: usize,
-        sel_start_row: Option<u16>,
-        sel_start_col: Option<u16>,
-        sel_end_row: Option<u16>,
-        sel_end_col: Option<u16>,
-        #[serde(default)]
-        sel_mode: Option<String>,
-        #[serde(default)]
-        copy_cursor_row: Option<u16>,
-        #[serde(default)]
-        copy_cursor_col: Option<u16>,
-        #[serde(default)]
-        content: Vec<Vec<CellJson>>,
-        #[serde(default)]
-        rows_v2: Vec<RowRunsJson>,
-        /// Pane title for border label expansion
-        #[serde(default)]
-        title: Option<String>,
-    },
-}
-
-impl LayoutJson {
-    /// Counts the total number of leaf panes in this layout tree.
-    pub fn count_leaves(&self) -> usize {
-        match self {
-            LayoutJson::Leaf { .. } => 1,
-            LayoutJson::Split { children, .. } => children.iter().map(|c| c.count_leaves()).sum(),
-        }
     }
 }
 
@@ -614,13 +536,12 @@ fn dump_layout_json_inner(app: &mut AppState, win_id_override: Option<usize>) ->
         if win_id_override.is_none() { app.copy_anchor } else { None },
         if win_id_override.is_none() { app.copy_pos } else { None },
     );
-    let s = serde_json::to_string(&root).map_err(|e| io::Error::new(io::ErrorKind::Other, format!("json error: {e}")))?;
-    Ok(s)
+    Ok(psmux_json::to_string(&root))
 }
 
 /// Direct JSON serialisation of the layout tree – writes JSON straight into
 /// a pre-allocated `String`, avoiding the intermediate `LayoutJson` / `CellRunJson`
-/// allocations **and** the `serde_json::to_string` traversal.  Produces the
+/// allocations **and** the `psmux_json::to_string` traversal.  Produces the
 /// identical JSON format that the client deserialises into `LayoutJson`.
 pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
     let in_copy = matches!(app.mode, Mode::CopyMode | Mode::CopySearch { .. });

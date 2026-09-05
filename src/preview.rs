@@ -299,7 +299,7 @@ pub fn fetch_window_layout(sess: &str, win_id: usize) -> Option<LayoutSimple> {
     if trimmed.is_empty() || trimmed == "{}" {
         return None;
     }
-    serde_json::from_str::<LayoutSimple>(trimmed).ok()
+    psmux_json::from_str::<LayoutSimple>(trimmed).ok()
 }
 
 pub fn get_or_fetch_layout(
@@ -475,7 +475,7 @@ pub fn fetch_window_dump(sess: &str, win_id: usize) -> Option<crate::layout::Lay
     if trimmed.is_empty() || trimmed == "{}" {
         return None;
     }
-    serde_json::from_str::<crate::layout::LayoutJson>(trimmed).ok()
+    psmux_json::from_str::<crate::layout::LayoutJson>(trimmed).ok()
 }
 
 pub fn get_or_fetch_dump(

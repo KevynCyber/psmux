@@ -47,6 +47,7 @@ portable-pty-psmux v0.9.7
 powerfmt v0.2.0
 proc-macro2 v1.0.107
 psmux v3.3.8
+psmux-json v0.1.0
 psmux-unicode v0.1.0
 quote v1.0.47
 ratatui v0.30.2
@@ -60,10 +61,6 @@ regex-syntax v0.8.11
 rustversion v1.0.23
 ryu v1.0.23
 scopeguard v1.2.0
-serde v1.0.229
-serde_core v1.0.229
-serde_derive v1.0.229
-serde_json v1.0.151
 serial2 v0.2.38
 shared_library v0.1.9
 shell-words v1.1.1
@@ -90,4 +87,3 @@ winapi v0.3.9
 windows-link v0.2.1
 windows-sys v0.61.2
 winreg v0.56.0
-zmij v1.0.23

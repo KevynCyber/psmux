@@ -252,8 +252,7 @@ pub(crate) fn list_windows_json_with_tabs(app: &AppState) -> io::Result<String> 
             idx: app.win_display_index(i),
         });
     }
-    serde_json::to_string(&v)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("json error: {e}")))
+    Ok(psmux_json::to_string(&v))
 }
 
 /// Sum data_version counters across all panes in the active window.

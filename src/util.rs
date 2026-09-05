@@ -1,8 +1,10 @@
 use std::io;
 
-use serde::{Serialize, Deserialize};
-
 use crate::types::{AppState, Node};
+
+#[path = "util_json.rs"]
+mod util_json;
+pub use util_json::{LayoutSimple, PaneInfo, WinInfo, WinTree};
 
 /// Shared lock for tests that mutate the process-global USERPROFILE/HOME env.
 /// `std::env::set_var`/`remove_var` are process-wide, so every test module that
@@ -144,33 +146,10 @@ pub fn infer_title_from_prompt(screen: &vt100::Screen, rows: u16, cols: u16) -> 
 
 // resolve_last_session_name and resolve_default_session_name are in session.rs
 
-#[derive(Serialize, Deserialize)]
-pub struct WinInfo { pub id: usize, pub name: String, pub active: bool, #[serde(default)] pub activity: bool, #[serde(default)] pub bell: bool, #[serde(default)] pub last: bool, #[serde(default)] pub tab_text: String, #[serde(default)] pub idx: usize }
-
-#[derive(Serialize, Deserialize)]
-pub struct PaneInfo { pub id: usize, pub title: String }
-
-#[derive(Serialize, Deserialize)]
-pub struct WinTree { pub id: usize, pub name: String, pub active: bool, pub panes: Vec<PaneInfo>, #[serde(default)] pub idx: usize }
-
-/// Lightweight layout description for cross-session preview rendering
-/// (issue #257). Mirrors the structural part of `LayoutJson` without any
-/// pane content. Uses the same `type` discriminant so it deserializes
-/// alongside the heavier dump-state layout.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(tag = "type")]
-pub enum LayoutSimple {
-    #[serde(rename = "split")]
-    Split { kind: String, sizes: Vec<u16>, children: Vec<LayoutSimple> },
-    #[serde(rename = "leaf")]
-    Leaf { id: usize, #[serde(default)] active: bool },
-}
-
 pub fn list_windows_json(app: &AppState) -> io::Result<String> {
     let mut v: Vec<WinInfo> = Vec::new();
     for (i, w) in app.windows.iter().enumerate() { v.push(WinInfo { id: w.id, name: w.name.clone(), active: i == app.active_idx, activity: w.activity_flag, bell: w.bell_flag, last: i == app.last_window_idx, tab_text: String::new(), idx: app.win_display_index(i) }); }
-    let s = serde_json::to_string(&v).map_err(|e| io::Error::new(io::ErrorKind::Other, format!("json error: {e}")))?;
-    Ok(s)
+    Ok(psmux_json::to_string(&v))
 }
 
 /// tmux-compatible list-windows output: one line per window
@@ -208,8 +187,7 @@ pub fn list_tree_json(app: &AppState) -> io::Result<String> {
         collect_panes(&w.root, &mut panes);
         v.push(WinTree { id: w.id, name: w.name.clone(), active: i == app.active_idx, panes, idx: app.win_display_index(i) });
     }
-    let s = serde_json::to_string(&v).map_err(|e| io::Error::new(io::ErrorKind::Other, format!("json error: {e}")))?;
-    Ok(s)
+    Ok(psmux_json::to_string(&v))
 }
 
 /// Build a simplified layout tree for a specific window (issue #257
@@ -244,8 +222,7 @@ pub fn window_layout_simple(app: &AppState, win_id: usize) -> Option<LayoutSimpl
 pub fn window_layout_json(app: &AppState, win_id: usize) -> io::Result<String> {
     let layout = window_layout_simple(app, win_id)
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "window not found"))?;
-    serde_json::to_string(&layout)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("json error: {e}")))
+    Ok(psmux_json::to_string(&layout))
 }
 
 // ZDEP-007: byte-level codec lives in util/base64_codec.rs (kept out of

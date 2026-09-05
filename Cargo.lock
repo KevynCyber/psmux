@@ -1286,11 +1286,10 @@ version = "3.3.8"
 dependencies = [
  "crossterm",
  "portable-pty-psmux",
+ "psmux-json",
  "psmux-unicode",
  "ratatui",
  "regex",
- "serde",
- "serde_json",
  "vt100-psmux",
 ]
 
