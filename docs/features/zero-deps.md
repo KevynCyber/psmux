@@ -111,7 +111,7 @@ second, millisecond, weekday) obtained from `GetLocalTime` (declared in
 `src/win32.rs`, `#[cfg(windows)]`; unix fallback via `localtime_r` is out of
 scope: psmux is Windows-only) and `strftime(&LocalTime, fmt) -> Option<String>`.
 Supported specifiers are exactly the documented status-line set
-(`docs/configuration.md`): `%H %I %M %S %p %R %d %b %Y %a`, plus `%e`
+(`docs/configuration.md`): `%H %I %M %S %p %R %d %b %Y %a`, plus `%m`, `%e`
 (space-padded day), `%.3f` (milliseconds, 3 digits) and `%%`. English
 weekday/month abbreviation tables are built in. Any other `%` sequence
 (including a trailing `%`) returns `None`, mirroring chrono 0.4.45 where
