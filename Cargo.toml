@@ -78,12 +78,6 @@ path = "tests-rs/test_zero_third_party_deps.rs"
 name = "test_unsafe_inventory"
 path = "tests-rs/test_unsafe_inventory.rs"
 
-[dev-dependencies]
-# Test-only: existing tests-rs fixtures name anyhow::Error directly in their
-# own local MasterPty impls (immutable test files); production code no
-# longer depends on anyhow (ZDEP-006).
-anyhow = "1.0.104"
-
 # Windows only
 [target.'cfg(not(windows))'.dependencies]
 [target.'cfg(windows)'.dependencies]

@@ -54,14 +54,14 @@ impl portable_pty::Child for DummyChild {
 }
 
 impl portable_pty::MasterPty for DummyMaster {
-    fn resize(&self, _size: portable_pty::PtySize) -> Result<(), anyhow::Error> { Ok(()) }
-    fn get_size(&self) -> Result<portable_pty::PtySize, anyhow::Error> {
+    fn resize(&self, _size: portable_pty::PtySize) -> Result<(), portable_pty::Error> { Ok(()) }
+    fn get_size(&self) -> Result<portable_pty::PtySize, portable_pty::Error> {
         Ok(portable_pty::PtySize { rows: ROWS, cols: COLS, pixel_width: 0, pixel_height: 0 })
     }
-    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, anyhow::Error> {
+    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, portable_pty::Error> {
         Ok(Box::new(std::io::empty()))
     }
-    fn take_writer(&self) -> Result<Box<dyn std::io::Write + Send>, anyhow::Error> {
+    fn take_writer(&self) -> Result<Box<dyn std::io::Write + Send>, portable_pty::Error> {
         Ok(Box::new(DummyWriter))
     }
     #[cfg(unix)]

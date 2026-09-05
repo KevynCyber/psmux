@@ -42,7 +42,10 @@ fn make_proxy(control_addr: &str) -> ProxyMasterPty {
 fn take_writer_twice_errors_on_second_call() {
     let proxy = make_proxy("not an addr");
     assert!(proxy.take_writer().is_ok(), "first take_writer must succeed");
-    let err = proxy.take_writer().expect_err("second take_writer must fail");
+    let err = match proxy.take_writer() {
+        Ok(_) => panic!("second take_writer must fail"),
+        Err(e) => e,
+    };
     assert!(
         format!("{}", err).contains("writer already taken"),
         "error must explain the writer was already taken, got: {}",
@@ -57,7 +60,10 @@ fn take_writer_twice_errors_on_second_call() {
 fn take_writer_second_error_downcasts_to_io_error() {
     let proxy = make_proxy("not an addr");
     let _ = proxy.take_writer().expect("first take_writer must succeed");
-    let err: portable_pty::Error = proxy.take_writer().expect_err("second take_writer must fail");
+    let err: portable_pty::Error = match proxy.take_writer() {
+        Ok(_) => panic!("second take_writer must fail"),
+        Err(e) => e,
+    };
     assert!(
         err.downcast_ref::<std::io::Error>().is_some(),
         "take_writer error must downcast to std::io::Error, got: {:?}",
