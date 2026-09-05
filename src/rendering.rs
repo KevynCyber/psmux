@@ -8,7 +8,6 @@ use std::env;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use ratatui::style::{Style, Modifier};
-use unicode_width::UnicodeWidthStr;
 use crossterm::style::Print;
 use crossterm::execute;
 use portable_pty::PtySize;
@@ -362,7 +361,7 @@ pub fn render_node(
                         } else {
                             cell.contents().to_string()
                         };
-                        let w = UnicodeWidthStr::width(text.as_str()) as u16;
+                        let w = psmux_unicode::str_width(text.as_str()) as u16;
                         if w == 0 {
                             spans.push(Span::styled(" ", style));
                             c += 1;
@@ -409,7 +408,7 @@ pub fn render_node(
                 let pane_label = border_format.replace("#{pane_index}", &pane_idx.to_string())
                     .replace("#P", &pane_idx.to_string())
                     .replace("#{pane_title}", &pane.title);
-                let label_width = UnicodeWidthStr::width(pane_label.as_str()) as u16;
+                let label_width = psmux_unicode::str_width(pane_label.as_str()) as u16;
                 if label_width > 0 && area.width >= label_width {
                     let label_y = if border_status == "bottom" { area.y + area.height.saturating_sub(1) } else { area.y };
                     let label_area = Rect::new(area.x, label_y, label_width.min(area.width), 1);

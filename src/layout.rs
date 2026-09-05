@@ -1,7 +1,6 @@
 use std::io;
 
 use serde::{Serialize, Deserialize};
-use unicode_width::UnicodeWidthStr;
 
 use crate::types::{AppState, Node, LayoutKind, Mode};
 use crate::tree::get_split_mut;
@@ -37,7 +36,7 @@ pub fn serialize_screen_rows(screen: &vt100::Screen, rows: u16, cols: u16) -> Ve
                 let cell_fg = cell.fgcolor();
                 let cell_bg = cell.bgcolor();
                 let cell_link = cell.hyperlink_id();
-                let mut w = UnicodeWidthStr::width(t) as u16;
+                let mut w = psmux_unicode::str_width(t) as u16;
                 if w == 0 { w = 1; }
                 let mut fl = 0u8;
                 if cell.dim() { fl |= FLAG_DIM; }
@@ -401,7 +400,7 @@ fn dump_layout_json_inner(app: &mut AppState, win_id_override: Option<usize>) ->
                             let cell_fg = cell.fgcolor();
                             let cell_bg = cell.bgcolor();
                             let cell_link = cell.hyperlink_id();
-                            let mut w = UnicodeWidthStr::width(t) as u16;
+                            let mut w = psmux_unicode::str_width(t) as u16;
                             if w == 0 { w = 1; }
                             let mut fl = 0u8;
                             if cell.dim() { fl |= FLAG_DIM; }
@@ -817,7 +816,7 @@ pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
                                 let t = if t.is_empty() { " " } else { t };
                                 let cfg = cell.fgcolor();
                                 let cbg = cell.bgcolor();
-                                let mut w = UnicodeWidthStr::width(t) as u16;
+                                let mut w = psmux_unicode::str_width(t) as u16;
                                 if w == 0 { w = 1; }
                                 let mut fl = 0u8;
                                 if cell.dim()   { fl |= FLAG_DIM; }
@@ -884,7 +883,7 @@ pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
                                 if let Some(cell) = screen.cell(r, c) {
                                     let t = cell.contents();
                                     let t = if t.is_empty() { " " } else { t };
-                                    let w = UnicodeWidthStr::width(t).max(1) as u16;
+                                    let w = psmux_unicode::str_width(t).max(1) as u16;
                                     row_cells.push(CopyCell {
                                         text: t.to_string(), fg: cell.fgcolor(), bg: cell.bgcolor(),
                                         bold: cell.bold(), italic: cell.italic(), underline: cell.underline(),

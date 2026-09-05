@@ -47,6 +47,7 @@ portable-pty-psmux v0.9.7
 powerfmt v0.2.0
 proc-macro2 v1.0.107
 psmux v3.3.8
+psmux-unicode v0.1.0
 quote v1.0.47
 ratatui v0.30.2
 ratatui-core v0.1.2

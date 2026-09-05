@@ -1055,7 +1055,7 @@ pub fn render_layout_json(
                         } else {
                             &cell.text
                         };
-                        let char_width = unicode_width::UnicodeWidthStr::width(text) as u16;
+                        let char_width = psmux_unicode::str_width(text) as u16;
                         if char_width >= 2 && c + char_width > max_c {
                             spans.push(Span::styled(" ", style));
                             c += 1;
@@ -1113,7 +1113,7 @@ pub fn render_layout_json(
                             let mut truncated = String::new();
                             let mut used = 0usize;
                             for ch in text.chars() {
-                                let cw = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(1);
+                                let cw = psmux_unicode::char_width(ch).unwrap_or(1);
                                 if used + cw > avail { break; }
                                 used += cw;
                                 truncated.push(ch);
@@ -1227,7 +1227,7 @@ pub fn render_layout_json(
                     .replace("#{pane_title}", pane_title_str)
                     .replace("#{pane_index}", &id.to_string())
                     .replace("#P", &id.to_string());
-                let label_width = unicode_width::UnicodeWidthStr::width(pane_label.as_str()) as u16;
+                let label_width = psmux_unicode::str_width(pane_label.as_str()) as u16;
                 if label_width > 0 && area.width >= label_width {
                     let label_y = if border_status == "bottom" { area.y + area.height.saturating_sub(1) } else { area.y };
                     let label_area = Rect::new(area.x, label_y, label_width.min(area.width), 1);
@@ -5778,7 +5778,6 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                 Style::default().fg(sb_fg).bg(sb_bg)
             };
             // ── Build three separate span groups: left, tabs, right ──
-            use unicode_width::UnicodeWidthStr;
             // If status_format[0] is set, use it for line 0 instead of the default 3-part layout
             let use_status_format_0 = status_format.len() > 0 && !status_format[0].is_empty();
             // Left portion: custom status_left or default [session] prefix
@@ -5816,7 +5815,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                 if i > 0 {
                     // Parse inline styles in separator (e.g. "#[fg=#44475a]|")
                     let sep_spans = crate::rendering::parse_inline_styles(&win_status_sep, sb_base);
-                    let sep_w: u16 = sep_spans.iter().map(|s| UnicodeWidthStr::width(s.content.as_ref()) as u16).sum();
+                    let sep_w: u16 = sep_spans.iter().map(|s| psmux_unicode::str_width(s.content.as_ref()) as u16).sum();
                     tab_spans_all.extend(sep_spans);
                     tab_cursor += sep_w;
                 }
@@ -5865,7 +5864,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                 };
                 let parsed = crate::rendering::parse_inline_styles(&tab_text, fallback_style);
                 let tab_start = tab_cursor;
-                let tab_w: u16 = parsed.iter().map(|s| UnicodeWidthStr::width(s.content.as_ref()) as u16).sum();
+                let tab_w: u16 = parsed.iter().map(|s| psmux_unicode::str_width(s.content.as_ref()) as u16).sum();
                 tab_cursor += tab_w;
                 tab_rel_positions.push((w.idx, tab_start, tab_cursor));
                 tab_spans_all.extend(parsed);
@@ -5889,9 +5888,9 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
             crate::style::truncate_spans_to_width(&mut right_spans, state.status_right_length);
 
             // Measure widths using Unicode display width
-            let left_w: usize = left_spans.iter().map(|s| UnicodeWidthStr::width(s.content.as_ref())).sum();
-            let tabs_w: usize = tab_spans_all.iter().map(|s| UnicodeWidthStr::width(s.content.as_ref())).sum();
-            let right_w: usize = right_spans.iter().map(|s| UnicodeWidthStr::width(s.content.as_ref())).sum();
+            let left_w: usize = left_spans.iter().map(|s| psmux_unicode::str_width(s.content.as_ref())).sum();
+            let tabs_w: usize = tab_spans_all.iter().map(|s| psmux_unicode::str_width(s.content.as_ref())).sum();
+            let right_w: usize = right_spans.iter().map(|s| psmux_unicode::str_width(s.content.as_ref())).sum();
             let total_width = status_chunk.width as usize;
 
             // Assemble final spans based on status-justify

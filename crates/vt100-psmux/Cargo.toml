@@ -72,8 +72,8 @@ path = "tests/osc7_windows_path.rs"
 [dependencies.itoa]
 version = "1.0.15"
 
-[dependencies.unicode-width]
-version = "0.2.1"
+[dependencies.psmux-unicode]
+path = "../psmux-unicode"
 
 [dependencies.vte]
 version = "0.15.0"

@@ -1286,13 +1286,17 @@ version = "3.3.8"
 dependencies = [
  "crossterm",
  "portable-pty-psmux",
+ "psmux-unicode",
  "ratatui",
  "regex",
  "serde",
  "serde_json",
- "unicode-width",
  "vt100-psmux",
 ]
+
+[[package]]
+name = "psmux-unicode"
+version = "0.1.0"
 
 [[package]]
 name = "quickcheck"
@@ -1974,12 +1978,12 @@ version = "0.16.10"
 dependencies = [
  "itoa",
  "nix 0.31.3",
+ "psmux-unicode",
  "quickcheck",
  "rand 0.10.2",
  "serde",
  "serde_json",
  "terminal_size",
- "unicode-width",
  "vte",
 ]
 

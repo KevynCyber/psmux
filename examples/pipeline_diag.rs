@@ -12,7 +12,6 @@ use ratatui::prelude::*;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Clear, Paragraph, Widget};
 use ratatui::Terminal;
-use unicode_width::UnicodeWidthStr;
 
 /// Identical to rendering.rs vt_to_color
 fn vt_to_color(c: vt100::Color) -> Color {
@@ -62,7 +61,7 @@ fn build_lines_from_screen(screen: &vt100::Screen, rows: u16, cols: u16) -> Vec<
                 } else {
                     cell.contents().to_string()
                 };
-                let w = UnicodeWidthStr::width(text.as_str()) as u16;
+                let w = psmux_unicode::str_width(text.as_str()) as u16;
                 if w == 0 {
                     spans.push(Span::styled(" ".to_string(), style));
                     c += 1;

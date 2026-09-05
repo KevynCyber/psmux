@@ -1,5 +1,3 @@
-use unicode_width::UnicodeWidthChar as _;
-
 // 22 content bytes keep the cell compact; the struct is 40 bytes once the
 // Attrs OSC 8 hyperlink id (u32) and alignment padding are included.
 const CONTENT_BYTES: usize = 22;
@@ -49,7 +47,7 @@ impl Cell {
         // strings in this context should always be an arbitrary character
         // followed by zero or more zero-width characters, so we should only
         // have to look at the first character
-        self.set_wide(c.width().unwrap_or(1) > 1);
+        self.set_wide(psmux_unicode::char_width(c).unwrap_or(1) > 1);
         self.attrs = a;
     }
 
