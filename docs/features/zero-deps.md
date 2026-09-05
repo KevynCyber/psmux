@@ -380,3 +380,16 @@ SearchContent; `tests-rs/test_format.rs` and
 `tests-rs/test_issue476_bindkey_quoting.rs` pass unchanged; `cargo tree`
 golden matches.
 Tests: `tests-rs/test_zdep_regex_sites.rs`
+
+## ZDEP-019 Crate-tree golden enforced by a test
+
+`tests-rs/test_zdep_crate_tree.rs` (wired via `src/tests_zdep_wiring.rs`)
+runs `cargo tree -e normal --target x86_64-pc-windows-msvc --prefix none
+--locked` from the root manifest directory using the `CARGO` environment
+variable, normalises the output (cut each line at its first ` (` annotation,
+drop `\r`, trim, drop empty lines, sort, dedupe) and asserts it equals
+`tests-rs/fixtures/crate_tree_x86_64.txt` normalised the same way. On a
+mismatch the failure message lists the lines present only in the live tree
+and the lines present only in the golden. ZDEP-003 describes the golden;
+nothing enforced it before this test.
+Tests: `tests-rs/test_zdep_crate_tree.rs`
