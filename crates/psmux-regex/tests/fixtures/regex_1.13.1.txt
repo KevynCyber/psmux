@@ -1,0 +1,342 @@
+# Generated once from regex 1.13.1 (crates.io) via a throwaway oracle
+# cargo project (regex = "=1.13.1"). Do not hand-edit this file --
+# regenerate from the oracle if ZDEP-017's supported subset changes.
+match|literal_a_in_ab|a	ab	0:0-1
+match|anchor_caret_empty|^		0:0-0
+match|anchor_dollar_before_newline_nomatch|a$	a\n	nomatch
+match|anchor_dollar_end_of_text|$	abc	0:3-3
+match|anchor_caret_dollar_empty|^$		0:0-0
+match|anchor_caret_dollar_nonempty_nomatch|^$	a	nomatch
+match|dot_excludes_newline|.	\n	nomatch
+match|dot_excludes_newline_mid|a.c	a\nc	nomatch
+match|empty_pattern_matches_empty_at_0|	ab	0:0-0
+match|alternation_leftmost_first|a\x{7C}ab	ab	0:0-1
+match|alternation_leading_empty_branch|\x{7C}a	a	0:0-0
+match|alternation_trailing_empty_branch|a\x{7C}	b	0:0-0
+match|alternation_empty_branch_in_group_loop|(\x{7C}a)+	aa	0:0-0;1:0-0
+match|alternation_anchored_both_sides|^ab\x{7C}cd$	xcd	0:1-3
+match|alternation_anchored_group|^(ab\x{7C}cd)$	cd	0:0-2;1:0-2
+match|alternation_case_insensitive_anchored|(?i)^AB$	ab	0:0-2
+match|alternation_case_insensitive_leftmost|(?i)a\x{7C}B	xB	0:1-2
+match|alternation_star_over_group|(a\x{7C}b)*c	abac	0:0-4;1:2-3
+match|star_lazy|a*?	aaa	0:0-0
+match|star_stacked_double|a**	aaa	0:0-3
+match|exact_stacked_braces|a{2}{3}	aaaaaa	0:0-6
+match|plus_lazy|a+?	aa	0:0-1
+match|optional_lazy|a??	a	0:0-0
+match|optional_matches_empty|a?		0:0-0
+match|exact_one_lazy_noop|x{2}?	xx	0:0-2
+match|range_min_only|a{3,}	aaaa	0:0-4
+match|range_zero_or_more_form|a{0,}	aaa	0:0-3
+match|range_exact_zero|a{0,0}	a	0:0-0
+match|range_exact_one_lazy|a{1}?	aa	0:0-1
+match|range_mn_greedy|a{2,3}	aaaa	0:0-3
+match|range_mn_lazy|a{2,3}?	aaaa	0:0-2
+match|range_at_limit_boundary_nomatch|a{1000}	a	nomatch
+match|star_zero_occurrences_leftmost|x*	aaa	0:0-0
+match|group_star_over_star_last_iter_empty|(a*)*	b	0:0-0;1:0-0
+match|group_plus_over_star_last_iter|(a*)+	aa	0:0-2;1:0-2
+match|group_star_over_optional_last_iter|(a?)*	a	0:0-1;1:0-1
+match|group_star_over_alt_last_iter|(a\x{7C}b)*c	abac	0:0-4;1:2-3
+match|group_star_no_captures|()*	a	0:0-0;1:0-0
+match|catastrophic_shape_nomatch|(a+)+$	aaab	nomatch
+match|group_empty|()	x	0:0-0;1:0-0
+match|group_non_capturing|(?:a)(b)	ab	0:0-2;1:1-2
+match|group_named_pcre_syntax|(?P<n>a)	a	0:0-1;1:0-1
+match|group_named_angle_syntax|(?<n>a)	a	0:0-1;1:0-1
+match|group_two_named_angle|(?<a>a)(?<b>b)	ab	0:0-2;1:0-1;2:1-2
+match|group_named_underscore_digit|(?P<a_1>a)	a	0:0-1;1:0-1
+match|group_unmatched_alternative|(a)\x{7C}(b)	b	0:0-1;1:-;2:0-1
+match|group_unmatched_optional|(a)(b)?(c)	ac	0:0-2;1:0-1;2:-;3:1-2
+match|group_optional_after_alt|(a\x{7C}ab)(c\x{7C}bcd)?(d*)	abcd	0:0-4;1:0-1;2:1-4;3:4-4
+match|group_full_alt_all_present|(a\x{7C}ab)(c\x{7C}bcd)(d*)	abcd	0:0-4;1:0-1;2:1-4;3:4-4
+match|group_bracket_first_literal_close|[]a]	]	0:0-1
+match|class_close_bracket_first_literal|[]a]	]	0:0-1
+match|class_dash_last_literal|[a-]	-	0:0-1
+match|class_dash_first_literal|[-a]	-	0:0-1
+match|class_dash_last_after_range|[a-z-]	-	0:0-1
+match|class_dash_alone_after_range_char|[z-]	-	0:0-1
+match|class_close_bracket_first_then_range|[]-a]	-	0:0-1
+match|class_two_close_brackets_literal|[]]	]	0:0-1
+match|class_negated_close_bracket_nomatch|[^]]	]	nomatch
+match|class_close_bracket_then_literal|[]]]	]]	0:0-2
+match|class_negated_caret_nomatch|[^^]	^	nomatch
+match|class_caret_not_first_literal|[a^]	^	0:0-1
+match|class_dash_before_b_suffix|[a-]b	-b	0:0-2
+match|class_range_then_trailing_literal|[a-z-9]	9	0:0-1
+match|class_dash_range_then_dash|[--/]	.	nomatch
+match|class_ambiguous_a_dash_z|[a\\-z]	-	0:0-1
+match|class_negated_includes_newline|[^a]	\n	0:0-1
+match|class_negated_excludes_newline_when_named|[^\\n]	\n	nomatch
+match|class_digit_escape|[\\d]	5	0:0-1
+match|class_word_escape_plus_dash|[\\w-]	-	0:0-1
+match|class_digit_and_any_union|[\\s\\S]	\n	0:0-1
+match|class_literal_dot_no_wildcard|[.]	a	nomatch
+match|class_dollar_literal|[$]	$	0:0-1
+match|class_escaped_close_bracket|[\\]]	]	0:0-1
+match|class_escaped_dash|[\\-]	-	0:0-1
+match|class_escaped_caret|[\\^]	^	0:0-1
+match|class_escaped_newline|[\\n]	\n	0:0-1
+match|class_hex_escape|[\\x41]	A	0:0-1
+match|class_escaped_backslash|[\\\\]	\\	0:0-1
+match|class_escaped_dot|[\\.]	.	0:0-1
+match|class_escaped_slash|[\\/]	/	0:0-1
+match|class_escaped_bell|[\\a]	\x{07}	0:0-1
+match|class_escaped_space|[\\ ]	 	0:0-1
+match|class_union_with_posix|[a-z0-9_-]	-	0:0-1
+match|class_union_with_posix_digit_class|[a-z[:digit:]]	5	0:0-1
+match|posix_alpha_ascii|[[:alpha:]]+	ab1	0:0-2
+match|posix_alpha_nonascii_neg|[[:alpha:]]	é	nomatch
+match|posix_alnum_ascii|[[:alnum:]]+	a1_	0:0-2
+match|posix_alnum_nonascii_neg|[[:alnum:]]	é	nomatch
+match|posix_digit_ascii|[[:digit:]]	5	0:0-1
+match|posix_digit_nonascii_neg|[[:digit:]]	٣	nomatch
+match|posix_upper_ascii|[[:upper:]]	A	0:0-1
+match|posix_upper_nonascii_neg|[[:upper:]]	É	nomatch
+match|posix_lower_ascii|[[:lower:]]	a	0:0-1
+match|posix_lower_nonascii_neg|[[:lower:]]	é	nomatch
+match|posix_space_ascii|[[:space:]]	 	0:0-1
+match|posix_space_nonascii_neg|[[:space:]]	 	nomatch
+match|posix_punct_ascii|[[:punct:]]	-	0:0-1
+match|posix_punct_nonascii_neg|[[:punct:]]	。	nomatch
+match|posix_xdigit_ascii|[[:xdigit:]]	f	0:0-1
+match|posix_xdigit_nonascii_neg|[[:xdigit:]]	Ｆ	nomatch
+match|posix_cntrl_ascii|[[:cntrl:]]	\x{7F}	0:0-1
+match|posix_cntrl_nonascii_neg|[[:cntrl:]]		nomatch
+match|posix_print_ascii|[[:print:]]	 	0:0-1
+match|posix_print_nonascii_neg|[[:print:]]	é	nomatch
+match|posix_graph_ascii|[[:graph:]]	a	0:0-1
+match|posix_graph_ascii_space_nomatch|[[:graph:]]	 	nomatch
+match|posix_graph_nonascii_neg|[[:graph:]]	é	nomatch
+match|posix_blank_ascii|[[:blank:]]	\t	0:0-1
+match|posix_blank_nonascii_neg|[[:blank:]]	　	nomatch
+match|posix_ascii_ascii|[[:ascii:]]	\x{7F}	0:0-1
+match|posix_ascii_nonascii_neg|[[:ascii:]]	é	nomatch
+match|posix_word_ascii|[[:word:]]	_	0:0-1
+match|posix_word_nonascii_neg|[[:word:]]	é	nomatch
+match|posix_union_two_classes|[[:alpha:][:digit:]]	5	0:0-1
+match|posix_negated_class|[[:^alpha:]]	5	0:0-1
+match|d_ascii_digit|\\d	5	0:0-1
+match|d_superscript_two_nomatch|\\d	²	nomatch
+match|w_ascii_and_latin_letter|\\w	é	0:0-2
+match|w_plus_ascii_and_super_and_underscore|\\w+	a_	0:0-2
+match|s_nbsp|\\s	 	0:0-2
+match|s_em_space|\\s	 	0:0-3
+match|b_before_latin_letter|\\b	é!	0:0-0
+match|b_after_word_char|\\B	ab	0:1-1
+match|dws_combo|\\D\\W\\S	a!b	0:0-3
+match|escaped_dot|\\.	.	0:0-1
+match|escaped_plus|\\+	+	0:0-1
+match|escaped_star|\\*	*	0:0-1
+match|escaped_question|\\?	?	0:0-1
+match|escaped_open_paren|\\(	(	0:0-1
+match|escaped_close_paren|\\)	)	0:0-1
+match|escaped_pipe|\\\x{7C}	\x{7C}	0:0-1
+match|escaped_open_bracket_literal|\\[	[	0:0-1
+match|escaped_close_bracket_literal|\\]	]	0:0-1
+match|escaped_open_brace|\\{	{	0:0-1
+match|escaped_close_brace|\\}	}	0:0-1
+match|escaped_caret|\\^	^	0:0-1
+match|escaped_dollar|\\$	$	0:0-1
+match|escaped_hash|\\#	#	0:0-1
+match|escaped_ampersand|\\&	&	0:0-1
+match|escaped_hyphen|\\-	-	0:0-1
+match|escaped_tilde|\\~	~	0:0-1
+match|escaped_forward_slash|\\/	/	0:0-1
+match|escaped_colon|\\:	:	0:0-1
+match|escaped_single_quote|\\'	'	0:0-1
+match|escaped_double_quote|\\"	"	0:0-1
+match|escaped_comma|\\,	,	0:0-1
+match|escaped_equals|\\=	=	0:0-1
+match|escaped_bang|\\!	!	0:0-1
+match|escaped_at|\\@	@	0:0-1
+match|escaped_percent|\\%	%	0:0-1
+match|escaped_underscore|\\_	_	0:0-1
+match|escaped_semicolon|\\;	;	0:0-1
+match|escaped_backtick|\\`	`	0:0-1
+match|escaped_space|\\ 	 	0:0-1
+match|unescaped_hash_is_literal|#	#	0:0-1
+match|unescaped_close_brace_is_literal|}	}	0:0-1
+match|unescaped_close_bracket_is_literal|]	]	0:0-1
+match|escape_n_tab_r_f_v|\\t\\r\\f\\v	\t\r\x{0C}\x{0B}	0:0-4
+match|escape_bell|\\a	\x{07}	0:0-1
+match|escape_hex_two_digit|\\x41	A	0:0-1
+match|escape_hex_braced|\\x{e9}	é	0:0-2
+match|ci_prefix_matches_upper|(?i)a	A	0:0-1
+match|ci_prefix_empty_pattern|(?i)	abc	0:0-0
+match|ci_repeated_prefix_ok|(?i)(?i)a	A	0:0-1
+match|ci_sharp_s_capital|(?i)ß	ẞ	0:0-3
+match|ci_kelvin_sign|(?i)k	K	0:0-3
+match|ci_e_acute_upper|(?i)É	é	0:0-2
+match|ci_e_acute_lower|(?i)é	É	0:0-2
+match|ci_sigma_final_form|(?i)σ	ς	0:0-2
+match|ci_class_bracket_e_acute|(?i)[é]	É	0:0-2
+match|ci_class_a_to_z_kelvin|(?i)[a-z]	K	0:0-3
+match|ci_class_a_to_z_long_s|(?i)[a-z]	ſ	0:0-2
+match|ci_literal_s_long_s|(?i)s	ſ	0:0-2
+match|ci_class_negated_excludes_long_s|(?i)[^a-z]	ſ	nomatch
+match|ci_class_negated_excludes_kelvin|(?i)[^k]	K	nomatch
+match|ci_class_a_to_z_plus_leftmost|(?i)[a-z]+	ÀBC	0:2-4
+match|ci_class_negated_single_a|(?i)[^a]	A	nomatch
+match|ci_word_boundary_both_ends|(?i)\\bAB\\b	ab	0:0-2
+match|ci_posix_upper_matches_lower|(?i)[[:upper:]]	a	0:0-1
+match|ci_posix_lower_matches_upper|(?i)[[:lower:]]	A	0:0-1
+match|ci_hex_escape_matches_lower|(?i)\\x41	a	0:0-1
+match|range_exact_1000_boundary_ok|a{1000}b	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab	0:0-1001
+match|nested_exact_500_twice_last_iter|(a{500}){2}	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	0:0-1000;1:500-1000
+match|depth64_ok|((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))	a	0:0-1;1:0-1;2:0-1;3:0-1;4:0-1;5:0-1;6:0-1;7:0-1;8:0-1;9:0-1;10:0-1;11:0-1;12:0-1;13:0-1;14:0-1;15:0-1;16:0-1;17:0-1;18:0-1;19:0-1;20:0-1;21:0-1;22:0-1;23:0-1;24:0-1;25:0-1;26:0-1;27:0-1;28:0-1;29:0-1;30:0-1;31:0-1;32:0-1;33:0-1;34:0-1;35:0-1;36:0-1;37:0-1;38:0-1;39:0-1;40:0-1;41:0-1;42:0-1;43:0-1;44:0-1;45:0-1;46:0-1;47:0-1;48:0-1;49:0-1;50:0-1;51:0-1;52:0-1;53:0-1;54:0-1;55:0-1;56:0-1;57:0-1;58:0-1;59:0-1;60:0-1;61:0-1;62:0-1;63:0-1;64:0-1
+# ---- unsupported (oracle accepts, psmux-regex documents as Err) ----
+unsupported|unicode_class_p_L|\\p{L}
+unsupported|unicode_class_pL_in_class|[\\pL]
+unsupported|unicode_class_p_braced_in_class|[\\p{L}]
+unsupported|flag_dotall_s|(?s).
+unsupported|flag_multiline_m|(?m)^a
+unsupported|flag_extended_x|(?x)a b
+unsupported|flag_unicode_u|(?u)a
+unsupported|flag_recursion_R|(?R)a
+unsupported|flag_negate_i|(?-i)a
+unsupported|flag_scoped_group_i|(?i:a)
+unsupported|flag_midpattern_i|a(?i)b
+unsupported|anchor_A_start_of_text|\\A
+unsupported|anchor_z_end_of_text|\\z
+unsupported|anchor_lt_word_start|\\<
+unsupported|anchor_gt_word_end|\\>
+unsupported|escape_u_braced|\\u{e9}
+unsupported|class_set_intersection|[a&&b]
+unsupported|class_set_difference|[a--b]
+unsupported|class_set_symmetric_difference|[a~~b]
+unsupported|class_set_op_with_nested_class|[a-z&&[^aeiou]]
+unsupported|class_nested|[[a]]
+unsupported|posix_bogus_name|[[:bogus:]]
+unsupported|posix_collating_symbol|[[.a.]]
+unsupported|posix_equivalence_class|[[=a=]]
+unsupported|group_name_non_ascii|(?P<é>a)
+unsupported|quantifier_n_over_1000_a1001|a{1001}
+unsupported|quantifier_n_over_1000_nested|(a{1000}){100}
+unsupported|depth65_nest_over_64|(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+# ---- err (oracle also rejects) ----
+err|brace_missing_min|a{,5}
+err|brace_min_greater_than_max|a{2,1}
+err|star_with_no_preceding_atom|*a
+err|plus_with_no_preceding_atom|+
+err|question_with_no_preceding_atom|?
+err|empty_class_brackets|[]
+err|lookahead_unsupported_syntax|(?=a)
+err|backreference_after_group|(a)\\1
+err|backreference_bare|\\1
+err|class_descending_range|[z-a]
+err|trailing_bare_backslash|\\
+err|unknown_escape_q|\\q
+err|unterminated_brace_open|a{
+err|unterminated_brace_with_digit|a{1
+err|bare_open_brace|{
+err|unmatched_close_paren|a)
+err|unterminated_group|(a
+err|unterminated_class|[a
+err|brace_then_stray_open|a{1}{
+err|octal_null_escape|\\0
+err|unknown_escape_e|\\e
+err|unknown_escape_h|\\h
+err|backspace_escape_in_class|[\\b]
+err|hex_escape_one_digit|\\x4
+err|hex_escape_bad_digits|\\xZZ
+err|hex_escape_out_of_range|\\x{110000}
+err|flag_bad_case_I|(?I)a
+err|flag_duplicate_i_in_group|(?ii)a
+err|group_flags_unterminated|(?i
+err|group_flags_empty|(?)
+err|named_group_missing_angle|(?Pa)
+err|named_group_name_starts_digit|(?P<1a>a)
+err|named_group_duplicate_name|(?P<a>a)(?P<a>b)
+err|named_group_empty_name|(?P<>a)
+err|named_group_name_has_hyphen|(?P<a-b>a)
+err|class_range_from_shorthand|[a-\\d]
+err|class_empty_negated|[^]
+err|class_range_between_shorthands|[\\w-\\d]
+err|class_unterminated_escaped_close|[a\\]
+err|class_unknown_escape_q|[\\q]
+err|class_range_shorthand_to_literal|[\\d-z]
+err|class_range_literal_to_shorthand_z|[a-\\z]
+err|class_unterminated_open_bracket|[[]
+err|class_unterminated_nested_open|[[a]
+err|class_unterminated_after_open_in_open|[a[]
+err|class_unterminated_two_opens|[a[b]
+err|posix_unterminated_colon_only|[[:
+err|posix_unterminated_name_partial|[[:a
+err|posix_unterminated_name_colon|[[:a:
+err|posix_unterminated_missing_close_bracket|[[:a:]
+err|posix_unterminated_alpha|[[:alpha:]
+err|size_limit_nested_exact_1000x1000|(a{1000}){1000}
+err|size_limit_dot_65535|.{65535}
+err|size_limit_dot_65536|.{65536}
+err|count_overflow_huge_literal|a{99999999999999999999}
+err|count_overflow_u32_boundary|a{4294967296}
+err|depth251_oracle_own_limit|(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+# ---- replace: $$, $name, ${name}, $0, nonexistent/unmatched group, no-match unchanged ----
+replace|literal_replacement_no_captures|o	foo	0	f0o
+replace|dollar_name_numeric_twice|(o)	foo	$1$1	fooo
+replace|dollar_name_longest_run_1a_is_group_1a|(o)	foo	$1a	fo
+replace|dollar_braced_name_then_literal|(o)	foo	${1}a	foao
+replace|dollar_named_group_angle_output|(?P<n>o)	foo	<$n>	f<o>o
+replace|dollar_braced_named_group|(?P<n>o)	foo	<${n}>	f<o>o
+replace|dollar_dollar_escapes_to_dollar|o	foo	$$	f$o
+replace|dollar_at_end_is_literal|o	foo	$	f$o
+replace|dollar_brace_unterminated_literal|o	foo	${	f${o
+replace|dollar_brace_digit_unterminated_literal|o	foo	${1	f${1o
+replace|dollar_then_close_brace_literal|o	foo	$}	f$}o
+replace|dollar_nonexistent_group_empty|(o)	foo	$2	fo
+replace|dollar_unmatched_group_empty|(a)\x{7C}(b)	b	[$1][$2]	[][b]
+replace|empty_pattern_replace_at_0|	abc	X	Xabc
+replace|no_match_leaves_text_unchanged|x	abc	X	abc
+replace|dollar_zero_whole_match|o	foo	a$0b	fao
+replace|dollar_followed_by_non_name_literal|o	foo	$-1	f$-1o
+replace|dollar_followed_by_space_literal|o	foo	$ 1	f$ 1o
+replace|dollar_name_underscore_group_absent_empty|o	foo	$_	fo
+replace|dollar_named_group_with_underscore|(?P<a_b>o)	foo	$a_b	foo
+replace|case_insensitive_replace|(?i)O	foo	0	f0o
+replace|star_quantifier_replace_first_only|o*	foo	X	Xfoo
+replace|dollar_anchor_end_replace|$	foo	X	fooX
+replace|word_boundary_replace_at_start|\\b	foo bar	\x{7C}	\x{7C}foo bar
+replace|dollar_braced_leading_space_in_name_literal|(o)	foo	${ 1}	fo
+replace|dollar_braced_trailing_space_in_name_literal|(o)	foo	${1 }	fo
+replace|dollar_leading_zero_group_1|(o)	foo	$01	foo
+replace|dollar_name_then_dollar_dollar|(o)	foo	$1$$	fo$o
+replace|dollar_named_then_nonexistent_numeric|(?P<n>o)(x)?	foo	$n$2!	fo!o
+replace|dollar_dollar_then_digit|o	foo	$$1	f$1o
+replace|dollar_braced_repeated|(o)	foo	${1}${1}	fooo
+replace|replace_first_of_two_matches_only|o	féoo	X	féXo
+# ---- escape: exactly '\ . + * ? ( ) | [ ] { } ^ $ # & - ~', raw survivors pass through ----
+escape|escape_special_5c|\\	\\\\
+escape|escape_special_2e|.	\\.
+escape|escape_special_2b|+	\\+
+escape|escape_special_2a|*	\\*
+escape|escape_special_3f|?	\\?
+escape|escape_special_28|(	\\(
+escape|escape_special_29|)	\\)
+escape|escape_special_7c|\x{7C}	\\\x{7C}
+escape|escape_special_5b|[	\\[
+escape|escape_special_5d|]	\\]
+escape|escape_special_7b|{	\\{
+escape|escape_special_7d|}	\\}
+escape|escape_special_5e|^	\\^
+escape|escape_special_24|$	\\$
+escape|escape_special_23|#	\\#
+escape|escape_special_26|&	\\&
+escape|escape_special_2d|-	\\-
+escape|escape_special_7e|~	\\~
+escape|escape_raw_survivor_slash|/	/
+escape|escape_raw_survivor_underscore|_	_
+escape|escape_raw_survivor_colon|:	:
+escape|escape_raw_survivor_comma|,	,
+escape|escape_raw_survivor_equals|=	=
+escape|escape_raw_survivor_bang|!	!
+escape|escape_raw_survivor_at|@	@
+escape|escape_raw_survivor_percent|%	%
+escape|escape_raw_survivor_double_quote|"	"
+escape|escape_raw_survivor_single_quote|'	'
+escape|escape_raw_survivor_less_than|<	<
+escape|escape_raw_survivor_greater_than|>	>
+escape|escape_raw_survivor_space| 	 
+escape|escape_raw_survivor_newline|\n	\n
+escape|escape_raw_survivor_e_acute|é	é
+escape|escape_mixed_string|a.b*c+d?e(f)g\x{7C}h[i]j{k}l^m$n\\o#p&q-r~s t/u_v:w,x=y!z@%"'`<>\né	a\\.b\\*c\\+d\\?e\\(f\\)g\\\x{7C}h\\[i\\]j\\{k\\}l\\^m\\$n\\\\o\\#p\\&q\\-r\\~s t/u_v:w,x=y!z@%"'`<>\né
