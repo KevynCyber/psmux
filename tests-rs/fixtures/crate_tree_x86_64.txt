@@ -1,4 +1,3 @@
-aho-corasick v1.1.5
 allocator-api2 v0.2.21
 anyhow v1.0.104
 arrayvec v0.7.8
@@ -48,6 +47,7 @@ powerfmt v0.2.0
 proc-macro2 v1.0.107
 psmux v3.3.8
 psmux-json v0.1.0
+psmux-regex v0.1.0
 psmux-unicode v0.1.0
 quote v1.0.47
 ratatui v0.30.2
@@ -55,9 +55,6 @@ ratatui-core v0.1.2
 ratatui-crossterm v0.1.2
 ratatui-macros v0.7.2
 ratatui-widgets v0.3.2
-regex v1.13.1
-regex-automata v0.4.18
-regex-syntax v0.8.11
 rustversion v1.0.23
 ryu v1.0.23
 scopeguard v1.2.0
