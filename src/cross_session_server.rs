@@ -88,8 +88,7 @@ pub fn handle_pane_forward_extract(
     let screen_b64 = {
         if let Ok(parser) = pane.term.lock() {
             let buf = parser.screen().state_formatted();
-            use base64::Engine;
-            base64::engine::general_purpose::STANDARD.encode(&buf)
+            crate::util::base64_encode_bytes(&buf)
         } else {
             String::new()
         }
@@ -220,8 +219,7 @@ pub fn handle_pane_forward_inject(
     let writer_stream = stream;
     // Decode screen snapshot
     let screen_snapshot = if !screen_b64.is_empty() {
-        use base64::Engine;
-        base64::engine::general_purpose::STANDARD.decode(&screen_b64).ok()
+        crate::util::base64_decode_bytes(&screen_b64)
     } else {
         None
     };

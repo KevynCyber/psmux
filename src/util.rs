@@ -248,55 +248,18 @@ pub fn window_layout_json(app: &AppState, win_id: usize) -> io::Result<String> {
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("json error: {e}")))
 }
 
-pub const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+// ZDEP-007: byte-level codec lives in util/base64_codec.rs (kept out of
+// this file to respect the file-structure line-count gate); these are thin
+// string wrappers over it.
+mod base64_codec;
+pub use base64_codec::{base64_encode_bytes, base64_decode_bytes};
 
 pub fn base64_encode(data: &str) -> String {
-    let bytes = data.as_bytes();
-    let mut result = String::new();
-    for chunk in bytes.chunks(3) {
-        let b0 = chunk[0] as usize;
-        let b1 = chunk.get(1).copied().unwrap_or(0) as usize;
-        let b2 = chunk.get(2).copied().unwrap_or(0) as usize;
-        result.push(BASE64_CHARS[b0 >> 2] as char);
-        result.push(BASE64_CHARS[((b0 & 0x03) << 4) | (b1 >> 4)] as char);
-        if chunk.len() > 1 {
-            result.push(BASE64_CHARS[((b1 & 0x0f) << 2) | (b2 >> 6)] as char);
-        } else {
-            result.push('=');
-        }
-        if chunk.len() > 2 {
-            result.push(BASE64_CHARS[b2 & 0x3f] as char);
-        } else {
-            result.push('=');
-        }
-    }
-    result
+    base64_encode_bytes(data.as_bytes())
 }
 
 pub fn base64_decode(encoded: &str) -> Option<String> {
-    let mut result = Vec::new();
-    // tmux parity: b64_pton (compat/base64.c) skips ASCII whitespace anywhere
-    // in the payload, so OSC 52 producers that wrap long base64 still decode.
-    // Any other non-alphabet byte still rejects the whole payload below.
-    let chars: Vec<u8> = encoded
-        .bytes()
-        .filter(|&b| b != b'=' && !b.is_ascii_whitespace())
-        .collect();
-    for chunk in chars.chunks(4) {
-        if chunk.len() < 2 { break; }
-        let b0 = BASE64_CHARS.iter().position(|&c| c == chunk[0])? as u8;
-        let b1 = BASE64_CHARS.iter().position(|&c| c == chunk[1])? as u8;
-        result.push((b0 << 2) | (b1 >> 4));
-        if chunk.len() > 2 {
-            let b2 = BASE64_CHARS.iter().position(|&c| c == chunk[2])? as u8;
-            result.push((b1 << 4) | (b2 >> 2));
-            if chunk.len() > 3 {
-                let b3 = BASE64_CHARS.iter().position(|&c| c == chunk[3])? as u8;
-                result.push((b2 << 6) | b3);
-            }
-        }
-    }
-    String::from_utf8(result).ok()
+    String::from_utf8(base64_decode_bytes(encoded)?).ok()
 }
 
 /// Return color name as a string. Uses static strings for Default and
