@@ -62,7 +62,7 @@ fn append_extra_style_json_emits_all_five_dropped_styles() {
 
     // Result must remain a single valid JSON object.
     assert!(buf.ends_with('}'));
-    let parsed: serde_json::Value = serde_json::from_str(&buf).expect("valid JSON");
+    let parsed = psmux_json::parse(&buf).expect("valid JSON");
     assert_eq!(parsed["wsa_style"], "reverse");
     assert_eq!(parsed["status_left_style"], "fg=colour201");
 }
@@ -89,8 +89,8 @@ fn list_windows_json_carries_bell_activity_last_flags() {
     app.windows[0].bell_flag = true;
 
     let json = crate::server::helpers::list_windows_json_with_tabs(&app).unwrap();
-    let arr: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap();
-    assert_eq!(arr.len(), 2);
+    let arr = psmux_json::parse(&json).unwrap();
+    assert_eq!(arr.as_array().unwrap().len(), 2);
 
     // w0: not active, but bell + activity + last flags all set.
     assert_eq!(arr[0]["active"], false);

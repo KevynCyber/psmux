@@ -281,12 +281,14 @@ fn status_format_json_roundtrip_preserves_styles() {
     // Simulate the JSON fragment the server sends
     let json_fragment = r##"{"status_format":["","#[fg=red]Hello","#[fg=green,bg=blue]World"]}"##;
 
-    #[derive(serde::Deserialize)]
-    struct Partial {
-        #[serde(default)]
-        status_format: Vec<String>,
+    struct Partial { status_format: Vec<String> }
+    impl psmux_json::FromJson for Partial {
+        fn from_json(v: &psmux_json::Value) -> Result<Self, psmux_json::Error> {
+            let sf = match v.get("status_format") { Some(x) => Vec::<String>::from_json(x)?, None => Vec::new() };
+            Ok(Partial { status_format: sf })
+        }
     }
-    let parsed: Partial = serde_json::from_str(json_fragment).unwrap();
+    let parsed: Partial = psmux_json::from_str(json_fragment).unwrap();
     assert_eq!(parsed.status_format.len(), 3);
     assert_eq!(parsed.status_format[0], "");
     assert_eq!(parsed.status_format[1], "#[fg=red]Hello",

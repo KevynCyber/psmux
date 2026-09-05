@@ -15,7 +15,7 @@ fn leaf_json_without_wants_mouse_defaults_false() {
         "cursor_row":0,"cursor_col":0,"active":true,"copy_mode":false,
         "scroll_offset":0,"sel_start_row":null,"sel_start_col":null,
         "sel_end_row":null,"sel_end_col":null}"#;
-    let leaf: LayoutJson = serde_json::from_str(json).expect("legacy leaf must parse");
+    let leaf: LayoutJson = psmux_json::from_str(json).expect("legacy leaf must parse");
     match leaf {
         LayoutJson::Leaf { id, wants_mouse, .. } => {
             assert_eq!(id, 3);
@@ -37,7 +37,7 @@ fn leaf_json_with_wants_mouse_true_parses() {
         "sel_start_row":null,"sel_start_col":null,
         "sel_end_row":null,"sel_end_col":null,
         "rows_v2":[],"content":[],"title":null}"#;
-    let leaf: LayoutJson = serde_json::from_str(json).expect("leaf must parse");
+    let leaf: LayoutJson = psmux_json::from_str(json).expect("leaf must parse");
     match leaf {
         LayoutJson::Leaf { id, wants_mouse, .. } => {
             assert_eq!(id, 7);
@@ -61,7 +61,7 @@ fn pane_wants_mouse_json_matches_only_the_flagged_pane() {
            "sel_start_row":null,"sel_start_col":null,
            "sel_end_row":null,"sel_end_col":null}
         ]}"#;
-    let layout: LayoutJson = serde_json::from_str(json).expect("split must parse");
+    let layout: LayoutJson = psmux_json::from_str(json).expect("split must parse");
     assert!(
         !pane_wants_mouse_json(&layout, 0),
         "shell pane (no mouse protocol) must NOT yield client selection"

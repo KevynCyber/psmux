@@ -410,6 +410,18 @@ mod tests {
         assert_eq!(recs[0].exit_code, None);
     }
 
+    // Covers: ZDEP-016
+    // Requirement: ResultRecord's manual FromJson impl must default ExitCode
+    // to None when the key is absent entirely (not just JSON null) -- a
+    // distinct code path from the null case above.
+    #[test]
+    fn parses_results_jsonl_exit_code_absent_is_none() {
+        let text = r#"{"Name":"test_absent_exit","Status":"SKIP","Passed":0,"Failed":0,"Duration":0}"#;
+        let recs = parse_results_jsonl(text);
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].exit_code, None);
+    }
+
     #[test]
     fn parses_results_jsonl_multiple_lines_and_skips_garbage() {
         let text = "{\"Name\":\"a\",\"Status\":\"PASS\",\"Passed\":1,\"Failed\":0,\"Duration\":1.0,\"ExitCode\":0}\n\
