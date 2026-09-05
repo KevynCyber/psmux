@@ -150,12 +150,14 @@ Tests: `tests-rs/test_zdep_timefmt.rs`, `tests-rs/test_zdep_time_std.rs`
 `UnicodeWidthChar::width` semantics: `None` for the Cc general category
 (U+0000..U+001F, U+007F..U+009F), `Some(0)` for zero-width characters
 (Mn/Me/Cf, ZWJ, ZWNJ, U+1160..U+11FF Hangul jamo V/T, ...), `Some(2)` for
-East Asian Wide/Fullwidth and emoji-presentation characters, `Some(1)`
-otherwise (including unassigned and private-use code points). The table is
+East Asian Wide/Fullwidth and emoji-presentation characters, `Some(3)` for
+U+17D8 KHMER SIGN BEYYAL (the single width-3 code point in unicode-width
+0.2.2), `Some(1)` otherwise (including unassigned and private-use code
+points). The table is
 `crates/psmux-unicode/src/tables.rs`, emitted by
 `scripts/gen_unicode_width.py` from the committed oracle fixture
 `tests-rs/fixtures/unicode_width_0.2.2.txt` (run-length rows
-`<start-hex>..<end-hex>|<N|0|1|2>` covering U+0000..U+10FFFF minus
+`<start-hex>..<end-hex>|<N|0|1|2|3>` covering U+0000..U+10FFFF minus
 surrogates, generated once from unicode-width 0.2.2). Deviation from the
 plan's A6: the generator consumes the oracle fixture, not UCD files, so no
 UCD inputs are checked in and the table equals the fixture by construction.
