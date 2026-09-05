@@ -1295,6 +1295,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "psmux-json"
+version = "0.1.0"
+
+[[package]]
 name = "psmux-unicode"
 version = "0.1.0"
 

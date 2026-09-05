@@ -10,7 +10,7 @@ keywords = ["terminal", "multiplexer", "tmux", "windows", "powershell"]
 categories = ["command-line-utilities"]
 
 [workspace]
-members = [".", "crates/portable-pty-psmux", "crates/vt100-psmux", "crates/psmux-unicode"]
+members = [".", "crates/portable-pty-psmux", "crates/vt100-psmux", "crates/psmux-unicode", "crates/psmux-json"]
 exclude = [
     "target/",
     "release/",
