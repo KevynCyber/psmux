@@ -210,10 +210,11 @@ for every fixture row). Parser: RFC 8259 grammar only (no trailing commas,
 comments, leading zeros, `NaN`/`Infinity`, single quotes, or unescaped
 control characters); the four JSON whitespace bytes; every `\`-escape
 including `\uXXXX` with UTF-16 surrogate pairs combined into one scalar,
-a lone or mismatched surrogate is `Err`; nesting deeper than the
-serde_json default recursion limit of 128 arrays/objects is `Err`
-returned iteratively or with bounded recursion (a 10 000-deep `[` input
-must return `Err`, not overflow the stack); trailing non-whitespace after
+a lone or mismatched surrogate is `Err`; the nesting limit is whatever
+the fixture records (serde_json 1.0.151 with its default recursion limit
+of 128 accepts 127 nested arrays/objects and rejects 128), enforced with
+bounded recursion (a 10 000-deep `[` input must return `Err`, not
+overflow the stack); trailing non-whitespace after
 the value is `Err`; duplicate object keys keep the last; input size is
 the caller's responsibility (plan S3). Writer: strings escape `"`, `\`,
 and control characters below U+0020 as `\b \f \n \r \t` or `\u00XX`,
