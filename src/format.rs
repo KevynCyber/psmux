@@ -624,7 +624,7 @@ fn find_modifier_colon(s: &str) -> Option<usize> {
 
 /// Parsed modifier representation.
 #[derive(Debug, Clone)]
-enum Modifier {
+pub(crate) enum Modifier {
     Time,
     Basename,
     Dirname,
@@ -727,7 +727,7 @@ fn parse_single_modifier(spec: &str) -> Option<Modifier> {
 }
 
 /// Apply a modifier to a value.
-fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> String {
+pub(crate) fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> String {
     match m {
         Modifier::Time => {
             if let Ok(ts) = value.parse::<i64>() {
