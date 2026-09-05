@@ -106,13 +106,13 @@ fn resize_to_same_size_is_noop() {
     let fake_term = std::sync::Arc::new(std::sync::Mutex::new(
         vt100::Parser::new(40, 120, app.history_limit),
     ));
-    let pty = portable_pty::native_pty_system();
+    let pty = crate::pty::native_pty_system();
     let pair = pty
-        .openpty(portable_pty::PtySize {
+        .openpty(crate::pty::PtySize {
             rows: 40, cols: 120, pixel_width: 0, pixel_height: 0,
         })
         .expect("openpty");
-    let mut cmd = portable_pty::CommandBuilder::new("cmd.exe");
+    let mut cmd = crate::pty::CommandBuilder::new("cmd.exe");
     cmd.arg("/c");
     cmd.arg("exit");
     let child = pair.slave.spawn_command(cmd).expect("spawn dummy");

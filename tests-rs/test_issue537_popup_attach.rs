@@ -140,7 +140,7 @@ fn popup_marker_must_be_exactly_one() {
 /// forever down that process tree.
 #[test]
 fn pane_spawn_clears_the_popup_marker() {
-    let mut builder = portable_pty::CommandBuilder::new("pwsh");
+    let mut builder = crate::pty::CommandBuilder::new("pwsh");
     builder.env(POPUP_CHILD_ENV, "1");
     crate::pane::set_tmux_env(&mut builder, 7, Some(1234), None, "work", false, false);
 

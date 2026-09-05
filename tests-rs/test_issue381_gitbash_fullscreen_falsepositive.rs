@@ -53,11 +53,11 @@ fn fresh_parser(rows: u16, cols: u16) -> Arc<Mutex<vt100::Parser>> {
 /// fields `is_fullscreen_tui` / `pane_wants_mouse` read are meaningful; the pty
 /// plumbing is a throwaway cmd.exe so the struct is valid.
 fn make_pane(term: Arc<Mutex<vt100::Parser>>, rows: u16, cols: u16, child_pid: Option<u32>) -> crate::types::Pane {
-    let pty = portable_pty::native_pty_system();
+    let pty = crate::pty::native_pty_system();
     let pair = pty
-        .openpty(portable_pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+        .openpty(crate::pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
         .expect("openpty");
-    let mut cmd = portable_pty::CommandBuilder::new("cmd.exe");
+    let mut cmd = crate::pty::CommandBuilder::new("cmd.exe");
     cmd.arg("/c");
     cmd.arg("exit");
     let child = pair.slave.spawn_command(cmd).expect("spawn dummy");

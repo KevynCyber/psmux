@@ -34,34 +34,34 @@ impl std::io::Write for DummyWriter {
     fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
 }
 
-impl portable_pty::ChildKiller for DummyChild {
+impl crate::pty::ChildKiller for DummyChild {
     fn kill(&mut self) -> std::io::Result<()> { Ok(()) }
-    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+    fn clone_killer(&self) -> Box<dyn crate::pty::ChildKiller + Send + Sync> {
         Box::new(DummyChild)
     }
 }
 
-impl portable_pty::Child for DummyChild {
-    fn try_wait(&mut self) -> std::io::Result<Option<portable_pty::ExitStatus>> {
-        Ok(Some(portable_pty::ExitStatus::with_exit_code(0)))
+impl crate::pty::Child for DummyChild {
+    fn try_wait(&mut self) -> std::io::Result<Option<crate::pty::ExitStatus>> {
+        Ok(Some(crate::pty::ExitStatus::with_exit_code(0)))
     }
-    fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
-        Ok(portable_pty::ExitStatus::with_exit_code(0))
+    fn wait(&mut self) -> std::io::Result<crate::pty::ExitStatus> {
+        Ok(crate::pty::ExitStatus::with_exit_code(0))
     }
     fn process_id(&self) -> Option<u32> { None }
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> { None }
 }
 
-impl portable_pty::MasterPty for DummyMaster {
-    fn resize(&self, _size: portable_pty::PtySize) -> Result<(), portable_pty::Error> { Ok(()) }
-    fn get_size(&self) -> Result<portable_pty::PtySize, portable_pty::Error> {
-        Ok(portable_pty::PtySize { rows: ROWS, cols: COLS, pixel_width: 0, pixel_height: 0 })
+impl crate::pty::MasterPty for DummyMaster {
+    fn resize(&self, _size: crate::pty::PtySize) -> Result<(), crate::pty::Error> { Ok(()) }
+    fn get_size(&self) -> Result<crate::pty::PtySize, crate::pty::Error> {
+        Ok(crate::pty::PtySize { rows: ROWS, cols: COLS, pixel_width: 0, pixel_height: 0 })
     }
-    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, portable_pty::Error> {
+    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, crate::pty::Error> {
         Ok(Box::new(std::io::empty()))
     }
-    fn take_writer(&self) -> Result<Box<dyn std::io::Write + Send>, portable_pty::Error> {
+    fn take_writer(&self) -> Result<Box<dyn std::io::Write + Send>, crate::pty::Error> {
         Ok(Box::new(DummyWriter))
     }
     #[cfg(unix)]

@@ -24,11 +24,11 @@ use ratatui::layout::Rect;
 
 /// Build a valid Pane wrapping a throwaway PTY, tagged with `id`.
 fn make_pane(id: usize, rows: u16, cols: u16) -> crate::types::Pane {
-    let pty = portable_pty::native_pty_system();
+    let pty = crate::pty::native_pty_system();
     let pair = pty
-        .openpty(portable_pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+        .openpty(crate::pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
         .expect("openpty");
-    let mut cmd = portable_pty::CommandBuilder::new("cmd.exe");
+    let mut cmd = crate::pty::CommandBuilder::new("cmd.exe");
     cmd.arg("/c");
     cmd.arg("exit");
     let child = pair.slave.spawn_command(cmd).expect("spawn dummy");

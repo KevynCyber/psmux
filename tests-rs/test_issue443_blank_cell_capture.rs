@@ -47,18 +47,18 @@ const CUF_EXPECTED: &str = "CUFA    CUFB    CUFC";
 fn open_pane_pty(
     rows: u16,
     cols: u16,
-) -> (Box<dyn portable_pty::MasterPty + Send>, Box<dyn portable_pty::Child + Send + Sync>, Box<dyn std::io::Write + Send>) {
+) -> (Box<dyn crate::pty::MasterPty + Send>, Box<dyn crate::pty::Child + Send + Sync>, Box<dyn std::io::Write + Send>) {
     let mut last_err = String::new();
     for attempt in 0u64..5 {
         if attempt > 0 {
             std::thread::sleep(Duration::from_millis(100 * attempt));
         }
-        let pty = portable_pty::native_pty_system();
-        let pair = match pty.openpty(portable_pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 }) {
+        let pty = crate::pty::native_pty_system();
+        let pair = match pty.openpty(crate::pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 }) {
             Ok(p) => p,
             Err(e) => { last_err = format!("openpty: {e:?}"); continue; }
         };
-        let mut cmd = portable_pty::CommandBuilder::new("cmd.exe");
+        let mut cmd = crate::pty::CommandBuilder::new("cmd.exe");
         cmd.arg("/c");
         cmd.arg("exit");
         let child = match pair.slave.spawn_command(cmd) {

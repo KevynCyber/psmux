@@ -40,3 +40,7 @@ mod tests_zdep_crate_tree;
 #[cfg(test)]
 #[path = "../tests-rs/test_zdep_brace_match.rs"]
 mod tests_zdep_brace_match;
+
+#[cfg(all(test, windows))]
+#[path = "../tests-rs/test_zdep_pty_fold.rs"]
+mod tests_zdep_pty_fold;

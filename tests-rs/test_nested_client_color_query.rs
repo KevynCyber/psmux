@@ -183,7 +183,7 @@ fn planted_colors_are_used_instead_of_querying() {
 
 #[test]
 fn pane_child_receives_the_parents_colors() {
-    let mut builder = portable_pty::CommandBuilder::new("pwsh");
+    let mut builder = crate::pty::CommandBuilder::new("pwsh");
     crate::pane::set_host_colors_env(&mut builder, Some(&colors_with_fg()));
     let got = builder
         .get_env("PSMUX_HOST_COLORS")
@@ -198,7 +198,7 @@ fn pane_child_receives_the_parents_colors() {
 /// terminal it was measured on is worse than no palette.
 #[test]
 fn unknown_colors_clear_the_variable_on_the_child() {
-    let mut builder = portable_pty::CommandBuilder::new("pwsh");
+    let mut builder = crate::pty::CommandBuilder::new("pwsh");
     builder.env("PSMUX_HOST_COLORS", "fg=ffffff,bg=000000");
     crate::pane::set_host_colors_env(&mut builder, None);
     assert!(
@@ -209,7 +209,7 @@ fn unknown_colors_clear_the_variable_on_the_child() {
 
 #[test]
 fn empty_colors_clear_the_variable_on_the_child() {
-    let mut builder = portable_pty::CommandBuilder::new("pwsh");
+    let mut builder = crate::pty::CommandBuilder::new("pwsh");
     builder.env("PSMUX_HOST_COLORS", "fg=ffffff");
     let empty = crate::types::HostColors::from_spec("");
     crate::pane::set_host_colors_env(&mut builder, Some(&empty));
@@ -226,7 +226,7 @@ fn planted_colors_round_trip_through_a_nested_client() {
     let _lock = crate::util::lock_test_env();
     let env = GuardEnv::new();
 
-    let mut builder = portable_pty::CommandBuilder::new("pwsh");
+    let mut builder = crate::pty::CommandBuilder::new("pwsh");
     let parent = crate::types::HostColors::from_spec("fg=112233,bg=445566,0=778899,dark=0");
     crate::pane::set_host_colors_env(&mut builder, Some(&parent));
     let planted = builder

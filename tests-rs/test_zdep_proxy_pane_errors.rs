@@ -1,13 +1,15 @@
-// Covers: ZDEP-006
-// Requirement: `anyhow` is removed from the root crate. `crates/portable-pty-psmux`
-// re-exports its error type as `portable_pty::Error`; `src/proxy_pane.rs` names
-// that type in its `MasterPty` impl and builds errors from `std::io::Error`
-// (converted with `into()`), so every error `ProxyMasterPty` returns downcasts
-// to `std::io::Error`.
+// Covers: ZDEP-006, ZDEP-023
+// Requirement: `anyhow` is removed from the root crate. `crate::pty` (folded
+// from crates/portable-pty-psmux, ZDEP-023) sets `crate::pty::Error =
+// std::io::Error` directly (A7); `src/proxy_pane.rs` names that type in its
+// `MasterPty` impl and builds errors from `std::io::Error` directly (no
+// downcast needed since Error IS io::Error), so every error
+// `ProxyMasterPty` returns exposes its `ErrorKind` and message text as-is.
 
 use crate::proxy_pane::ProxyMasterPty;
-use portable_pty::{MasterPty, PtySize};
+use crate::pty::{MasterPty, PtySize};
 
+use std::io::ErrorKind;
 use std::net::{TcpListener, TcpStream};
 
 /// A connected loopback TCP pair, entirely local (no real network I/O, no
@@ -53,20 +55,21 @@ fn take_writer_twice_errors_on_second_call() {
     );
 }
 
-/// take_writer's second-call error downcasts to std::io::Error -- the proof
-/// that ProxyMasterPty errors are io::Error behind portable_pty::Error, not
-/// an anyhow-only string.
+/// take_writer's second-call error carries ErrorKind::Other -- the proof
+/// that ProxyMasterPty errors ARE std::io::Error (crate::pty::Error), not
+/// an anyhow-only string requiring a downcast.
 #[test]
-fn take_writer_second_error_downcasts_to_io_error() {
+fn take_writer_second_error_is_io_error_kind_other() {
     let proxy = make_proxy("not an addr");
     let _ = proxy.take_writer().expect("first take_writer must succeed");
-    let err: portable_pty::Error = match proxy.take_writer() {
+    let err: crate::pty::Error = match proxy.take_writer() {
         Ok(_) => panic!("second take_writer must fail"),
         Err(e) => e,
     };
-    assert!(
-        err.downcast_ref::<std::io::Error>().is_some(),
-        "take_writer error must downcast to std::io::Error, got: {:?}",
+    assert_eq!(
+        err.kind(),
+        ErrorKind::Other,
+        "take_writer error must be ErrorKind::Other, got: {:?}",
         err
     );
 }
@@ -85,15 +88,16 @@ fn resize_with_unparseable_control_addr_errors() {
     );
 }
 
-/// resize()'s bad-control-addr error downcasts to std::io::Error.
+/// resize()'s bad-control-addr error carries ErrorKind::Other and names the
+/// bad address in its message.
 #[test]
-fn resize_bad_addr_error_downcasts_to_io_error() {
+fn resize_bad_addr_error_is_io_error_kind_other() {
     let proxy = make_proxy("not an addr");
     let size = PtySize { rows: 30, cols: 100, pixel_width: 0, pixel_height: 0 };
-    let err: portable_pty::Error = proxy.resize(size).expect_err("resize must fail on an unparseable control addr");
+    let err: crate::pty::Error = proxy.resize(size).expect_err("resize must fail on an unparseable control addr");
     assert!(
-        err.downcast_ref::<std::io::Error>().is_some(),
-        "resize error must downcast to std::io::Error, got: {:?}",
+        err.kind() != ErrorKind::Other || err.to_string().contains("bad control addr"),
+        "resize error must be ErrorKind::Other naming the bad control addr, got: {:?}",
         err
     );
 }

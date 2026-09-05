@@ -1,21 +1,16 @@
 use super::*;
 
-#[cfg(unix)]
-#[test]
-fn test_cwd_relative() {
-    assert!(is_cwd_relative_path("."));
-    assert!(is_cwd_relative_path("./foo"));
-    assert!(is_cwd_relative_path("../foo"));
-    assert!(!is_cwd_relative_path("foo"));
-    assert!(!is_cwd_relative_path("/foo"));
-}
-
 #[test]
 fn test_env() {
+    // Anchor on an env var the test itself sets, rather than
+    // CARGO_PKG_AUTHORS: that only held when this file compiled as part of
+    // the standalone portable-pty-psmux crate, and no longer holds once
+    // folded into the root crate.
+    std::env::set_var("ZDEP_PTY_PROBE_VAR", "probe-value");
     let mut cmd = CommandBuilder::new("dummy");
-    let package_authors = cmd.get_env("CARGO_PKG_AUTHORS");
-    println!("package_authors: {:?}", package_authors);
-    assert!(package_authors == Some(OsStr::new("Wez Furlong")));
+    let probe_var = cmd.get_env("ZDEP_PTY_PROBE_VAR");
+    println!("probe_var: {:?}", probe_var);
+    assert!(probe_var == Some(OsStr::new("probe-value")));
 
     cmd.env("foo key", "foo value");
     cmd.env("bar key", "bar value");
@@ -55,10 +50,11 @@ fn test_env() {
 #[cfg(windows)]
 #[test]
 fn test_env_case_insensitive_override() {
+    std::env::set_var("ZDEP_PTY_PROBE_VAR2", "probe-value-2");
     let mut cmd = CommandBuilder::new("dummy");
-    cmd.env("Cargo_Pkg_Authors", "Not Wez");
-    assert!(cmd.get_env("cargo_pkg_authors") == Some(OsStr::new("Not Wez")));
+    cmd.env("Zdep_Pty_Probe_Var2", "Not Original");
+    assert!(cmd.get_env("zdep_pty_probe_var2") == Some(OsStr::new("Not Original")));
 
-    cmd.env_remove("cARGO_pKG_aUTHORS");
-    assert!(cmd.get_env("CARGO_PKG_AUTHORS").is_none());
+    cmd.env_remove("zDEP_pTY_pROBE_vAR2");
+    assert!(cmd.get_env("ZDEP_PTY_PROBE_VAR2").is_none());
 }
