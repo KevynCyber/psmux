@@ -1,0 +1,55 @@
+# generated once from unicode-width 0.2.2; rows CATEGORY|STRING(escaped)|WIDTH
+# declared categories: ascii, cjk, thai, combining, control, vs16_emoji, vs16_nonemoji, vs15, zwj, regional_indicator, hangul_jamo, empty
+ascii|abc|3
+ascii|Hello, World!|13
+ascii|0123456789|10
+ascii|a|1
+cjk|\u{4E00}|2
+cjk|\u{4E2D}\u{6587}|4
+cjk|\u{3042}|2
+cjk|\u{FF21}|2
+thai|\u{E01}|1
+thai|\u{E01}\u{E48}|1
+thai|\u{E01}\u{E34}|1
+thai|\u{E01}\u{E31}|1
+thai|\u{E01}\u{E48}\u{E2D}\u{E19}|3
+thai|\u{E1B}\u{E0F}\u{E34}\u{E1A}\u{E31}\u{E15}\u{E34}\u{E01}\u{E32}\u{E23}|7
+thai|\u{E01}\u{E49}\u{E32}\u{E27}|3
+thai|\u{E17}\u{E35}\u{E48}|1
+thai|\u{E53}|1
+thai|\u{E1B}\u{E0F}\u{E34}\u{E1A}\u{E31}\u{E15}\u{E34}\u{E01}\u{E32}\u{E23} \u{E01}\u{E48}\u{E2D}\u{E19} \u{E01}\u{E49}\u{E32}\u{E27} \u{E17}\u{E35}\u{E48} \u{E53}|19
+combining|\u{627}\u{64E}|1
+combining|e\u{301}|1
+combining|a\u{300}|1
+combining|A\u{308}|1
+control|\u{0}|1
+control|\u{1F}|1
+control|\u{7F}|1
+control|\u{80}|1
+control|\u{A}|1
+control|\u{9}|1
+control|\u{D}|1
+control|a\u{0}b|3
+vs16_emoji|\u{2733}\u{FE0F}|2
+vs16_emoji|\u{2733}|1
+vs16_emoji|\u{1F4DB}\u{FE0F}|2
+vs16_emoji|1\u{FE0F}|2
+vs16_emoji|\u{2764}\u{FE0F}|2
+vs16_emoji|1\u{FE0F}\u{20E3}|2
+vs16_nonemoji|a\u{FE0F}|1
+vs16_nonemoji|b\u{FE0F}|1
+vs16_nonemoji|\u{4E2D}\u{FE0F}|2
+vs15|\u{2733}\u{FE0E}|1
+vs15|\u{2764}\u{FE0E}|1
+vs15|\u{2716}\u{FE0E}|1
+zwj|\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F466}|2
+zwj|\u{1F469}\u{200D}\u{1F4BB}|2
+zwj|a\u{200D}b|2
+regional_indicator|\u{1F1FA}\u{1F1F8}|2
+regional_indicator|\u{1F1EF}\u{1F1F5}|2
+regional_indicator|\u{1F1E6}|1
+hangul_jamo|\u{1100}\u{1161}\u{11A8}|2
+hangul_jamo|\u{1100}\u{1161}|2
+hangul_jamo|\u{1160}|0
+hangul_jamo|\u{11A8}|0
+empty||0
