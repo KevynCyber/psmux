@@ -1287,14 +1287,18 @@ dependencies = [
  "crossterm",
  "portable-pty-psmux",
  "psmux-json",
+ "psmux-regex",
  "psmux-unicode",
  "ratatui",
- "regex",
  "vt100-psmux",
 ]
 
 [[package]]
 name = "psmux-json"
+version = "0.1.0"
+
+[[package]]
+name = "psmux-regex"
 version = "0.1.0"
 
 [[package]]

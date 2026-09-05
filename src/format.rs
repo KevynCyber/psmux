@@ -828,7 +828,7 @@ fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> 
             } else {
                 pattern.clone()
             };
-            match regex::Regex::new(&re_pattern) {
+            match psmux_regex::Regex::new(&re_pattern) {
                 Ok(re) => re.replace(value, replacement.as_str()).to_string(),
                 Err(_) => value.to_string(),
             }
@@ -868,7 +868,7 @@ fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> 
             if *regex {
                 let re_pat = if *case_insensitive { format!("(?i){}", pattern) }
                     else { pattern.to_string() };
-                match regex::Regex::new(&re_pat) {
+                match psmux_regex::Regex::new(&re_pat) {
                     Ok(re) => if re.is_match(subject) { "1".into() } else { "0".into() },
                     Err(_) => "0".into(),
                 }
@@ -887,11 +887,11 @@ fn apply_modifier(m: &Modifier, value: &str, app: &AppState, win_idx: usize) -> 
                         let screen = parser.screen();
                         let re_result = if *_regex {
                             let pat = if *_case_insensitive { format!("(?i){}", pattern) } else { pattern.to_string() };
-                            regex::Regex::new(&pat).ok()
+                            psmux_regex::Regex::new(&pat).ok()
                         } else {
-                            let escaped = regex::escape(pattern);
+                            let escaped = psmux_regex::escape(pattern);
                             let pat = if *_case_insensitive { format!("(?i){}", escaped) } else { escaped };
-                            regex::Regex::new(&pat).ok()
+                            psmux_regex::Regex::new(&pat).ok()
                         };
                         if let Some(re) = re_result {
                             for r in 0..p.last_rows {

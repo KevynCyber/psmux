@@ -28,3 +28,7 @@ mod tests_zdep_time_std;
 #[cfg(test)]
 #[path = "../tests-rs/test_zdep_json_types.rs"]
 mod tests_zdep_json_types;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_regex_sites.rs"]
+mod tests_zdep_regex_sites;

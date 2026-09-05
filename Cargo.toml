@@ -10,7 +10,7 @@ keywords = ["terminal", "multiplexer", "tmux", "windows", "powershell"]
 categories = ["command-line-utilities"]
 
 [workspace]
-members = [".", "crates/portable-pty-psmux", "crates/vt100-psmux", "crates/psmux-unicode", "crates/psmux-json"]
+members = [".", "crates/portable-pty-psmux", "crates/vt100-psmux", "crates/psmux-unicode", "crates/psmux-json", "crates/psmux-regex"]
 exclude = [
     "target/",
     "release/",
@@ -101,7 +101,7 @@ portable-pty = { version = "0.9.7", path = "crates/portable-pty-psmux", package 
 vt100 = { version = "0.16.10", path = "crates/vt100-psmux", package = "vt100-psmux" }
 psmux-unicode = { path = "crates/psmux-unicode" }
 psmux-json = { path = "crates/psmux-json" }
-regex = "1.13.1"
+psmux-regex = { path = "crates/psmux-regex" }
 
 [profile.release]
 opt-level = 3
