@@ -198,3 +198,104 @@ golden gains `psmux-unicode v0.1.0`. `unicode-width v0.2.2` remains in
 Tests: `crates/psmux-unicode/tests/str_width_fixture.rs`,
 `crates/vt100-psmux/tests/width_thai_441.rs`,
 `crates/vt100-psmux/tests/issue533_vs16_width.rs`
+
+## ZDEP-014 serde_json Value, parser and writer replaced by crates/psmux-json
+
+`crates/psmux-json` (workspace member, zero dependencies) provides
+`Value` (`Null`, `Bool`, `Number`, `String`, `Array(Vec<Value>)`,
+`Object(Vec<(String, Value)>)` in insertion order),
+`psmux_json::parse(&str) -> Result<Value, Error>` and
+`Value::to_string()` (compact, no whitespace, serde_json byte-for-byte
+for every fixture row). Parser: RFC 8259 grammar only (no trailing commas,
+comments, leading zeros, `NaN`/`Infinity`, single quotes, or unescaped
+control characters); the four JSON whitespace bytes; every `\`-escape
+including `\uXXXX` with UTF-16 surrogate pairs combined into one scalar,
+a lone or mismatched surrogate is `Err`; nesting deeper than the
+serde_json default recursion limit of 128 arrays/objects is `Err`
+returned iteratively or with bounded recursion (a 10 000-deep `[` input
+must return `Err`, not overflow the stack); trailing non-whitespace after
+the value is `Err`; duplicate object keys keep the last; input size is
+the caller's responsibility (plan S3). Writer: strings escape `"`, `\`,
+and control characters below U+0020 as `\b \f \n \r \t` or `\u00XX`,
+leave U+007F and non-ASCII unescaped; integers print in decimal; floats
+print however the fixture records for the rows present (no psmux call
+site serialises a float). `Value` implements `Index<&str>` and
+`Index<usize>` (a missing key or index yields a shared `Null`),
+`PartialEq<&str>`, `PartialEq<bool>`, `PartialEq<i64>` and accessors
+`as_str`, `as_bool`, `as_i64`, `as_u64`, `as_f64`, `as_array`,
+`as_object`, `get(&str)`, so `tests-rs/test_issue451_status_styles.rs`
+compiles with `serde_json::Value` renamed to `psmux_json::Value`.
+`Error` implements `Display` and `std::error::Error`.
+Acceptance: every row of the committed oracle fixture
+`tests-rs/fixtures/serde_json_1.0.151.txt` (rows `<kind>|<name>|<payload>`,
+generated once from serde_json 1.0.151; kinds cover parse-ok round trips,
+parse-err inputs, writer escapes, numbers, depth boundary) replays with
+0 mismatches; a seeded random-bytes and random-mutated-JSON smoke test
+(>= 100 000 inputs) never panics.
+Tests: `crates/psmux-json/tests/value_fixture.rs`,
+`crates/psmux-json/tests/no_panic.rs`
+
+## ZDEP-015 serde derives replaced by manual psmux_json ToJson/FromJson impls
+
+`psmux_json::ToJson` (`fn to_json(&self) -> Value`) and
+`psmux_json::FromJson` (`fn from_json(&Value) -> Result<Self, Error>`)
+with impls for `bool`, `u8`, `u16`, `u32`, `i32`, `i64`, `u64`, `usize`,
+`f64`, `String`, `Option<T>` (`Null` <-> `None`), and `Vec<T>`, plus
+`psmux_json::to_string<T: ToJson>(&T) -> String` and
+`psmux_json::from_str<T: FromJson>(&str) -> Result<T, Error>`. Every
+serde-derived type in `src/` gets a hand-written impl that reproduces the
+derive semantics of its attributes exactly as inventoried: field order is
+declaration order; a field without `#[serde(default)]` is required and
+its absence is `Err`, except an `Option<T>` field which is `None` when
+absent; `#[serde(default)]` substitutes `Default::default()`;
+`#[serde(default = "f")]` calls `f`; unknown keys are ignored;
+`#[serde(tag = "type")]` with `#[serde(rename = "split")]`/`"leaf"` on
+`LayoutJson` and `LayoutSimple` reads and writes `"type"` as the first
+key and rejects an unknown or missing tag; `CellRunJson.link` with
+`skip_serializing_if = "Option::is_none"` is absent from the output when
+`None` and present as a string when `Some` (field-absence asserted). Type
+mismatches (`1.5` or `"1"` for a `u16`, `256` for a `u8`, `null` for a
+required `String`) are `Err` like serde. Covered types: `CellJson`,
+`CellRunJson`, `RowRunsJson`, `LayoutJson` (both variants) in
+`src/layout.rs`; `WinInfo`, `PaneInfo`, `WinTree`, `LayoutSimple` in
+`src/util.rs`; `FloatJson`, `WinStatus`, `BindingEntry`,
+`ServerMenuItem`, `CustomizeOption`, `DumpState` (all fields incl. the
+`default = "..."` functions) in `src/client.rs`; the local `Partial` in
+`tests-rs/test_client.rs`. All 26 `serde_json::` call sites in `src/`
+and `tests-rs/` switch to `psmux_json` with unchanged control flow
+(`.ok()` fallbacks stay `.ok()`; `LayoutJson`/`LayoutSimple` parsing at
+`src/preview.rs` and the `DumpState` parses in `src/client.rs` inherit the
+depth limit from ZDEP-014, plan ledger item 20). `serde` and `serde_json`
+lines are removed from the root manifest and `psmux-json` is added to
+`[workspace] members` and as a root path dependency; the crate-tree golden
+gains `psmux-json v0.1.0` and loses `serde`, `serde_core`, `serde_derive`,
+`serde_json`, `ryu` (and `memchr`/`itoa` only if no remaining normal
+dependency pulls them). `serde`/`serde_json` remain in `Cargo.lock` via
+`crates/vt100-psmux` dev-dependencies and `crates/portable-pty-psmux`'s
+optional `serde_support` feature until S5/S6 (plan ledger item 8).
+Acceptance: for every type at its fixture sample value the new writer
+output equals the serde_json bytes and the serde_json bytes parse back
+to an equal value (one round-trip test per serde attribute occurrence,
+124 in the inventory, grouped per type/attribute kind); the field-absence
+test for `link` passes; `cargo test --locked --bin psmux` control-mode
+and layout tests pass unchanged.
+Tests: `tests-rs/test_zdep_json_types.rs`,
+`tests-rs/test_pane_wants_mouse_selection.rs`,
+`tests-rs/test_issue451_status_styles.rs`, `tests-rs/test_client.rs`
+
+## ZDEP-016 tests/monitor serde replaced by a psmux-json path dependency
+
+`tests/monitor/Cargo.toml` replaces its `serde` and `serde_json` lines
+with `psmux-json = { path = "../../crates/psmux-json" }`; `ResultRecord`
+in `tests/monitor/src/parse.rs` gets a manual `FromJson` impl that reads
+the PascalCase keys `Name`, `Status`, `Passed`, `Failed`, `Duration`
+(f64, integer or fraction literal accepted), `ExitCode` (`null` or absent
+-> `None`), errors on a missing required key, and ignores unknown keys;
+the per-line parse in `parse.rs` keeps skipping malformed lines.
+Acceptance: `cargo build --locked --release` in `tests/monitor` succeeds
+with no serde in its lock; `psmux-test-monitor.exe --snapshot` output is
+byte-identical to `tests-rs/fixtures/monitor_snapshot.txt` after CRLF
+normalisation; a monitor unit test parses a fixture line with every key,
+one with `ExitCode: null`, one with `ExitCode` absent, and one malformed
+line.
+Tests: `tests/monitor/src/parse.rs` (unit tests), monitor snapshot golden
