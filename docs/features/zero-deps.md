@@ -270,8 +270,8 @@ depth limit from ZDEP-014, plan ledger item 20). `serde` and `serde_json`
 lines are removed from the root manifest and `psmux-json` is added to
 `[workspace] members` and as a root path dependency; the crate-tree golden
 gains `psmux-json v0.1.0` and loses `serde`, `serde_core`, `serde_derive`,
-`serde_json`, `ryu` (and `memchr`/`itoa` only if no remaining normal
-dependency pulls them). `serde`/`serde_json` remain in `Cargo.lock` via
+`serde_json`, `zmij` (serde_json 1.0.151's float writer); `ryu`, `itoa`
+and `memchr` stay, pulled by other normal dependencies. `serde`/`serde_json` remain in `Cargo.lock` via
 `crates/vt100-psmux` dev-dependencies and `crates/portable-pty-psmux`'s
 optional `serde_support` feature until S5/S6 (plan ledger item 8).
 Acceptance: for every type at its fixture sample value the new writer
