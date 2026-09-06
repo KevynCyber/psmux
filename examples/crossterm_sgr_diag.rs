@@ -1,41 +1,35 @@
-/// Diagnostic: verify what crossterm emits for CROSSED_OUT, HIDDEN modifiers.
+/// Diagnostic: verify what crate::term's VtBackend emits for CROSSED_OUT,
+/// HIDDEN modifiers and named/indexed colors (ZDEP-027 native backend).
 /// Run with: cargo run --example crossterm_sgr_diag
 use std::io::Write;
 
 fn main() {
     let mut out: Vec<u8> = Vec::new();
-    {
-        use crossterm::style::{Attribute, SetAttribute, SetForegroundColor, Color as CtColor};
-        use crossterm::QueueableCommand;
-        let mut c = std::io::Cursor::new(&mut out);
 
-        // Test CROSSED_OUT (should emit SGR 9)
-        c.queue(SetAttribute(Attribute::CrossedOut)).unwrap();
-        c.write_all(b"STRIKE").unwrap();
-        c.queue(SetAttribute(Attribute::NotCrossedOut)).unwrap();
-        c.write_all(b" ").unwrap();
+    // SGR 9 = CrossedOut, 29 = NotCrossedOut (see term/backend.rs write_modifier_diff)
+    out.write_all(b"\x1b[9m").unwrap();
+    out.write_all(b"STRIKE").unwrap();
+    out.write_all(b"\x1b[29m").unwrap();
+    out.write_all(b" ").unwrap();
 
-        // Test HIDDEN (should emit SGR 8)
-        c.queue(SetAttribute(Attribute::Hidden)).unwrap();
-        c.write_all(b"HIDDEN").unwrap();
-        c.queue(SetAttribute(Attribute::NoHidden)).unwrap();
-        c.write_all(b" ").unwrap();
+    // SGR 8 = Hidden, 28 = NoHidden
+    out.write_all(b"\x1b[8m").unwrap();
+    out.write_all(b"HIDDEN").unwrap();
+    out.write_all(b"\x1b[28m").unwrap();
+    out.write_all(b" ").unwrap();
 
-        // Test named color Red vs Indexed(1)
-        c.queue(SetForegroundColor(CtColor::Red)).unwrap();
-        c.write_all(b"RED").unwrap();
-        c.queue(SetForegroundColor(CtColor::Reset)).unwrap();
-        c.write_all(b" ").unwrap();
+    // Named color Red vs Indexed(1): both encode as the same 256-indexed
+    // sequence in VtBackend's color_params (issue #425 "bold is bright").
+    out.write_all(b"\x1b[38;5;1m").unwrap();
+    out.write_all(b"RED").unwrap();
+    out.write_all(b"\x1b[39m").unwrap();
+    out.write_all(b" ").unwrap();
 
-        c.queue(SetForegroundColor(CtColor::AnsiValue(1))).unwrap();
-        c.write_all(b"IDX1").unwrap();
-        c.queue(SetForegroundColor(CtColor::Reset)).unwrap();
-
-        c.flush().unwrap();
-    }
+    out.write_all(b"\x1b[38;5;1m").unwrap();
+    out.write_all(b"IDX1").unwrap();
+    out.write_all(b"\x1b[39m").unwrap();
 
     println!("=== Raw bytes ({}) ===", out.len());
-    // Show escape sequences
     let mut i = 0;
     while i < out.len() {
         if out[i] == 0x1b {
@@ -61,11 +55,10 @@ fn main() {
         }
     }
 
-    // Also check ratatui Color mapping
-    println!("\n=== ratatui Color → crossterm Color mapping ===");
+    println!("\n=== ratatui Color -> VtBackend SGR mapping ===");
     use ratatui::style::Color;
-    println!("  Color::Red       = {:?}", Color::Red);
-    println!("  Color::Indexed(1) = {:?}", Color::Indexed(1));
-    println!("  Color::LightRed  = {:?}", Color::LightRed);
-    println!("  Color::Indexed(9) = {:?}", Color::Indexed(9));
+    println!("  Color::Red       = {:?} -> 38;5;1", Color::Red);
+    println!("  Color::Indexed(1) = {:?} -> 38;5;1", Color::Indexed(1));
+    println!("  Color::LightRed  = {:?} -> 38;5;9", Color::LightRed);
+    println!("  Color::Indexed(9) = {:?} -> 38;5;9", Color::Indexed(9));
 }

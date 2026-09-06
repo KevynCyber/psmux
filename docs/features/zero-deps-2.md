@@ -103,3 +103,82 @@ directory does not exist; the release workflow has no portable-pty publish
 step; the crate-tree golden matches the live tree.
 Tests: `tests-rs/test_zdep_pty_fold.rs` (manifest, directory and workflow
 assertions), `tests-rs/test_zdep_crate_tree.rs`
+
+## ZDEP-025 crossterm event types and command layer replaced by src/term
+
+`src/term/` (mod.rs, event.rs, console.rs cfg(windows), backend.rs) is a
+crate::-free module (same invariant as src/pty) providing crossterm-0.29
+shape-identical types: `KeyModifiers`/`KeyEventState` bitflags, `KeyCode`,
+`KeyEventKind`, `KeyEvent`, `MouseButton`, `MouseEventKind`, `MouseEvent`,
+`Event`, and a `Command` trait (EnterAlternateScreen, LeaveAlternateScreen,
+EnableBlinking, DisableBlinking, EnableMouseCapture, DisableMouseCapture,
+EnableBracketedPaste, DisableBracketedPaste, `Print<T>`, Hide, Show,
+MoveTo) plus `execute!`/`queue!` macros, always emitting ANSI (psmux
+already enables VT processing; crossterm's winapi fallback path is
+dropped). `crossterm::` paths across src and tests-rs become
+`crate::term::`. vk_to_keycode/vk_modifiers/convert_native_mouse move from
+ssh_input.rs into src/term/console.rs and are re-exported, not duplicated.
+Acceptance: `>= 30` INPUT_RECORD -> Event fixture rows (key down/up, VK
+table, control_key_state bits, surrogate-pair joining, modifier-only VKs,
+mouse button/event-flag bits, WINDOW_BUFFER_SIZE, FOCUS) and `>= 20` bytes
+-> Event fixture rows (SGR mouse, focus, bracketed paste, XTWINOPS resize
+via ssh_input.rs's existing parser, re-anchored only) all pass; the full
+suite compiles after the `crossterm::` -> `crate::term::` sed; src/term has
+no `crate::` paths.
+Tests: `tests-rs/test_zdep_term_events.rs` (`#[path]`-wired in
+src/tests_zdep_wiring.rs)
+
+## ZDEP-026 native console input/raw mode in src/term/console.rs
+
+`src/term/console.rs` (cfg(windows)) replaces crossterm's Windows I/O:
+`enable_raw_mode`/`disable_raw_mode` (GetConsoleMode/SetConsoleMode,
+original mode saved in a `OnceLock<u32>`, mask ENABLE_LINE_INPUT |
+ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT, restore ORs the mask back
+rather than restoring the saved value, matching crossterm); `size()`
+(GetConsoleScreenBufferInfo srWindow); `poll(timeout)`
+(WaitForSingleObject + GetNumberOfConsoleInputEvents re-check against
+spurious wakeups); `read()` (ReadConsoleInputW, looping past records that
+map to no Event, thread-local surrogate-pair and previous-mouse-button
+state); control-char decoding ports crossterm's ToUnicodeEx +
+GetKeyboardLayout `get_char_for_key` logic verbatim. Every extern decl
+carries a doc comment with its Win32 signature source; ReadConsoleInputW's
+buffer is declared `*mut c_void` (clashing_extern_declarations rule).
+Acceptance: enable_raw_mode/size/poll/read behave correctly in a live
+console smoke test; `tests-rs/test_unsafe_inventory.rs` ALLOWLIST gains
+("src/term/console.rs", N) and the ssh_input.rs count drops by the moved
+vk/mouse helpers (two-way ratchet stays balanced); src/term has no
+`crate::` paths.
+Tests: `tests-rs/test_unsafe_inventory.rs`, tests/smoke ps1 (manual, CI
+disabled on fork)
+
+## ZDEP-027 native ratatui Backend (VtBackend); crossterm removed from root and tests/monitor manifests
+
+`src/term/backend.rs` adds `VtBackend<W: Write>`, byte-identical to
+ratatui-crossterm 0.1.2's draw path: per-cell MoveTo only when not
+contiguous, the same ModifierDiff removed/added SGR ordering, SetColors
+emitting both fg and bg (`ESC[38;...m` + `ESC[48;...m`) with crossterm's
+Colored encoding kept as-is (named colors as 256-indexed `5;N`, Rgb
+`2;r;g;b`, Indexed `5;i`, Reset 39/49/59, underline_color via `ESC[58;...m`),
+trailer `ESC[39m ESC[49m ESC[59m ESC[0m`; hide/show cursor,
+set_cursor_position, get_cursor_position, clear/clear_region variants,
+append_lines, size, window_size (Err), flush. `PsmuxBackend`
+(platform.rs) swaps `CrosstermBackend<PsmuxWriter>` for
+`VtBackend<PsmuxWriter>`. Cargo.toml drops `crossterm`; `ratatui` sets
+`default-features = false` with `["std", "all-widgets",
+"underline-color"]`. tests/monitor drops its `ratatui::crossterm` /
+CrosstermBackend usage, includes `src/term/mod.rs` via `#[path]` (same
+technique as examples/latency_harness for src/pty) and sets the same
+ratatui feature flags. examples/crossterm_sgr_diag.rs, enter_diag.rs,
+key_diag.rs, key_test.rs are deleted (crossterm-only diagnostics);
+pipeline_diag.rs and ratatui_render_diag.rs are ported to `#[path] mod
+term;` + VtBackend. `docs/configuration.md`'s bold-is-bright section and
+other `///` history comments are updated only where they claimed crossterm
+does something in the present tense; historical mentions stay.
+Acceptance: a VtBackend cell-for-cell fixture (3x2 Buffer, bold/fg/bg/
+underline changes) matches a golden captured from CrosstermBackend before
+the flip; a blink CSI test; a manifest-line test asserting no `crossterm`
+line in Cargo.toml or tests/monitor/Cargo.toml and the `ratatui` line
+matches the feature set above; the crate-tree golden loses crossterm,
+crossterm_winapi, ratatui-crossterm, winapi and their now-orphaned
+transitives; src/term has no `crate::` paths.
+Tests: `tests-rs/test_zdep_term_backend.rs`, `tests-rs/test_zdep_crate_tree.rs`

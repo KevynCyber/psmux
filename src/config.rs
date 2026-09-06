@@ -1,6 +1,6 @@
 use std::env;
 use std::cell::RefCell;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 
 use crate::types::{AppState, Action, Bind};
 use crate::commands::parse_command_to_action;

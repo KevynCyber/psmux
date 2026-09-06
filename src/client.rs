@@ -2,7 +2,7 @@ use std::io::{self, Write, BufRead, BufReader};
 use std::time::{Duration, Instant};
 use std::env;
 
-use crossterm::event::{Event, KeyCode, KeyModifiers, KeyEventKind};
+use crate::term::event::{Event, KeyCode, KeyModifiers, KeyEventKind};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -2245,7 +2245,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                         cmd_batch.push(format!("popup-input {}\n", encoded));
                                     }
                                     KeyCode::Char(c) => {
-                                        let bytes = if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                                        let bytes = if key.modifiers.contains(crate::term::event::KeyModifiers::CONTROL) {
                                             vec![(c as u8) & 0x1F]
                                         } else {
                                             let mut buf = [0u8; 4];
@@ -3821,7 +3821,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                         }
                     }
                     Event::Mouse(me) => {
-                        use crossterm::event::{MouseEventKind, MouseButton};
+                        use crate::term::event::{MouseEventKind, MouseButton};
                         // Intercept mouse events while a draggable picker is open
                         // so the user can move the popup by dragging its border
                         // and so clicks behind the popup don't leak through to

@@ -5503,10 +5503,10 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                     // Send the prefix key to the active pane as if typed
                     let prefix = app.prefix_key;
                     let encoded: Vec<u8> = match prefix.0 {
-                        crossterm::event::KeyCode::Char(c) if prefix.1.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        crate::term::event::KeyCode::Char(c) if prefix.1.contains(crate::term::event::KeyModifiers::CONTROL) => {
                             vec![(c.to_ascii_lowercase() as u8) & 0x1F]
                         }
-                        crossterm::event::KeyCode::Char(c) => format!("{}", c).into_bytes(),
+                        crate::term::event::KeyCode::Char(c) => format!("{}", c).into_bytes(),
                         _ => vec![],
                     };
                     if !encoded.is_empty() {

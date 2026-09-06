@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::time::Instant;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 use crate::pty::MasterPty;
 use ratatui::prelude::Rect;
 
@@ -522,10 +522,10 @@ pub struct AppState {
     pub client_area: Rect,
     pub last_window_area: Rect,
     pub mouse_enabled: bool,
-    /// bold-is-bright: when on (default), rewrite crossterm's 256-indexed
+    /// bold-is-bright: when on (default), rewrite the backend's 256-indexed
     /// `38;5;N`/`48;5;N` (N<=15) back to the standard 30-37/90-97 SGR codes so
     /// the outer terminal applies "bold is bright" to the 16 basic colors
-    /// (issue #425).  Turn off to pass crossterm's output through untouched,
+    /// (issue #425).  Turn off to pass the backend's output through untouched,
     /// which keeps explicit 256-indexed low colors byte-accurate at the cost of
     /// losing bold-is-bright on basic colors.
     pub bold_is_bright: bool,
@@ -1161,7 +1161,7 @@ impl AppState {
             escape_time_ms: 500,
             repeat_time_ms: 500,
             prefix_repeating: false,
-            prefix_key: (crossterm::event::KeyCode::Char('b'), crossterm::event::KeyModifiers::CONTROL),
+            prefix_key: (crate::term::event::KeyCode::Char('b'), crate::term::event::KeyModifiers::CONTROL),
             prefix2_key: None,
             prediction_dimming: std::env::var("PSMUX_DIM_PREDICTIONS")
                 .map(|v| v == "1" || v.to_lowercase() == "true")

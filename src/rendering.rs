@@ -8,8 +8,8 @@ use std::env;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use ratatui::style::{Style, Modifier};
-use crossterm::style::Print;
-use crossterm::execute;
+use crate::term::style::Print;
+use crate::execute;
 use crate::pty::PtySize;
 
 use crate::types::{AppState, Mode, Node, LayoutKind};

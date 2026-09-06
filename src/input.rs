@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::time::Instant;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use crate::term::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use crate::pty::native_pty_system;
 use ratatui::prelude::*;
 
@@ -1162,7 +1162,7 @@ pub fn handle_key(app: &mut AppState, key: KeyEvent) -> io::Result<bool> {
                         }
                     }
                     KeyCode::Char(c) => {
-                        if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                        if key.modifiers.contains(crate::term::event::KeyModifiers::CONTROL) {
                             let ctrl = (c as u8) & 0x1F;
                             let _ = pty.writer.write_all(&[ctrl]);
                         } else {
@@ -2396,7 +2396,7 @@ fn forward_mouse_to_pane_ex(pane: &mut Pane, area: Rect, abs_x: u16, abs_y: u16,
 }
 
 pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io::Result<()> {
-    use crossterm::event::{MouseEventKind, MouseButton};
+    use crate::term::event::{MouseEventKind, MouseButton};
 
     // Track last mouse position for #{mouse_x}, #{mouse_y} format variables
     app.last_mouse_x = me.column;
@@ -2484,7 +2484,7 @@ pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io
 
     // If a left-click lands on a different pane while in copy mode,
     // exit copy mode entirely and switch to the clicked pane (tmux parity #62).
-    if matches!(me.kind, crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left))
+    if matches!(me.kind, crate::term::event::MouseEventKind::Down(crate::term::event::MouseButton::Left))
         && matches!(app.mode, Mode::CopyMode | Mode::CopySearch { .. })
     {
         let win = &app.windows[app.active_idx];

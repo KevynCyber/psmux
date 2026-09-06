@@ -9,6 +9,15 @@ readme = "README.md"
 keywords = ["terminal", "multiplexer", "tmux", "windows", "powershell"]
 categories = ["command-line-utilities"]
 
+# Mirrors the ratatui dependency's own "underline-color" feature so
+# src/term/backend.rs can `#[cfg(feature = "underline-color")]` the
+# ratatui::buffer::Cell::underline_color field -- tests/monitor is a
+# separate crate/workspace whose own ratatui build omits that feature, and
+# this module tree is recompiled once per binary that #[path]-includes it.
+[features]
+default = ["underline-color"]
+underline-color = []
+
 [workspace]
 members = [".", "crates/vt100-psmux", "crates/psmux-unicode", "crates/psmux-json", "crates/psmux-regex"]
 exclude = [
@@ -95,8 +104,7 @@ name = "tmux"
 path = "src/main.rs"
 
 [dependencies]
-ratatui = "0.30.2"
-crossterm = "0.29.0"
+ratatui = { version = "0.30.2", default-features = false, features = ["std", "all-widgets", "underline-color"] }
 vt100 = { version = "0.16.10", path = "crates/vt100-psmux", package = "vt100-psmux" }
 psmux-unicode = { path = "crates/psmux-unicode" }
 psmux-json = { path = "crates/psmux-json" }

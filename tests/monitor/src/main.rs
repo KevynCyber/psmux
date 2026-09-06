@@ -1,3 +1,6 @@
+#[path = "../../../src/term/mod.rs"]
+mod term;
+
 mod app;
 mod model;
 mod parse;
@@ -7,12 +10,11 @@ use std::io::stdout;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ratatui::backend::{Backend, CrosstermBackend, TestBackend};
-use ratatui::crossterm::event::{
+use ratatui::backend::{Backend, TestBackend};
+use term::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, MouseButton, MouseEventKind,
 };
-use ratatui::crossterm::execute;
-use ratatui::crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use term::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::Terminal;
 
 use app::App;
@@ -92,7 +94,7 @@ fn run_tui(app: &mut App) -> std::io::Result<()> {
     enable_raw_mode()?;
     let mut out = stdout();
     execute!(out, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(out);
+    let backend = term::backend::VtBackend::new(out);
     let mut terminal = Terminal::new(backend)?;
 
     let result = event_loop(&mut terminal, app);
@@ -116,7 +118,7 @@ fn restore_terminal() {
 
 // ratatui 0.30 turned `Backend::Error` into an associated type rather than
 // always being `std::io::Error`, so `?` on `draw` needs the conversion spelled
-// out. The only caller passes a `CrosstermBackend`, whose error already is
+// out. The only caller passes a `VtBackend`, whose error already is
 // `std::io::Error`.
 fn event_loop<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> std::io::Result<()>
 where
@@ -167,7 +169,7 @@ fn handle_key(app: &mut App, code: KeyCode) -> bool {
     true
 }
 
-fn handle_mouse(app: &mut App, mouse: ratatui::crossterm::event::MouseEvent) {
+fn handle_mouse(app: &mut App, mouse: term::event::MouseEvent) {
     let (col, row) = (mouse.column, mouse.row);
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left) => {

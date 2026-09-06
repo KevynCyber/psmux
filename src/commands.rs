@@ -1267,7 +1267,7 @@ fn execute_command_string_single(app: &mut AppState, cmd: &str) -> io::Result<()
                 i += 1;
             }
             // Resolve percentage dimensions against terminal size (#154)
-            let (term_w, term_h) = crossterm::terminal::size().unwrap_or((120, 40));
+            let (term_w, term_h) = crate::term::terminal::size().unwrap_or((120, 40));
             let width = parse_popup_dim_local(&width_spec, term_w, 80);
             let height = parse_popup_dim_local(&height_spec, term_h, 24);
             // Collect remaining args as the command (quotes already stripped)
@@ -1883,10 +1883,10 @@ fn execute_command_string_single(app: &mut AppState, cmd: &str) -> io::Result<()
                 // Send the prefix key to the active pane as if typed
                 let prefix = app.prefix_key;
                 let encoded: Vec<u8> = match prefix.0 {
-                    crossterm::event::KeyCode::Char(c) if prefix.1.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                    crate::term::event::KeyCode::Char(c) if prefix.1.contains(crate::term::event::KeyModifiers::CONTROL) => {
                         vec![(c.to_ascii_lowercase() as u8) & 0x1F]
                     }
-                    crossterm::event::KeyCode::Char(c) => format!("{}", c).into_bytes(),
+                    crate::term::event::KeyCode::Char(c) => format!("{}", c).into_bytes(),
                     _ => vec![],
                 };
                 if !encoded.is_empty() {

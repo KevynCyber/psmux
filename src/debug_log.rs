@@ -9,7 +9,7 @@
 //! | Variable               | Log file                          | Description                          |
 //! |------------------------|-----------------------------------|--------------------------------------|
 //! | `PSMUX_CLIENT_DEBUG=1` | `~/.psmux/client_debug.log`       | Client TUI rendering, draw, status   |
-//! | `PSMUX_STYLE_DEBUG=1`  | `~/.psmux/style_debug.log`        | Style/theme parsing, inline styles   |/// | `PSMUX_INPUT_DEBUG=1`  | `~/.psmux/input_debug.log`        | Every crossterm event + console mode |//! | `PSMUX_MOUSE_DEBUG=1`  | `~/.psmux/mouse_debug.log`        | Mouse injection (existing)           |
+//! | `PSMUX_STYLE_DEBUG=1`  | `~/.psmux/style_debug.log`        | Style/theme parsing, inline styles   |/// | `PSMUX_INPUT_DEBUG=1`  | `~/.psmux/input_debug.log`        | Every console input event + mode   |//! | `PSMUX_MOUSE_DEBUG=1`  | `~/.psmux/mouse_debug.log`        | Mouse injection (existing)           |
 //! | `PSMUX_SSH_DEBUG=1`    | `~/.psmux/ssh_input.log`          | SSH input handling (existing)        |
 //! | `PSMUX_LATENCY_LOG=1`  | `~/.psmux/latency.log`            | Keypress-to-render latency (existing)|
 //! | `PSMUX_SESSION_DEBUG=1`| `~/.psmux/session_debug.log`      | Session-registry stale-port cleanup  |
@@ -191,7 +191,7 @@ pub fn style_log_enabled() -> bool {
 // ─── Input debug log ────────────────────────────────────────────────────────
 
 /// Input event debug log, gated by `PSMUX_INPUT_DEBUG=1`.
-/// Traces every crossterm event + console input mode at startup.
+/// Traces every console input event + console input mode at startup.
 static INPUT_LOG: LazyLock<Mutex<Option<std::fs::File>>> = LazyLock::new(|| {
     if !env_enabled("PSMUX_INPUT_DEBUG") { return Mutex::new(None); }
     Mutex::new(open_log("input_debug.log"))

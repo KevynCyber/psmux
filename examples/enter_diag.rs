@@ -1,11 +1,14 @@
-/// Diagnostic tool: dumps ALL raw crossterm events (Press, Release, Repeat)
+/// Diagnostic tool: dumps ALL raw crate::term events (Press, Release, Repeat)
 /// for Enter and modified-Enter to prove what each terminal emulator reports.
 /// Run inside Windows Terminal and WezTerm to compare behavior.
 /// Press Ctrl+C to exit.
 ///
 /// Writes to both stdout (for the user) and ~/.psmux/enter_diag_raw.log (for analysis).
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
-use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
+#[path = "../src/term/mod.rs"]
+mod term;
+
+use term::event::{self, Event, KeyCode, KeyModifiers};
+use term::terminal::{enable_raw_mode, disable_raw_mode};
 use std::io::Write;
 use std::time::Instant;
 
@@ -19,7 +22,7 @@ fn main() {
 
     enable_raw_mode().unwrap();
     let start = Instant::now();
-    let header = format!("=== Crossterm Raw Event Dumper (log: {}) ===", log_path);
+    let header = format!("=== Raw Event Dumper (log: {}) ===", log_path);
     println!("{}\r", header);
     writeln!(log, "{}", header).ok();
     println!("Press Shift+Enter, Alt+Enter, Ctrl+Enter, plain Enter\r");
@@ -32,7 +35,7 @@ fn main() {
             let t = start.elapsed().as_millis();
             match &evt {
                 Event::Key(key) => {
-                    if matches!(key.code, KeyCode::Enter) || 
+                    if matches!(key.code, KeyCode::Enter) ||
                        (matches!(key.code, KeyCode::Char('c')) && key.modifiers.contains(KeyModifiers::CONTROL)) {
                         let line = format!("T+{:>6}ms  {:?}  code={:?}  mods={:?}  state={:?}",
                             t, key.kind, key.code, key.modifiers, key.state);

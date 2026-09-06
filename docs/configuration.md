@@ -464,17 +464,17 @@ You can still press `p` inside the chooser to hide it for the current session. T
 
 Many terminals, including Windows Terminal, render bold text in one of the 16 basic ANSI colors as the brighter variant of that color. This is the common "bold is bright" behavior, and a bare shell gets it because it emits the standard SGR codes (`ESC[32m` for green, brightened by `ESC[1m`).
 
-psmux renders its screen through ratatui and crossterm, and crossterm serializes all 16 basic colors as the 256-indexed form (`ESC[38;5;N`) instead of the standard `30`-`37` codes. Windows Terminal only applies "bold is bright" to the standard codes, not the 256-indexed form, so colored bold text like PowerShell's `$PSStyle` output looked muted with a heavier font ([#425](https://github.com/psmux/psmux/issues/425)). psmux rewrites those basic-color sequences back to the standard codes so bold renders bright, exactly matching a bare shell. This is on by default.
+psmux renders its screen through ratatui and its native console backend (src/term), which serializes all 16 basic colors as the 256-indexed form (`ESC[38;5;N`) instead of the standard `30`-`37` codes. Windows Terminal only applies "bold is bright" to the standard codes, not the 256-indexed form, so colored bold text like PowerShell's `$PSStyle` output looked muted with a heavier font ([#425](https://github.com/psmux/psmux/issues/425)). psmux rewrites those basic-color sequences back to the standard codes so bold renders bright, exactly matching a bare shell. This is on by default.
 
 ```tmux
 # Default: basic colors get "bold is bright" (matches a bare shell)
 set -g bold-is-bright on
 
-# Opt out: pass crossterm output through untouched
+# Opt out: pass the native backend's output through untouched
 set -g bold-is-bright off
 ```
 
-There is one tradeoff. crossterm collapses a basic color (`ESC[32m`) and an explicit 256-indexed low color (`ESC[38;5;2m`) into the identical bytes, so the rewrite cannot tell them apart and brightens both. If a program you use deliberately emits the 256-indexed colors 0 through 15 and you need them to stay exactly as sent, set `bold-is-bright off`. With it off, both basic and explicit 256-indexed low colors are byte-accurate, and you give up "bold is bright" on the basic colors. This is the inherent limitation of crossterm's lossy encoding; real tmux does not have it because it never collapses the two forms.
+There is one tradeoff. The native backend collapses a basic color (`ESC[32m`) and an explicit 256-indexed low color (`ESC[38;5;2m`) into the identical bytes, so the rewrite cannot tell them apart and brightens both. If a program you use deliberately emits the 256-indexed colors 0 through 15 and you need them to stay exactly as sent, set `bold-is-bright off`. With it off, both basic and explicit 256-indexed low colors are byte-accurate, and you give up "bold is bright" on the basic colors. This is the inherent limitation of that lossy encoding (the same one behind [#425](https://github.com/psmux/psmux/issues/425)); real tmux does not have it because it never collapses the two forms.
 
 The option applies from config, at runtime, and reports through `show-options` and `#{bold-is-bright}`:
 

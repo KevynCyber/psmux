@@ -3,9 +3,12 @@
 // terminal output bytes.
 //
 // Pipeline: vt100 parser → cell extraction → Span/Line building →
-//           Clear + Paragraph → ratatui Terminal::draw() → CrosstermBackend → bytes
+//           Clear + Paragraph → ratatui Terminal::draw() → VtBackend → bytes
 
-use ratatui::backend::CrosstermBackend;
+#[path = "../src/term/mod.rs"]
+mod term;
+
+use term::backend::VtBackend;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::*;
@@ -140,7 +143,7 @@ fn main() {
         fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
     }
     {
-        let backend = CrosstermBackend::new(SharedWriter(&output_bytes));
+        let backend = VtBackend::new(SharedWriter(&output_bytes));
         let mut terminal = Terminal::new(backend).unwrap();
         terminal.resize(Rect::new(0, 0, cols, rows)).unwrap();
 
@@ -226,7 +229,7 @@ fn main() {
     // Step 5: Analyze the output bytes
     let binding = output_bytes.borrow();
     let out_str = String::from_utf8_lossy(&binding);
-    println!("\n=== CrosstermBackend output analysis ===");
+    println!("\n=== VtBackend output analysis ===");
     println!("Total bytes: {}", output_bytes.borrow().len());
 
     // Search for SGR 9 (strikethrough)
@@ -259,7 +262,7 @@ fn main() {
     // Step 6: Check the ratatui buffer state directly
     println!("\n=== Buffer cell modifier check ===");
     {
-        let mut backend2 = CrosstermBackend::new(Vec::<u8>::new());
+        let mut backend2 = VtBackend::new(Vec::<u8>::new());
         let mut terminal2 = Terminal::new(backend2).unwrap();
         terminal2.resize(Rect::new(0, 0, cols, rows)).unwrap();
         let frame_result = terminal2.draw(|f| {

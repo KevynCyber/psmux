@@ -3846,9 +3846,10 @@ impl Utf16ConsoleWriter {
 
 // ─── "Bold is bright" SGR restoration (issue #425) ──────────────────────────
 //
-// crossterm 0.29 serialises every one of the 16 basic ANSI colors as a
-// 256-indexed sequence (`38;5;N` for foreground, `48;5;N` for background —
-// see crossterm's `Colored` Display impl).  The 256-indexed form suppresses
+// crate::term::backend::VtBackend (ported from crossterm 0.29's own
+// encoding) serialises every one of the 16 basic ANSI colors as a
+// 256-indexed sequence (`38;5;N` for foreground, `48;5;N` for background).
+// The 256-indexed form suppresses
 // the outer terminal's "bold is bright" behaviour: a bare shell emitting
 // `ESC[32;1m` reaches Windows Terminal as `ESC[32m`+`ESC[1m` and renders as
 // *bright* green, but the same text routed through psmux reached WT as
@@ -3860,7 +3861,7 @@ impl Utf16ConsoleWriter {
 /// `bold-is-bright`, default on).  The console writer is a detached singleton
 /// with no access to `AppState`, so the option is mirrored into this atomic by
 /// whichever process applies the option (config parse or `set-option`).  When
-/// off, `flush()` skips the rewrite and passes crossterm's output through
+/// off, `flush()` skips the rewrite and passes the backend's output through
 /// untouched.
 pub static BOLD_IS_BRIGHT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
@@ -4346,8 +4347,8 @@ pub mod caret {
 /// This function polls the physical keyboard state to detect the real
 /// modifiers and remaps accordingly.
 #[cfg(windows)]
-pub fn augment_enter_shift(key: &mut crossterm::event::KeyEvent) {
-    use crossterm::event::{KeyCode, KeyModifiers};
+pub fn augment_enter_shift(key: &mut crate::term::event::KeyEvent) {
+    use crate::term::event::{KeyCode, KeyModifiers};
 
     if !matches!(key.code, KeyCode::Enter) {
         return;
@@ -4498,25 +4499,25 @@ pub fn pipe_term_size() -> Option<(u16, u16)> {
     }
 }
 
-/// TUI backend for the psmux client: [`ratatui::backend::CrosstermBackend`]
+/// TUI backend for the psmux client: [`crate::term::backend::VtBackend`]
 /// over [`PsmuxWriter`], with one twist — `size()`/`window_size()` consult the
 /// pipe-mode override first so a client attached over a Cygwin pty or a
 /// no-ConPTY SSH channel renders at the real terminal size even though the
 /// console size APIs cannot see that terminal. Outside pipe mode the override
 /// is never set and every call delegates.
 pub struct PsmuxBackend {
-    inner: ratatui::backend::CrosstermBackend<PsmuxWriter>,
+    inner: crate::term::backend::VtBackend<PsmuxWriter>,
 }
 
 impl PsmuxBackend {
     pub fn new(writer: PsmuxWriter) -> Self {
-        Self { inner: ratatui::backend::CrosstermBackend::new(writer) }
+        Self { inner: crate::term::backend::VtBackend::new(writer) }
     }
 }
 
 // The client's shutdown path drives the backend directly as an `io::Write`
-// (crossterm `execute!` for SGR/cursor resets) — delegate to the inner
-// CrosstermBackend, which forwards to the writer.
+// (our own `execute!` for SGR/cursor resets) — delegate to the inner
+// VtBackend, which forwards to the writer.
 impl std::io::Write for PsmuxBackend {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         std::io::Write::write(&mut self.inner, buf)

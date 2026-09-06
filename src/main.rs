@@ -4,6 +4,7 @@
 
 mod types;
 mod pty;
+mod term;
 mod platform;
 mod cli;
 mod session;
@@ -50,13 +51,10 @@ use std::io::{self, Write, Read as _, BufRead as _, IsTerminal};
 use std::time::Duration;
 use std::env;
 
-#[allow(unused_imports)]
-use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use crossterm::terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use crossterm::{execute};
-use crossterm::cursor::{EnableBlinking, DisableBlinking};
-use crossterm::event::{EnableMouseCapture, DisableMouseCapture, EnableBracketedPaste, DisableBracketedPaste};
+use crate::term::terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use crate::term::cursor::{EnableBlinking, DisableBlinking};
+use crate::term::event::{EnableMouseCapture, DisableMouseCapture, EnableBracketedPaste, DisableBracketedPaste};
 
 use crate::platform::enable_virtual_terminal_processing;
 use crate::cli::{print_help, print_version, print_commands};
@@ -4156,7 +4154,7 @@ fn run_main() -> io::Result<()> {
                     server_args.push(l.clone());
                 }
                 // Detect terminal size for the warm server
-                if let Ok((tw, th)) = crossterm::terminal::size() {
+                if let Ok((tw, th)) = crate::term::terminal::size() {
                     let h = th.saturating_sub(1);
                     if tw > 0 && h > 0 {
                         server_args.push("-x".into());
@@ -4551,8 +4549,8 @@ fn run_main() -> io::Result<()> {
         // The local wrapper (or Cygwin pty) is already raw on the terminal
         // side; enable_raw_mode would call SetConsoleMode on this pipe handle
         // and fail with ERROR_INVALID_FUNCTION.
-        // crossterm's ANSI detection needs TERM set to take the pure-ANSI
-        // path on Windows — mintty always sets it, but make sure.
+        // psmux's own child-shell/PTY setup consults TERM; make sure it's
+        // set on Windows (mintty always sets it, but make sure).
         if env::var("TERM").is_err() {
             env::set_var("TERM", "xterm-256color");
         }
@@ -4576,7 +4574,7 @@ fn run_main() -> io::Result<()> {
     let use_vt_input = crate::ssh_input::needs_vt_input();
 
     // For standard terminals (not SSH), clear VTI flag from stdin if
-    // crossterm or another layer set it. Keeps normal ReadConsoleInputW
+    // an earlier layer set it. Keeps normal ReadConsoleInputW
     // behavior via proper INPUT_RECORDs.
     if !use_vt_input && !pipe_vt {
         crate::platform::disable_vti_on_stdin();
@@ -4615,7 +4613,7 @@ fn run_main() -> io::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // For console-backed VT input (SSH / JetBrains), explicitly (re-)send
-    // mouse-enable escape sequences. ConPTY may have consumed crossterm's
+    // mouse-enable escape sequences. ConPTY may have consumed our
     // EnableMouseCapture output without forwarding it. Pipe mode already sent
     // its safe mode set above and must not enter this ConPTY-specific path.
     if use_vt_input && !pipe_vt {
@@ -4670,9 +4668,9 @@ fn run_main() -> io::Result<()> {
     // by the alternate-screen save/restore mechanism (\x1b[?1049l).
     // Without this, the last ratatui frame's foreground color can persist
     // into the main screen, making typed text invisible.
-    let _ = execute!(out, crossterm::style::Print("\x1b[0m"));
+    let _ = execute!(out, crate::term::style::Print("\x1b[0m"));
     // Reset cursor style to terminal default (\x1b[0 q)
-    let _ = execute!(out, crossterm::style::Print("\x1b[0 q"));
+    let _ = execute!(out, crate::term::style::Print("\x1b[0 q"));
     let _ = execute!(out, DisableBlinking, DisableMouseCapture, DisableBracketedPaste, LeaveAlternateScreen);
     let _ = terminal.show_cursor();
     result

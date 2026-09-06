@@ -32,7 +32,7 @@
 //!      bracketed paste, Alt+key, and plain characters.
 //!    - `u_char == 0` — virtual-key events (ConPTY recognised the VT
 //!      sequence and translated it, e.g. VK_UP for `\x1b[A`).  Mapped
-//!      directly to `crossterm::event::Event` via VK-code lookup.
+//!      directly to `crate::term::event::Event` via VK-code lookup.
 //! 4. Delivers events through a bounded `mpsc::sync_channel` — the client
 //!    event loop reads via [`InputSource::read_timeout`] /
 //!    [`InputSource::try_read`].
@@ -41,7 +41,7 @@
 //! records are forwarded directly.
 //!
 //! On non-Windows platforms (or when not under SSH), [`InputSource`] simply
-//! delegates to `crossterm::event`.
+//! delegates to `crate::term::event` (native console).
 //!
 //! ## Debugging
 //!
@@ -51,7 +51,7 @@
 use std::io;
 use std::time::Duration;
 
-use crossterm::event::{
+use crate::term::event::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
     MouseButton, MouseEvent, MouseEventKind,
 };
@@ -64,7 +64,7 @@ use crossterm::event::{
 ///     processing in some Windows builds).
 ///  2. A regular `write_all` to stdout (belt-and-suspenders).
 ///
-/// Call this **after** crossterm's `EnableMouseCapture` and `InputSource::new`.
+/// Call this **after** our own `EnableMouseCapture` and `InputSource::new`.
 ///
 /// The DEC private mode escape sequences for mouse reporting:
 ///   1000 = basic mouse tracking
@@ -410,7 +410,7 @@ pub fn conpty_mouse_supported() -> bool {
     windows_build_number().map_or(false, |b| b >= CONPTY_MOUSE_MIN_BUILD)
 }
 
-/// Unified input source — abstracts over crossterm (local) and SSH VT (remote).
+/// Unified input source — abstracts over the native console (local) and SSH VT (remote).
 ///
 /// # Usage
 /// ```ignore
@@ -422,7 +422,7 @@ pub fn conpty_mouse_supported() -> bool {
 /// }
 /// ```
 pub enum InputSource {
-    /// Local terminal — delegates to `crossterm::event`.
+    /// Local terminal — delegates to `crate::term::event` (native console).
     Crossterm,
     /// SSH session on Windows — reads via a background thread + VT parser.
     #[cfg(windows)]
@@ -435,8 +435,8 @@ impl InputSource {
     /// Create a new input source.
     ///
     /// When `ssh == true` **and** running on Windows, spawns the SSH VT reader
-    /// thread with raw console input.  Otherwise wraps `crossterm::event`
-    /// with zero overhead.
+    /// thread with raw console input.  Otherwise wraps `crate::term::event`
+    /// (native console) with zero overhead.
     pub fn new(ssh: bool) -> io::Result<Self> {
         if !ssh {
             return Ok(InputSource::Crossterm);
@@ -448,7 +448,7 @@ impl InputSource {
                 Ok(rx) => Ok(InputSource::Ssh { rx }),
                 Err(e) => {
                     // Log to file instead of stderr (raw mode garbles eprintln).
-                    ssh_debug_log(&format!("SSH VT input init failed: {}; falling back to crossterm", e));
+                    ssh_debug_log(&format!("SSH VT input init failed: {}; falling back to native console input", e));
                     Ok(InputSource::Crossterm)
                 }
             }
@@ -467,8 +467,8 @@ impl InputSource {
     pub fn read_timeout(&self, timeout: Duration) -> io::Result<Option<Event>> {
         match self {
             InputSource::Crossterm => {
-                if crossterm::event::poll(timeout)? {
-                    Ok(Some(crossterm::event::read()?))
+                if crate::term::event::poll(timeout)? {
+                    Ok(Some(crate::term::event::read()?))
                 } else {
                     Ok(None)
                 }
@@ -495,8 +495,8 @@ impl InputSource {
     pub fn try_read(&self) -> io::Result<Option<Event>> {
         match self {
             InputSource::Crossterm => {
-                if crossterm::event::poll(Duration::ZERO)? {
-                    Ok(Some(crossterm::event::read()?))
+                if crate::term::event::poll(Duration::ZERO)? {
+                    Ok(Some(crate::term::event::read()?))
                 } else {
                     Ok(None)
                 }
@@ -519,7 +519,7 @@ fn make_key(code: KeyCode, modifiers: KeyModifiers) -> Event {
         code,
         modifiers,
         kind: KeyEventKind::Press,
-        state: crossterm::event::KeyEventState::empty(),
+        state: crate::term::event::KeyEventState::empty(),
     })
 }
 
@@ -584,7 +584,10 @@ enum PS {
     OscEsc,     // received \x1b inside OSC — might be ST
 }
 
-struct VtParser {
+// pub(crate): tests-rs/test_zdep_term_events.rs (wired in from the crate
+// root via src/tests_zdep_wiring.rs) re-anchors its bytes -> Event fixture
+// table on this parser directly, so it needs to reach VtParser/new/feed.
+pub(crate) struct VtParser {
     state: PS,
     /// CSI numeric parameters (semicolon-separated).
     params: [u16; 8],
@@ -619,7 +622,7 @@ struct VtParser {
 }
 
 impl VtParser {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             state: PS::Ground,
             params: [0; 8],
@@ -648,7 +651,7 @@ impl VtParser {
 
     /// Feed one Unicode character into the parser, emitting events via `emit`.
     #[inline]
-    fn feed<F: FnMut(Event)>(&mut self, ch: char, emit: &mut F) {
+    pub(crate) fn feed<F: FnMut(Event)>(&mut self, ch: char, emit: &mut F) {
         match self.state {
             PS::Ground   => self.on_ground(ch, emit),
             PS::Escape   => self.on_escape(ch, emit),
@@ -1321,43 +1324,11 @@ impl VtParser {
 }
 
 // ─── VK-code → KeyCode mapping (Windows Console API) ─────────────────────────
-
-/// Map a Windows virtual-key code to a crossterm `KeyCode`.
-/// Returns `None` for modifier-only keys (Ctrl, Shift, Alt, CapsLock, etc.)
-/// and other keys we don't need to handle.
+//
+// vk_to_keycode / vk_modifiers moved into crate::term::console (ZDEP-026);
+// re-exported here rather than duplicated.
 #[cfg(windows)]
-fn vk_to_keycode(vk: u16) -> Option<KeyCode> {
-    match vk {
-        0x08 => Some(KeyCode::Backspace),   // VK_BACK
-        0x09 => Some(KeyCode::Tab),         // VK_TAB
-        0x0D => Some(KeyCode::Enter),       // VK_RETURN
-        0x1B => Some(KeyCode::Esc),         // VK_ESCAPE
-        0x20 => Some(KeyCode::Char(' ')),   // VK_SPACE
-        0x21 => Some(KeyCode::PageUp),      // VK_PRIOR
-        0x22 => Some(KeyCode::PageDown),    // VK_NEXT
-        0x23 => Some(KeyCode::End),         // VK_END
-        0x24 => Some(KeyCode::Home),        // VK_HOME
-        0x25 => Some(KeyCode::Left),        // VK_LEFT
-        0x26 => Some(KeyCode::Up),          // VK_UP
-        0x27 => Some(KeyCode::Right),       // VK_RIGHT
-        0x28 => Some(KeyCode::Down),        // VK_DOWN
-        0x2D => Some(KeyCode::Insert),      // VK_INSERT
-        0x2E => Some(KeyCode::Delete),      // VK_DELETE
-        0x70 => Some(KeyCode::F(1)),        // VK_F1
-        0x71 => Some(KeyCode::F(2)),
-        0x72 => Some(KeyCode::F(3)),
-        0x73 => Some(KeyCode::F(4)),
-        0x74 => Some(KeyCode::F(5)),
-        0x75 => Some(KeyCode::F(6)),
-        0x76 => Some(KeyCode::F(7)),
-        0x77 => Some(KeyCode::F(8)),
-        0x78 => Some(KeyCode::F(9)),
-        0x79 => Some(KeyCode::F(10)),
-        0x7A => Some(KeyCode::F(11)),
-        0x7B => Some(KeyCode::F(12)),       // VK_F12
-        _ => None,
-    }
-}
+use crate::term::console::{vk_modifiers, vk_to_keycode};
 
 /// Fold ConPTY's VT-input NUL record onto `C-Space` (issue #508).
 ///
@@ -1392,16 +1363,6 @@ fn vk_nul_to_ctrl_space(vk: u16, mods: KeyModifiers) -> Option<(KeyCode, KeyModi
     } else {
         None
     }
-}
-
-/// Extract crossterm `KeyModifiers` from Win32 `dwControlKeyState`.
-#[cfg(windows)]
-fn vk_modifiers(state: u32) -> KeyModifiers {
-    let mut m = KeyModifiers::empty();
-    if state & 0x0010 != 0 { m |= KeyModifiers::SHIFT; }      // SHIFT_PRESSED
-    if state & (0x0001 | 0x0002) != 0 { m |= KeyModifiers::ALT; }     // LEFT/RIGHT_ALT
-    if state & (0x0004 | 0x0008) != 0 { m |= KeyModifiers::CONTROL; } // LEFT/RIGHT_CTRL
-    m
 }
 
 // ─── Debug logging ───────────────────────────────────────────────────────────
@@ -1463,49 +1424,16 @@ fn start_ssh_reader() -> io::Result<std::sync::mpsc::Receiver<Event>> {
     const ENABLE_PROCESSED_INPUT: u32       = 0x0001;
     const ENABLE_QUICK_EDIT_MODE: u32       = 0x0040;
 
-    const KEY_EVENT: u16                     = 0x0001;
-    const MOUSE_EVENT: u16                   = 0x0002;
-    const WINDOW_BUFFER_SIZE_EVENT: u16      = 0x0004;
+    // KEY_EVENT/MOUSE_EVENT/WINDOW_BUFFER_SIZE_EVENT and the record structs
+    // moved into crate::term::console (ZDEP-026); reused here rather than
+    // duplicated.
+    use crate::term::console::{
+        convert_native_mouse, INPUT_RECORD, KEY_EVENT, KEY_EVENT_RECORD, MOUSE_EVENT,
+        MOUSE_EVENT_RECORD, WINDOW_BUFFER_SIZE_EVENT, WINDOW_BUFFER_SIZE_RECORD,
+    };
 
     const WAIT_OBJECT_0: u32 = 0x00000000;
     const WAIT_TIMEOUT: u32  = 0x00000102;
-
-    // ── Win32 structs ────────────────────────────────────────────────────
-
-    #[repr(C)]
-    #[derive(Copy, Clone)]
-    struct KEY_EVENT_RECORD {
-        key_down: i32,
-        repeat_count: u16,
-        virtual_key_code: u16,
-        virtual_scan_code: u16,
-        u_char: u16,
-        control_key_state: u32,
-    }
-
-    #[repr(C)]
-    #[derive(Copy, Clone)]
-    struct MOUSE_EVENT_RECORD {
-        mouse_x: i16,
-        mouse_y: i16,
-        button_state: u32,
-        control_key_state: u32,
-        event_flags: u32,
-    }
-
-    #[repr(C)]
-    #[derive(Copy, Clone)]
-    struct WINDOW_BUFFER_SIZE_RECORD {
-        size_x: i16,
-        size_y: i16,
-    }
-
-    #[repr(C)]
-    struct INPUT_RECORD {
-        event_type: u16,
-        _pad: u16,
-        data: [u8; 16], // largest variant (KEY_EVENT_RECORD / MOUSE_EVENT_RECORD)
-    }
 
     // ── Win32 imports ────────────────────────────────────────────────────
 
@@ -1523,60 +1451,6 @@ fn start_ssh_reader() -> io::Result<std::sync::mpsc::Receiver<Event>> {
             read: *mut u32,
         ) -> i32;
         fn WaitForSingleObject(h: *mut c_void, ms: u32) -> u32;
-    }
-
-    // ── Native MOUSE_EVENT → crossterm Event conversion ──────────────────
-
-    const FROM_LEFT_1ST: u32 = 0x0001;
-    const RIGHTMOST: u32     = 0x0002;
-    const FROM_LEFT_2ND: u32 = 0x0004;
-    const ME_MOVED: u32      = 0x0001;
-    const ME_WHEELED: u32    = 0x0004;
-
-    fn convert_native_mouse(rec: &MOUSE_EVENT_RECORD) -> Option<Event> {
-        let col = rec.mouse_x.max(0) as u16;
-        let row = rec.mouse_y.max(0) as u16;
-        let mods = {
-            let s = rec.control_key_state;
-            let mut m = KeyModifiers::empty();
-            if s & 0x0010 != 0 { m |= KeyModifiers::SHIFT; } // SHIFT_PRESSED
-            if s & (0x0001 | 0x0002) != 0 { m |= KeyModifiers::ALT; } // LEFT/RIGHT_ALT
-            if s & (0x0004 | 0x0008) != 0 { m |= KeyModifiers::CONTROL; } // LEFT/RIGHT_CTRL
-            m
-        };
-
-        if rec.event_flags & ME_WHEELED != 0 {
-            let delta = (rec.button_state >> 16) as i16;
-            let kind = if delta > 0 { MouseEventKind::ScrollUp } else { MouseEventKind::ScrollDown };
-            return Some(Event::Mouse(MouseEvent { kind, column: col, row, modifiers: mods }));
-        }
-
-        if rec.event_flags & ME_MOVED != 0 {
-            if rec.button_state & FROM_LEFT_1ST != 0 {
-                return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: col, row, modifiers: mods }));
-            }
-            if rec.button_state & RIGHTMOST != 0 {
-                return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Drag(MouseButton::Right), column: col, row, modifiers: mods }));
-            }
-            return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Moved, column: col, row, modifiers: mods }));
-        }
-
-        if rec.button_state & FROM_LEFT_1ST != 0 {
-            return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: col, row, modifiers: mods }));
-        }
-        if rec.button_state & RIGHTMOST != 0 {
-            return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: col, row, modifiers: mods }));
-        }
-        if rec.button_state & FROM_LEFT_2ND != 0 {
-            return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Down(MouseButton::Middle), column: col, row, modifiers: mods }));
-        }
-
-        // button_state == 0  → all buttons released
-        if rec.button_state == 0 && rec.event_flags == 0 {
-            return Some(Event::Mouse(MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: col, row, modifiers: mods }));
-        }
-
-        None
     }
 
     // ── Setup + thread spawn ─────────────────────────────────────────────
@@ -2192,14 +2066,14 @@ fn start_pipe_reader() -> io::Result<std::sync::mpsc::Receiver<Event>> {
 impl InputSource {
     /// Input source for a client attached over a Cygwin/MSYS pty (issue #474)
     /// or an SSH channel without a remote PTY: VT byte stream from stdin.
-    /// Falls back to crossterm if the reader cannot start.
+    /// Falls back to native console input if the reader cannot start.
     pub fn new_pipe() -> io::Result<Self> {
         #[cfg(windows)]
         {
             match start_pipe_reader() {
                 Ok(rx) => Ok(InputSource::Ssh { rx }),
                 Err(e) => {
-                    ssh_debug_log(&format!("pipe VT input init failed: {}; falling back to crossterm", e));
+                    ssh_debug_log(&format!("pipe VT input init failed: {}; falling back to native console input", e));
                     Ok(InputSource::Crossterm)
                 }
             }

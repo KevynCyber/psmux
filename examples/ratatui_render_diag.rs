@@ -1,6 +1,9 @@
-/// Diagnostic: verify ratatui crossterm backend emits correct SGR for all modifiers.
+/// Diagnostic: verify crate::term's VtBackend emits correct SGR for all modifiers.
 /// Run with: cargo run --example ratatui_render_diag
-use ratatui::backend::CrosstermBackend;
+#[path = "../src/term/mod.rs"]
+mod term;
+
+use term::backend::VtBackend;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -11,7 +14,7 @@ fn main() {
     // Create terminal that writes to an in-memory buffer
     let mut raw_buf: Vec<u8> = Vec::new();
     {
-        let backend = CrosstermBackend::new(&mut raw_buf);
+        let backend = VtBackend::new(&mut raw_buf);
         let mut terminal = Terminal::new(backend).unwrap();
 
         terminal.draw(|frame| {

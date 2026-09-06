@@ -1,4 +1,4 @@
-// Diagnostic for issue #226: dump every key event crossterm produces,
+// Diagnostic for issue #226: dump every key event crate::term produces,
 // plus the raw INPUT_RECORD as seen by ReadConsoleInputW, side by side.
 //
 // Run visibly. Press the keys you want to inspect (or inject via the
@@ -6,8 +6,11 @@
 //   $TEMP/psmux_key_diag.log
 // Press 'q' to quit.
 
-use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+#[path = "../src/term/mod.rs"]
+mod term;
+
+use term::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
+use term::terminal::{disable_raw_mode, enable_raw_mode};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
