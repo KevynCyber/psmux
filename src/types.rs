@@ -3,7 +3,7 @@ use std::time::Instant;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use portable_pty::MasterPty;
+use crate::pty::MasterPty;
 use ratatui::prelude::Rect;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -126,7 +126,7 @@ pub struct ClientInfo {
 pub struct Pane {
     pub master: Box<dyn MasterPty>,
     pub writer: Box<dyn std::io::Write + Send>,
-    pub child: Box<dyn portable_pty::Child>,
+    pub child: Box<dyn crate::pty::Child>,
     pub term: Arc<Mutex<vt100::Parser>>,
     pub last_rows: u16,
     pub last_cols: u16,
@@ -242,7 +242,7 @@ pub struct Pane {
 pub struct WarmPane {
     pub master: Box<dyn MasterPty>,
     pub writer: Box<dyn std::io::Write + Send>,
-    pub child: Box<dyn portable_pty::Child>,
+    pub child: Box<dyn crate::pty::Child>,
     pub term: Arc<Mutex<vt100::Parser>>,
     pub data_version: std::sync::Arc<std::sync::atomic::AtomicU64>,
     pub cursor_shape: std::sync::Arc<std::sync::atomic::AtomicU8>,
@@ -261,7 +261,7 @@ pub struct WarmPane {
 /// The real ConPTY stays alive here; I/O is tunneled over TCP to the target.
 pub struct ForwardedPane {
     pub master: Box<dyn MasterPty>,
-    pub child: Box<dyn portable_pty::Child>,
+    pub child: Box<dyn crate::pty::Child>,
     pub listener_port: u16,
     pub pid: Option<u32>,
     pub title: String,

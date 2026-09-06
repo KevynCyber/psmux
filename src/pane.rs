@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use crate::pty::{CommandBuilder, PtySize, native_pty_system};
 
 use crate::types::{AppState, Pane, Node, LayoutKind, Window};
 use crate::tree::{replace_leaf_with_split, active_pane_mut, kill_leaf};
@@ -281,7 +281,7 @@ pub(crate) fn silent_rehome(pane: &mut Pane, dir: &str) {
     let _ = pane.writer.flush();
 }
 
-pub fn create_window(pty_system: &dyn portable_pty::PtySystem, app: &mut AppState, command: Option<&str>, start_dir: Option<&str>, empty: bool) -> io::Result<()> {
+pub fn create_window(pty_system: &dyn crate::pty::PtySystem, app: &mut AppState, command: Option<&str>, start_dir: Option<&str>, empty: bool) -> io::Result<()> {
     create_window_with_env(pty_system, app, command, start_dir, empty, &[])
 }
 
@@ -289,7 +289,7 @@ pub fn create_window(pty_system: &dyn portable_pty::PtySystem, app: &mut AppStat
 /// (tmux parity, issue #489). The extra variables are applied to the spawned
 /// process only, after the session environment, so `-e` wins over
 /// `set-environment`.
-pub fn create_window_with_env(pty_system: &dyn portable_pty::PtySystem, app: &mut AppState, command: Option<&str>, start_dir: Option<&str>, empty: bool, extra_env: &[(String, String)]) -> io::Result<()> {
+pub fn create_window_with_env(pty_system: &dyn crate::pty::PtySystem, app: &mut AppState, command: Option<&str>, start_dir: Option<&str>, empty: bool, extra_env: &[(String, String)]) -> io::Result<()> {
     // ── Empty window (tmux new-window -E): a new window whose single pane has
     // no command/process. It renders blank until respawn-pane gives it one. ──
     if empty {
@@ -474,7 +474,7 @@ pub fn warm_pane_is_live(wp: &mut crate::types::WarmPane) -> bool {
 /// its reader thread already running — by the time the user creates a new window
 /// (typically 500ms+), pwsh will have fully loaded its profile and the prompt
 /// is ready.
-pub fn spawn_warm_pane(pty_system: &dyn portable_pty::PtySystem, app: &mut AppState) -> io::Result<crate::types::WarmPane> {
+pub fn spawn_warm_pane(pty_system: &dyn crate::pty::PtySystem, app: &mut AppState) -> io::Result<crate::types::WarmPane> {
     if !app.warm_enabled {
         return Err(io::Error::new(io::ErrorKind::Other, "warm panes disabled"));
     }
@@ -533,7 +533,7 @@ pub fn split_active(app: &mut AppState, kind: LayoutKind) -> io::Result<()> {
 }
 
 /// Create a new window with a raw command (program + args, no shell wrapping)
-pub fn create_window_raw(pty_system: &dyn portable_pty::PtySystem, app: &mut AppState, raw_args: &[String]) -> io::Result<()> {
+pub fn create_window_raw(pty_system: &dyn crate::pty::PtySystem, app: &mut AppState, raw_args: &[String]) -> io::Result<()> {
     let area = app.client_area;
     let rows = if area.height > 1 { area.height } else { 30 };
     let cols = if area.width > 1 { area.width } else { 120 };
@@ -602,13 +602,13 @@ const MIN_SPLIT_ROWS: u16 = 2;
 /// Minimum cols for a split to be allowed.
 const MIN_SPLIT_COLS: u16 = 10;
 
-pub fn split_active_with_command(app: &mut AppState, kind: LayoutKind, command: Option<&str>, pty_system_ref: Option<&dyn portable_pty::PtySystem>, start_dir: Option<&str>) -> io::Result<()> {
+pub fn split_active_with_command(app: &mut AppState, kind: LayoutKind, command: Option<&str>, pty_system_ref: Option<&dyn crate::pty::PtySystem>, start_dir: Option<&str>) -> io::Result<()> {
     split_active_with_env(app, kind, command, pty_system_ref, start_dir, &[])
 }
 
 /// `split_active_with_command` plus per-pane environment from
 /// `split-window -e KEY=VALUE` (tmux parity, issue #489).
-pub fn split_active_with_env(app: &mut AppState, kind: LayoutKind, command: Option<&str>, pty_system_ref: Option<&dyn portable_pty::PtySystem>, start_dir: Option<&str>, extra_env: &[(String, String)]) -> io::Result<()> {
+pub fn split_active_with_env(app: &mut AppState, kind: LayoutKind, command: Option<&str>, pty_system_ref: Option<&dyn crate::pty::PtySystem>, start_dir: Option<&str>, extra_env: &[(String, String)]) -> io::Result<()> {
     // ── Guard: refuse split if the active pane is too small ──────────
     // After splitting, each half gets roughly (dim / 2) - 1 (for the divider).
     // If that would be below MIN_PANE_DIM, deny the split to avoid crashing
@@ -638,7 +638,7 @@ pub fn split_active_with_env(app: &mut AppState, kind: LayoutKind, command: Opti
 
     // Reuse provided PTY system or create one as fallback
     let owned_pty;
-    let pty_system: &dyn portable_pty::PtySystem = if let Some(ps) = pty_system_ref {
+    let pty_system: &dyn crate::pty::PtySystem = if let Some(ps) = pty_system_ref {
         ps
     } else {
         owned_pty = native_pty_system();
@@ -1528,7 +1528,7 @@ fn try_direct_spawn(cmd: &str) -> Option<(String, Vec<String>)> {
 }
 
 pub fn build_command(command: Option<&str>, env_shim: bool, allow_predictions: bool) -> CommandBuilder {
-    // Capture CWD early — portable_pty on Windows defaults to USERPROFILE
+    // Capture CWD early — crate::pty on Windows defaults to USERPROFILE
     // (home dir) when no cwd is set on CommandBuilder, so we must set it
     // explicitly to honour the caller's working directory.
     let cwd = std::env::current_dir().ok();
@@ -1806,7 +1806,7 @@ pub fn build_default_shell(shell_path: &str, env_shim: bool, allow_predictions: 
     let resolved = cached_which(&program);
 
     let mut builder = CommandBuilder::new(&resolved);
-    // Set CWD explicitly — portable_pty on Windows defaults to USERPROFILE
+    // Set CWD explicitly — crate::pty on Windows defaults to USERPROFILE
     // (home dir) when no cwd is set on CommandBuilder.
     if let Ok(dir) = std::env::current_dir() { builder.cwd(dir); }
     // PSMUX_BARE_ENV escape hatch (issue #167): clear inherited env before
@@ -1867,7 +1867,7 @@ pub fn build_raw_command(raw_args: &[String]) -> CommandBuilder {
     }
     let program = &raw_args[0];
     let mut builder = CommandBuilder::new(program);
-    // Set CWD explicitly — portable_pty on Windows defaults to USERPROFILE
+    // Set CWD explicitly — crate::pty on Windows defaults to USERPROFILE
     // (home dir) when no cwd is set on CommandBuilder.
     if let Ok(dir) = std::env::current_dir() { builder.cwd(dir); }
     builder.env("TERM", "xterm-256color");

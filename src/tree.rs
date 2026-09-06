@@ -275,7 +275,7 @@ pub fn resize_window_panes(app: &mut AppState, window_index: usize, area: Rect) 
                     let inner_width = rect.width.max(crate::pane::MIN_PANE_DIM);
                     
                     if pane.last_rows != inner_height || pane.last_cols != inner_width {
-                        let _ = pane.master.resize(portable_pty::PtySize {
+                        let _ = pane.master.resize(crate::pty::PtySize {
                             rows: inner_height,
                             cols: inner_width,
                             pixel_width: 0,
@@ -338,7 +338,7 @@ pub fn kill_all_children(node: &mut Node) {
 }
 
 /// Collect mutable references to all child processes in a tree node.
-fn collect_child_refs<'a>(node: &'a mut Node, out: &mut Vec<&'a mut Box<dyn portable_pty::Child>>) {
+fn collect_child_refs<'a>(node: &'a mut Node, out: &mut Vec<&'a mut Box<dyn crate::pty::Child>>) {
     match node {
         Node::Leaf(p) => { out.push(&mut p.child); }
         Node::Split { children, .. } => { for child in children.iter_mut() { collect_child_refs(child, out); } }
@@ -348,7 +348,7 @@ fn collect_child_refs<'a>(node: &'a mut Node, out: &mut Vec<&'a mut Box<dyn port
 /// Kill all children across multiple windows using a single process snapshot.
 /// Much faster than per-window `kill_all_children` when killing an entire session.
 pub fn kill_all_children_batch(windows: &mut [crate::types::Window]) {
-    let mut all_children: Vec<&mut Box<dyn portable_pty::Child>> = Vec::new();
+    let mut all_children: Vec<&mut Box<dyn crate::pty::Child>> = Vec::new();
     for win in windows.iter_mut() {
         collect_child_refs(&mut win.root, &mut all_children);
     }

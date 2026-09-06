@@ -9,7 +9,7 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use portable_pty::{MasterPty, PtySize};
+use crate::pty::{MasterPty, PtySize};
 
 // ── ProxyMasterPty ──────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ impl ProxyMasterPty {
 }
 
 impl MasterPty for ProxyMasterPty {
-    fn resize(&self, size: PtySize) -> Result<(), portable_pty::Error> {
+    fn resize(&self, size: PtySize) -> Result<(), crate::pty::Error> {
         // Send resize command via the control connection to the source server
         let cmd = format!(
             "AUTH {}\npane-forward-resize {} {} {}\n",
@@ -80,11 +80,11 @@ impl MasterPty for ProxyMasterPty {
         Ok(())
     }
 
-    fn get_size(&self) -> Result<PtySize, portable_pty::Error> {
+    fn get_size(&self) -> Result<PtySize, crate::pty::Error> {
         Ok(self.size.lock().map_err(|e| io::Error::other(format!("{}", e)))?.clone())
     }
 
-    fn try_clone_reader(&self) -> Result<Box<dyn Read + Send>, portable_pty::Error> {
+    fn try_clone_reader(&self) -> Result<Box<dyn Read + Send>, crate::pty::Error> {
         let stream = self.reader_stream.lock()
             .map_err(|e| io::Error::other(format!("{}", e)))?;
         let cloned = stream.try_clone()
@@ -92,25 +92,13 @@ impl MasterPty for ProxyMasterPty {
         Ok(Box::new(cloned))
     }
 
-    fn take_writer(&self) -> Result<Box<dyn Write + Send>, portable_pty::Error> {
+    fn take_writer(&self) -> Result<Box<dyn Write + Send>, crate::pty::Error> {
         let mut guard = self.writer_stream.lock()
             .map_err(|e| io::Error::other(format!("{}", e)))?;
         guard.take()
             .map(|s| -> Box<dyn Write + Send> { Box::new(s) })
             .ok_or_else(|| io::Error::other("writer already taken").into())
     }
-
-    // The proxied PTY lives in another process; there is no local fd or
-    // termios to expose. `pid_t` is `i32` on every unix target, so the
-    // plain alias is written out to avoid a `libc` dependency here.
-    #[cfg(unix)]
-    fn process_group_leader(&self) -> Option<i32> { None }
-
-    #[cfg(unix)]
-    fn as_raw_fd(&self) -> Option<std::os::unix::io::RawFd> { None }
-
-    #[cfg(unix)]
-    fn tty_name(&self) -> Option<std::path::PathBuf> { None }
 }
 
 // ── ProxyChild ──────────────────────────────────────────────────────────
@@ -160,19 +148,19 @@ impl ProxyChild {
     }
 }
 
-impl portable_pty::Child for ProxyChild {
-    fn try_wait(&mut self) -> io::Result<Option<portable_pty::ExitStatus>> {
-        if self.exited { return Ok(Some(portable_pty::ExitStatus::with_exit_code(0))); }
+impl crate::pty::Child for ProxyChild {
+    fn try_wait(&mut self) -> io::Result<Option<crate::pty::ExitStatus>> {
+        if self.exited { return Ok(Some(crate::pty::ExitStatus::with_exit_code(0))); }
         let resp = self.send_control(&format!("pane-forward-status {}", self.forward_id))?;
         if resp.trim() == "exited" {
             self.exited = true;
-            Ok(Some(portable_pty::ExitStatus::with_exit_code(0)))
+            Ok(Some(crate::pty::ExitStatus::with_exit_code(0)))
         } else {
             Ok(None)
         }
     }
 
-    fn wait(&mut self) -> io::Result<portable_pty::ExitStatus> {
+    fn wait(&mut self) -> io::Result<crate::pty::ExitStatus> {
         loop {
             if let Some(st) = self.try_wait()? { return Ok(st); }
             std::thread::sleep(Duration::from_millis(100));
@@ -185,14 +173,14 @@ impl portable_pty::Child for ProxyChild {
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> { None }
 }
 
-impl portable_pty::ChildKiller for ProxyChild {
+impl crate::pty::ChildKiller for ProxyChild {
     fn kill(&mut self) -> io::Result<()> {
         let _ = self.send_control(&format!("pane-forward-kill {}", self.forward_id));
         self.exited = true;
         Ok(())
     }
 
-    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+    fn clone_killer(&self) -> Box<dyn crate::pty::ChildKiller + Send + Sync> {
         Box::new(ProxyChildKiller {
             control_addr: self.control_addr.clone(),
             control_key: self.control_key.clone(),
@@ -208,7 +196,7 @@ struct ProxyChildKiller {
     forward_id: u64,
 }
 
-impl portable_pty::ChildKiller for ProxyChildKiller {
+impl crate::pty::ChildKiller for ProxyChildKiller {
     fn kill(&mut self) -> io::Result<()> {
         let msg = format!("AUTH {}\npane-forward-kill {}\n", self.control_key, self.forward_id);
         if let Ok(addr) = self.control_addr.parse::<std::net::SocketAddr>() {
@@ -219,7 +207,7 @@ impl portable_pty::ChildKiller for ProxyChildKiller {
         }
         Ok(())
     }
-    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+    fn clone_killer(&self) -> Box<dyn crate::pty::ChildKiller + Send + Sync> {
         Box::new(ProxyChildKiller {
             control_addr: self.control_addr.clone(),
             control_key: self.control_key.clone(),

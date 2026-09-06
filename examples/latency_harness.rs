@@ -16,7 +16,10 @@
 //   cargo run --release --example latency_harness -- --pwsh
 //   cargo run --release --example latency_harness -- --chars 80 --delay 200
 
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+#[allow(dead_code, unused_imports)]
+#[path = "../src/pty/mod.rs"]
+mod pty;
+use pty::{CommandBuilder, PtySize, native_pty_system};
 use std::io::{Read, Write};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;

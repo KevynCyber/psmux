@@ -25,7 +25,7 @@ pub(crate) fn lock_test_env() -> std::sync::MutexGuard<'static, ()> {
 /// Resolve a `-c` start-dir to one a freshly spawned pane shell can actually
 /// enter, falling back to the user's home directory when it cannot.
 ///
-/// `portable_pty`'s `cwd()` maps to the child's initial working directory, and
+/// `crate::pty`'s `cwd()` maps to the child's initial working directory, and
 /// on Windows a directory the child cannot enter makes the spawn itself fail —
 /// before the shell runs, so no amount of profile-level healing helps. The pane
 /// dies on creation and psmux tears it straight back down. That is the

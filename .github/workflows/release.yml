@@ -281,11 +281,6 @@ jobs:
         shell: pwsh
         run: |
           # Sub-crates must be published first so crates.io can resolve path deps
-          cargo publish --allow-dirty -p portable-pty-psmux 2>&1
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "portable-pty-psmux publish failed (may already be published)"
-          }
-          Start-Sleep 45
           cargo publish --allow-dirty -p vt100-psmux 2>&1
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "vt100-psmux publish failed (may already be published)"

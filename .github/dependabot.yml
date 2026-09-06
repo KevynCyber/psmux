@@ -8,9 +8,8 @@ version: 2
 # covered by the root manifest. Its lockfile has raised a real advisory before
 # (GHSA-rhfx-m35p-ff5j), so it is not optional.
 #
-# crates/portable-pty-psmux and crates/vt100-psmux are members of the root
-# workspace and intentionally carry no Cargo.lock of their own, so the root
-# entry already covers them.
+# crates/vt100-psmux is a member of the root workspace and intentionally
+# carries no Cargo.lock of its own, so the root entry already covers it.
 updates:
   - package-ecosystem: cargo
     directory: "/"

@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 use std::env;
 use std::net::TcpListener;
 
-use portable_pty::native_pty_system;
+use crate::pty::native_pty_system;
 use ratatui::prelude::Rect;
 
 use crate::types::{AppState, CtrlReq, Mode, FocusDir, LayoutKind, PipePaneState, VERSION,
@@ -3504,7 +3504,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                                 let inner_h = fp.h.saturating_sub(2).max(1);
                                 let inner_w = fp.w.saturating_sub(2).max(1);
                                 if fp.pane.last_rows != inner_h || fp.pane.last_cols != inner_w {
-                                    let _ = fp.pane.master.resize(portable_pty::PtySize { rows: inner_h, cols: inner_w, pixel_width: 0, pixel_height: 0 });
+                                    let _ = fp.pane.master.resize(crate::pty::PtySize { rows: inner_h, cols: inner_w, pixel_width: 0, pixel_height: 0 });
                                     if let Ok(mut parser) = fp.pane.term.lock() { parser.screen_mut().set_size(inner_h, inner_w); }
                                     fp.pane.last_rows = inner_h;
                                     fp.pane.last_cols = inner_w;
@@ -3802,7 +3802,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                 }
                 CtrlReq::PaneForwardResize(fwd_id, fwd_rows, fwd_cols) => {
                     if let Some(fp) = app.forwarded_panes.get(&fwd_id) {
-                        let _ = fp.master.resize(portable_pty::PtySize {
+                        let _ = fp.master.resize(crate::pty::PtySize {
                             rows: fwd_rows, cols: fwd_cols, pixel_width: 0, pixel_height: 0,
                         });
                     }
@@ -4306,7 +4306,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                     if src < app.windows.len() {
                         let src_id = app.windows[src].id;
                         let src_name = app.windows[src].name.clone();
-                        let pty_system = portable_pty::native_pty_system();
+                        let pty_system = crate::pty::native_pty_system();
                         match crate::pane::create_window(&*pty_system, &mut app, None, None, false) {
                             Ok(()) => {
                                 let new_idx = app.windows.len() - 1;
@@ -5429,7 +5429,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                                 let inner_h = fp.h.saturating_sub(2).max(1);
                                 let inner_w = fp.w.saturating_sub(2).max(1);
                                 if fp.pane.last_rows != inner_h || fp.pane.last_cols != inner_w {
-                                    let _ = fp.pane.master.resize(portable_pty::PtySize { rows: inner_h, cols: inner_w, pixel_width: 0, pixel_height: 0 });
+                                    let _ = fp.pane.master.resize(crate::pty::PtySize { rows: inner_h, cols: inner_w, pixel_width: 0, pixel_height: 0 });
                                     if let Ok(mut parser) = fp.pane.term.lock() { parser.screen_mut().set_size(inner_h, inner_w); }
                                     fp.pane.last_rows = inner_h;
                                     fp.pane.last_cols = inner_w;

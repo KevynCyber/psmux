@@ -179,7 +179,7 @@ pub fn for_post_config(app: &AppState) -> WarmPaneSync {
 /// site outside of pre-warm boot and consume paths goes through here.
 pub fn apply(
     app: &mut AppState,
-    pty_system: &dyn portable_pty::PtySystem,
+    pty_system: &dyn crate::pty::PtySystem,
     sync: WarmPaneSync,
 ) {
     match sync {
@@ -257,7 +257,7 @@ fn apply_patch_to_existing_panes(app: &mut AppState, patch: &WarmPanePatch) {
     }
 }
 
-fn respawn(app: &mut AppState, pty_system: &dyn portable_pty::PtySystem) {
+fn respawn(app: &mut AppState, pty_system: &dyn crate::pty::PtySystem) {
     // Always kill any existing warm pane first — there is no in-place
     // way to swap shell binaries or environment blocks.
     if let Some(mut old) = app.warm_pane.take() {

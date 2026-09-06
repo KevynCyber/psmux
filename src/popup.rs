@@ -46,8 +46,8 @@ pub fn create_popup_pane(
     environment: &std::collections::HashMap<String, String>,
     host_colors: Option<&crate::types::HostColors>,
 ) -> Option<Pane> {
-    let pty_sys = portable_pty::native_pty_system();
-    let pty_size = portable_pty::PtySize {
+    let pty_sys = crate::pty::native_pty_system();
+    let pty_size = crate::pty::PtySize {
         rows,
         cols,
         pixel_width: 0,
@@ -58,7 +58,7 @@ pub fn create_popup_pane(
     let mut cmd_builder = if command.trim().is_empty() {
         crate::pane::build_command(None, true, false)
     } else {
-        let mut builder = portable_pty::CommandBuilder::new(
+        let mut builder = crate::pty::CommandBuilder::new(
             if cfg!(windows) { "pwsh" } else { "sh" },
         );
         if cfg!(windows) {
@@ -196,14 +196,14 @@ pub fn create_popup_pane(
 #[derive(Debug, Clone)]
 pub struct NullChild;
 
-impl portable_pty::ChildKiller for NullChild {
+impl crate::pty::ChildKiller for NullChild {
     fn kill(&mut self) -> std::io::Result<()> { Ok(()) }
-    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> { Box::new(NullChild) }
+    fn clone_killer(&self) -> Box<dyn crate::pty::ChildKiller + Send + Sync> { Box::new(NullChild) }
 }
 
-impl portable_pty::Child for NullChild {
-    fn try_wait(&mut self) -> std::io::Result<Option<portable_pty::ExitStatus>> { Ok(None) }
-    fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> { Ok(portable_pty::ExitStatus::with_exit_code(0)) }
+impl crate::pty::Child for NullChild {
+    fn try_wait(&mut self) -> std::io::Result<Option<crate::pty::ExitStatus>> { Ok(None) }
+    fn wait(&mut self) -> std::io::Result<crate::pty::ExitStatus> { Ok(crate::pty::ExitStatus::with_exit_code(0)) }
     fn process_id(&self) -> Option<u32> { None }
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> { None }
@@ -213,8 +213,8 @@ impl portable_pty::Child for NullChild {
 /// It renders blank and ignores input until `respawn-pane` gives it a command.
 /// No reader thread is spawned since there is never any output.
 pub fn create_empty_pane(rows: u16, cols: u16, pane_id: usize) -> Option<Pane> {
-    let pty_sys = portable_pty::native_pty_system();
-    let pty_size = portable_pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 };
+    let pty_sys = crate::pty::native_pty_system();
+    let pty_size = crate::pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 };
     let pair = pty_sys.openpty(pty_size).ok()?;
     let pty_writer = crate::pane::spawn_pane_write_queue(pair.master.take_writer().ok()?);
     // Drop the slave: with no child attached the pty stays inert; we never read.

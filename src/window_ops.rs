@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
-use portable_pty::{PtySize, native_pty_system};
+use crate::pty::{PtySize, native_pty_system};
 use ratatui::prelude::*;
 
 use crate::types::{AppState, Mode, Pane, Node, LayoutKind, DragState, Window, FocusDir};
@@ -792,7 +792,7 @@ pub fn remote_mouse_drag(app: &mut AppState, x: u16, y: u16) {
                     let inner_h = fp.h.saturating_sub(2).max(1);
                     let inner_w = fp.w.saturating_sub(2).max(1);
                     if fp.pane.last_rows != inner_h || fp.pane.last_cols != inner_w {
-                        let _ = fp.pane.master.resize(portable_pty::PtySize { rows: inner_h, cols: inner_w, pixel_width: 0, pixel_height: 0 });
+                        let _ = fp.pane.master.resize(crate::pty::PtySize { rows: inner_h, cols: inner_w, pixel_width: 0, pixel_height: 0 });
                         if let Ok(mut parser) = fp.pane.term.lock() { parser.screen_mut().set_size(inner_h, inner_w); }
                         fp.pane.last_rows = inner_h;
                         fp.pane.last_cols = inner_w;
@@ -1875,7 +1875,7 @@ pub fn break_pane_to_window(app: &mut AppState) {
     }
 }
 
-pub fn respawn_active_pane(app: &mut AppState, pty_system_ref: Option<&dyn portable_pty::PtySystem>, workdir: Option<&str>, kill: bool, command: Option<&str>, empty: bool) -> io::Result<()> {
+pub fn respawn_active_pane(app: &mut AppState, pty_system_ref: Option<&dyn crate::pty::PtySystem>, workdir: Option<&str>, kill: bool, command: Option<&str>, empty: bool) -> io::Result<()> {
     // tmux semantics: without -k, respawn only works on dead panes.
     // With -k, kill the running process first and respawn.
     {
@@ -1913,7 +1913,7 @@ pub fn respawn_active_pane(app: &mut AppState, pty_system_ref: Option<&dyn porta
 
     // Reuse provided PTY system or create one as fallback
     let owned_pty;
-    let pty_system: &dyn portable_pty::PtySystem = if let Some(ps) = pty_system_ref {
+    let pty_system: &dyn crate::pty::PtySystem = if let Some(ps) = pty_system_ref {
         ps
     } else {
         owned_pty = native_pty_system();
@@ -2004,7 +2004,7 @@ pub fn respawn_active_pane(app: &mut AppState, pty_system_ref: Option<&dyn porta
 /// after a warm-pane transplant, leaving a broken/empty window.
 pub fn heal_respawn_pane(
     app: &mut AppState,
-    pty_system_ref: &dyn portable_pty::PtySystem,
+    pty_system_ref: &dyn crate::pty::PtySystem,
     win_idx: usize,
     path: &Vec<usize>,
 ) -> io::Result<()> {

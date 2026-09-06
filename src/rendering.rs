@@ -10,7 +10,7 @@ use ratatui::widgets::*;
 use ratatui::style::{Style, Modifier};
 use crossterm::style::Print;
 use crossterm::execute;
-use portable_pty::PtySize;
+use crate::pty::PtySize;
 
 use crate::types::{AppState, Mode, Node, LayoutKind};
 use crate::tree::split_with_gaps;

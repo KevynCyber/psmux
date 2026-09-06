@@ -844,7 +844,7 @@ pub fn execute_action(app: &mut AppState, action: &Action) -> io::Result<bool> {
             switch_with_copy_save(app, |app| { crate::input::move_focus(app, d); });
         }
         Action::NewWindow => {
-            let pty_system = portable_pty::native_pty_system();
+            let pty_system = crate::pty::native_pty_system();
             create_window(&*pty_system, app, None, None, false)?;
         }
         Action::SplitHorizontal => {
@@ -927,7 +927,7 @@ pub fn execute_command_prompt(app: &mut AppState) -> io::Result<()> {
         // In server mode the client sends these via TCP directly, so
         // execute_command_prompt() is only reached in embedded mode.
         "new-window" | "neww" => {
-            let pty_system = portable_pty::native_pty_system();
+            let pty_system = crate::pty::native_pty_system();
             create_window(&*pty_system, app, None, None, false)?;
         }
         "split-window" | "splitw" | "split-pane" | "splitp" => {
@@ -2017,7 +2017,7 @@ fn execute_command_string_single(app: &mut AppState, cmd: &str) -> io::Result<()
                 if src < app.windows.len() {
                     let src_id = app.windows[src].id;
                     let src_name = app.windows[src].name.clone();
-                    let pty_system = portable_pty::native_pty_system();
+                    let pty_system = crate::pty::native_pty_system();
                     if let Ok(()) = crate::pane::create_window(&*pty_system, app, None, None, false) {
                         let new_idx = app.windows.len() - 1;
                         app.windows[new_idx].linked_from = Some(src_id);

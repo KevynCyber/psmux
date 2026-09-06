@@ -1,34 +1,30 @@
-use crate::{Child, ChildKiller, ExitStatus};
-use anyhow::Context as _;
+//! ZDEP-023: port of portable-pty-psmux 0.9.7 (MIT) `src/win/mod.rs`'s
+//! `WinChild`/`WinChildKiller`. Includes the issue #446 poison-tolerant
+//! mutex fix and its regression tests, preserved verbatim.
+
+use super::ffi;
+use super::handle::OwnedHandle;
+use super::{Child, ChildKiller, ExitStatus};
 use std::io::{Error as IoError, Result as IoResult};
-use std::os::windows::io::{AsRawHandle, RawHandle};
-use std::pin::Pin;
 use std::sync::Mutex;
-use std::task::{Context, Poll};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::minwinbase::STILL_ACTIVE;
-use winapi::um::processthreadsapi::*;
-use winapi::um::synchapi::WaitForSingleObject;
-use winapi::um::winbase::INFINITE;
-
-pub mod conpty;
-mod procthreadattr;
-mod psuedocon;
-
-use filedescriptor::OwnedHandle;
 
 #[derive(Debug)]
 pub struct WinChild {
-    proc: Mutex<OwnedHandle>,
+    pub(crate) proc: Mutex<OwnedHandle>,
 }
 
 impl WinChild {
     fn is_complete(&mut self) -> IoResult<Option<ExitStatus>> {
-        let mut status: DWORD = 0;
-        let proc = self.proc.lock().unwrap_or_else(|e| e.into_inner()).try_clone().unwrap();
-        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle() as _, &mut status) };
+        let mut status: u32 = 0;
+        let proc = self
+            .proc
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .try_clone()
+            .unwrap();
+        let res = unsafe { ffi::GetExitCodeProcess(proc.as_raw(), &mut status) };
         if res != 0 {
-            if status == STILL_ACTIVE {
+            if status == ffi::STILL_ACTIVE {
                 Ok(None)
             } else {
                 Ok(Some(ExitStatus::with_exit_code(status)))
@@ -39,10 +35,14 @@ impl WinChild {
     }
 
     fn do_kill(&mut self) -> IoResult<()> {
-        let proc = self.proc.lock().unwrap_or_else(|e| e.into_inner()).try_clone().unwrap();
-        let res = unsafe { TerminateProcess(proc.as_raw_handle() as _, 1) };
+        let proc = self
+            .proc
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .try_clone()
+            .unwrap();
+        let res = unsafe { ffi::TerminateProcess(proc.as_raw() as isize, 1) };
         let err = IoError::last_os_error();
-        // TerminateProcess returns nonzero on SUCCESS, zero on failure.
         if res == 0 {
             Err(err)
         } else {
@@ -58,7 +58,12 @@ impl ChildKiller for WinChild {
     }
 
     fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
-        let proc = self.proc.lock().unwrap_or_else(|e| e.into_inner()).try_clone().unwrap();
+        let proc = self
+            .proc
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .try_clone()
+            .unwrap();
         Box::new(WinChildKiller { proc })
     }
 }
@@ -70,9 +75,8 @@ pub struct WinChildKiller {
 
 impl ChildKiller for WinChildKiller {
     fn kill(&mut self) -> IoResult<()> {
-        let res = unsafe { TerminateProcess(self.proc.as_raw_handle() as _, 1) };
+        let res = unsafe { ffi::TerminateProcess(self.proc.as_raw() as isize, 1) };
         let err = IoError::last_os_error();
-        // TerminateProcess returns nonzero on SUCCESS, zero on failure.
         if res == 0 {
             Err(err)
         } else {
@@ -95,12 +99,17 @@ impl Child for WinChild {
         if let Ok(Some(status)) = self.try_wait() {
             return Ok(status);
         }
-        let proc = self.proc.lock().unwrap_or_else(|e| e.into_inner()).try_clone().unwrap();
+        let proc = self
+            .proc
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .try_clone()
+            .unwrap();
         unsafe {
-            WaitForSingleObject(proc.as_raw_handle() as _, INFINITE);
+            ffi::WaitForSingleObject(proc.as_raw(), ffi::INFINITE);
         }
-        let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle() as _, &mut status) };
+        let mut status: u32 = 0;
+        let res = unsafe { ffi::GetExitCodeProcess(proc.as_raw(), &mut status) };
         if res != 0 {
             Ok(ExitStatus::with_exit_code(status))
         } else {
@@ -109,7 +118,9 @@ impl Child for WinChild {
     }
 
     fn process_id(&self) -> Option<u32> {
-        let res = unsafe { GetProcessId(self.proc.lock().unwrap_or_else(|e| e.into_inner()).as_raw_handle() as _) };
+        let res = unsafe {
+            ffi::GetProcessId(self.proc.lock().unwrap_or_else(|e| e.into_inner()).as_raw() as isize)
+        };
         if res == 0 {
             None
         } else {
@@ -119,34 +130,7 @@ impl Child for WinChild {
 
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         let proc = self.proc.lock().unwrap_or_else(|e| e.into_inner());
-        Some(proc.as_raw_handle())
-    }
-}
-
-impl std::future::Future for WinChild {
-    type Output = anyhow::Result<ExitStatus>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<anyhow::Result<ExitStatus>> {
-        match self.is_complete() {
-            Ok(Some(status)) => Poll::Ready(Ok(status)),
-            Err(err) => Poll::Ready(Err(err).context("Failed to retrieve process exit status")),
-            Ok(None) => {
-                struct PassRawHandleToWaiterThread(pub RawHandle);
-                unsafe impl Send for PassRawHandleToWaiterThread {}
-
-                let proc = self.proc.lock().unwrap_or_else(|e| e.into_inner()).try_clone()?;
-                let handle = PassRawHandleToWaiterThread(proc.as_raw_handle());
-
-                let waker = cx.waker().clone();
-                std::thread::spawn(move || {
-                    unsafe {
-                        WaitForSingleObject(handle.0 as _, INFINITE);
-                    }
-                    waker.wake();
-                });
-                Poll::Pending
-            }
-        }
+        Some(proc.as_raw() as std::os::windows::io::RawHandle)
     }
 }
 
@@ -179,7 +163,8 @@ mod tests_issue446 {
             .stderr(Stdio::null())
             .spawn()
             .expect("spawn ping test child");
-        let proc = OwnedHandle::dup(&child).expect("duplicate process handle");
+        let raw = std::os::windows::io::AsRawHandle::as_raw_handle(&child);
+        let proc = OwnedHandle::dup_raw(raw as ffi::HANDLE).expect("duplicate process handle");
         (
             WinChild {
                 proc: Mutex::new(proc),

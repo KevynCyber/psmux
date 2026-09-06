@@ -898,10 +898,10 @@ pub mod mouse_inject {
         }
     }
 
-    /// Extract the process ID from a portable_pty::Child trait object.
+    /// Extract the process ID from a crate::pty::Child trait object.
     ///
     /// Uses the `Child::process_id()` trait method provided by portable-pty 0.9+.
-    pub fn get_child_pid(child: &dyn portable_pty::Child) -> Option<u32> {
+    pub fn get_child_pid(child: &dyn crate::pty::Child) -> Option<u32> {
         child.process_id()
     }
 
@@ -918,7 +918,7 @@ pub mod mouse_inject {
         // Hold across the FreeConsole/AttachConsole dance so a concurrent
         // ConPTY spawn can't stamp freed std handles into a newborn shell
         // (issue #450).  Same guard in every dance function below.
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -990,7 +990,7 @@ pub mod mouse_inject {
     /// can call it once before injecting.  Idempotent — a no-op if VTI is
     /// already on.
     pub fn ensure_vti_enabled(child_pid: u32) -> bool {
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -1079,7 +1079,7 @@ pub mod mouse_inject {
             }
         }
 
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             // Check if we currently own a console (app mode yes, server mode no after first call)
             let had_console = reattach && GetConsoleWindow() != 0;
@@ -1180,7 +1180,7 @@ pub mod mouse_inject {
     /// child reads input as text (ReadConsole/ReadFile) and expects VT
     /// mouse sequences delivered as KEY_EVENT records (nvim, vim).
     pub fn query_mouse_input_enabled(child_pid: u32) -> Option<bool> {
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -1247,7 +1247,7 @@ pub mod mouse_inject {
     /// ConPTY's input engine may not correctly handle SGR mouse sequences
     /// written to hInput.
     pub fn send_vt_sequence(child_pid: u32, sequence: &[u8]) -> bool {
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -1369,7 +1369,7 @@ pub mod mouse_inject {
     /// The text is encoded as UTF-16 for proper Unicode support (file paths
     /// may contain non-ASCII characters).
     pub fn send_bracketed_paste(child_pid: u32, text: &str, bracket: bool) -> bool {
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -1634,7 +1634,7 @@ pub mod mouse_inject {
                 fn SetConsoleMode(h: *mut c_void, mode: u32) -> i32;
                 fn GetConsoleProcessList(list: *mut u32, count: u32) -> u32;
             }
-            let _console_guard = portable_pty::console_state_lock();
+            let _console_guard = crate::pty::console_state_lock();
             unsafe {
                 let had_console = GetConsoleWindow() != 0;
                 FreeConsole();
@@ -1727,7 +1727,7 @@ pub mod mouse_inject {
             return false;
         }
 
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = reattach && GetConsoleWindow() != 0;
 
@@ -1972,7 +1972,7 @@ pub mod mouse_inject {
             }
         }
 
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = reattach && GetConsoleWindow() != 0;
 
@@ -2056,7 +2056,7 @@ pub mod mouse_inject {
     /// `u_char` = the plain char; for Ctrl+Alt: `u_char` = control character.
     /// Sends both key-down and key-up events for proper event pairing.
     pub fn send_modified_key_event(child_pid: u32, ch: char, ctrl: bool, alt: bool, shift: bool) -> bool {
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -2188,7 +2188,7 @@ pub mod mouse_inject {
     /// KEY_EVENT_RECORD with the correct modifier flags, so PSReadLine and
     /// other console-API-based readers see the true Shift/Ctrl/Alt+Enter.
     pub fn send_modified_enter_event(child_pid: u32, ctrl: bool, alt: bool, shift: bool) -> bool {
-        let _console_guard = portable_pty::console_state_lock();
+        let _console_guard = crate::pty::console_state_lock();
         unsafe {
             let had_console = GetConsoleWindow() != 0;
             FreeConsole();
@@ -2324,7 +2324,7 @@ pub mod mouse_inject {
     pub const FROM_LEFT_2ND_BUTTON_PRESSED: u32 = 0x0004;
     pub const MOUSE_MOVED: u32 = 0x0001;
     pub const MOUSE_WHEELED: u32 = 0x0004;
-    pub fn get_child_pid(_child: &dyn portable_pty::Child) -> Option<u32> { None }
+    pub fn get_child_pid(_child: &dyn crate::pty::Child) -> Option<u32> { None }
     pub fn send_mouse_event(_pid: u32, _col: i16, _row: i16, _btn: u32, _flags: u32, _reattach: bool) -> bool { false }
     pub fn send_vt_sequence(_pid: u32, _sequence: &[u8]) -> bool { false }
     pub fn query_vti_enabled(_pid: u32) -> Option<bool> { None }
@@ -2663,13 +2663,13 @@ pub mod process_kill {
     }
 
     /// Kill an entire process tree: all descendants first (leaves → root order),
-    /// then the root process itself.  Calls `child.kill()` via portable_pty as a
+    /// then the root process itself.  Calls `child.kill()` via crate::pty as a
     /// fallback.  Does NOT call `child.wait()` so `try_wait()` still works for
     /// the reaper (`prune_exited`), which will detect the dead process and clean
     /// up the tree node.
     ///
     /// This mirrors how tmux on Linux sends SIGKILL to the pane's process group.
-    pub fn kill_process_tree(child: &mut Box<dyn portable_pty::Child>) {
+    pub fn kill_process_tree(child: &mut Box<dyn crate::pty::Child>) {
         // Try to get the PID
         let pid = super::mouse_inject::get_child_pid(child.as_ref());
 
@@ -2700,7 +2700,7 @@ pub mod process_kill {
             terminate_pid(root_pid, Some(entry_cutoff));
         }
 
-        // Fallback: tell portable_pty to kill the direct child process.
+        // Fallback: tell crate::pty to kill the direct child process.
         // Do NOT call child.wait() here — the reaper (prune_exited) needs
         // try_wait() to detect the dead process and remove the tree node.
         let _ = child.kill();
@@ -2709,7 +2709,7 @@ pub mod process_kill {
     /// Kill multiple process trees using a SINGLE process snapshot.
     /// Much faster than calling `kill_process_tree` N times when
     /// killing an entire session (avoids N separate system snapshots).
-    pub fn kill_process_trees_batch(children: &mut [&mut Box<dyn portable_pty::Child>]) {
+    pub fn kill_process_trees_batch(children: &mut [&mut Box<dyn crate::pty::Child>]) {
         // Collect all root PIDs
         let root_pids: Vec<Option<u32>> = children.iter()
             .map(|c| super::mouse_inject::get_child_pid(c.as_ref()))
@@ -2916,12 +2916,12 @@ pub mod process_kill {
 #[cfg(not(windows))]
 pub mod process_kill {
     /// On non-Windows, fall back to simple kill (no wait — let the reaper handle it).
-    pub fn kill_process_tree(child: &mut Box<dyn portable_pty::Child>) {
+    pub fn kill_process_tree(child: &mut Box<dyn crate::pty::Child>) {
         let _ = child.kill();
     }
 
     /// Batch kill — on non-Windows, just kill each child individually.
-    pub fn kill_process_trees_batch(children: &mut [&mut Box<dyn portable_pty::Child>]) {
+    pub fn kill_process_trees_batch(children: &mut [&mut Box<dyn crate::pty::Child>]) {
         for child in children.iter_mut() {
             let _ = child.kill();
         }

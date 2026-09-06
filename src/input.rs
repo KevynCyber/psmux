@@ -2,7 +2,7 @@ use std::io::{self, Write};
 use std::time::Instant;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
-use portable_pty::native_pty_system;
+use crate::pty::native_pty_system;
 use ratatui::prelude::*;
 
 use crate::types::{AppState, Mode, FocusDir, LayoutKind, DragState, Node, Pane};
