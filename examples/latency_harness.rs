@@ -73,7 +73,7 @@ fn main() {
         .trim()
         .parse()
         .unwrap();
-    let key = std::fs::read_to_string(&key_file).unwrap().trim().to_string();
+    let _key = std::fs::read_to_string(&key_file).unwrap().trim().to_string();
     println!("  Server on port {}", port);
 
     // ── 2. Disable status-bar clock via TCP ──

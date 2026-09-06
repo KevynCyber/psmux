@@ -9,11 +9,10 @@
 mod term;
 
 use term::backend::VtBackend;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::*;
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Clear, Paragraph, Widget};
+use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Terminal;
 
 /// Identical to rendering.rs vt_to_color
@@ -262,10 +261,10 @@ fn main() {
     // Step 6: Check the ratatui buffer state directly
     println!("\n=== Buffer cell modifier check ===");
     {
-        let mut backend2 = VtBackend::new(Vec::<u8>::new());
+        let backend2 = VtBackend::new(Vec::<u8>::new());
         let mut terminal2 = Terminal::new(backend2).unwrap();
         terminal2.resize(Rect::new(0, 0, cols, rows)).unwrap();
-        let frame_result = terminal2.draw(|f| {
+        let _frame_result = terminal2.draw(|f| {
             let area = f.area();
             f.render_widget(Clear, area);
             let para2 = Paragraph::new(Text::from(lines.clone()));

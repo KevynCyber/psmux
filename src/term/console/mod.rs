@@ -280,10 +280,15 @@ pub fn enable_mouse_capture_native() -> io::Result<()> {
         let mut mode: u32 = 0;
         if GetConsoleMode(h, &mut mode) == 0 { return Err(last_err()); }
         let _ = ORIGINAL_MOUSE_MODE.set(mode);
-        let new_mode = (mode & !ENABLE_QUICK_EDIT_MODE) | ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT;
+        let new_mode = mouse_capture_mode(mode);
         if SetConsoleMode(h, new_mode) == 0 { return Err(last_err()); }
     }
     Ok(())
+}
+
+/// Console input mode bits for mouse capture, given the current `mode`.
+pub fn mouse_capture_mode(mode: u32) -> u32 {
+    (mode & !ENABLE_QUICK_EDIT_MODE) | ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT
 }
 
 pub fn disable_mouse_capture_native() -> io::Result<()> {

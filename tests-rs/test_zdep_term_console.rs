@@ -305,3 +305,95 @@ fn vk_to_keycode_and_vk_modifiers_reexported_from_console() {
 fn press_helper_smoke() {
     assert_eq!(press(0x1B, 0, 0), Some(key_ev(KeyCode::Esc, KeyModifiers::empty())));
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Covers: ZDEP-026
+// Requirement: enabling native mouse capture must clear
+// ENABLE_QUICK_EDIT_MODE (so a click doesn't fall into console text
+// selection) while OR-ing ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS |
+// ENABLE_WINDOW_INPUT onto whatever mode bits the console already has --
+// unlike crossterm, which replaces the whole mode outright, psmux ORs onto
+// the current mode so unrelated bits survive. Locked in here as the pure
+// `mouse_capture_mode(mode: u32) -> u32` seam extracted from
+// enable_mouse_capture_native so the bitmask math is unit-testable without
+// a live console handle.
+// ═══════════════════════════════════════════════════════════════════════
+
+use crate::term::console::mouse_capture_mode;
+
+const ENABLE_WINDOW_INPUT: u32 = 0x0008;
+const ENABLE_MOUSE_INPUT: u32 = 0x0010;
+const ENABLE_QUICK_EDIT_MODE: u32 = 0x0040;
+const ENABLE_EXTENDED_FLAGS: u32 = 0x0080;
+
+#[test]
+fn mouse_capture_mode_clears_quick_edit() {
+    let mode = ENABLE_QUICK_EDIT_MODE;
+    let result = mouse_capture_mode(mode);
+    assert_eq!(
+        result & ENABLE_QUICK_EDIT_MODE,
+        0,
+        "ENABLE_QUICK_EDIT_MODE must be cleared so a click doesn't fall into \
+         console text selection"
+    );
+}
+
+#[test]
+fn mouse_capture_mode_sets_mouse_extended_and_window_input_bits() {
+    let result = mouse_capture_mode(0);
+    assert_eq!(result & ENABLE_MOUSE_INPUT, ENABLE_MOUSE_INPUT, "ENABLE_MOUSE_INPUT must be set");
+    assert_eq!(result & ENABLE_WINDOW_INPUT, ENABLE_WINDOW_INPUT, "ENABLE_WINDOW_INPUT must be set");
+    // ENABLE_EXTENDED_FLAGS (0x80) is REQUIRED for the QUICK_EDIT clear to
+    // take effect at all: SetConsoleMode silently ignores
+    // ENABLE_QUICK_EDIT_MODE/ENABLE_INSERT_MODE writes unless
+    // ENABLE_EXTENDED_FLAGS is also set in the same call, so omitting it
+    // would leave Quick Edit re-asserting itself on the console.
+    assert_eq!(
+        result & ENABLE_EXTENDED_FLAGS,
+        ENABLE_EXTENDED_FLAGS,
+        "ENABLE_EXTENDED_FLAGS must be set -- without it SetConsoleMode ignores the QUICK_EDIT_MODE clear"
+    );
+}
+
+#[test]
+fn mouse_capture_mode_preserves_unrelated_pre_existing_bits() {
+    // psmux ORs onto the current mode rather than replacing it outright
+    // (unlike crossterm, which replaces the whole mode).
+    let unrelated_bit = 0x0002; // ENABLE_LINE_INPUT-style bit, unrelated to mouse capture
+    let mode = unrelated_bit;
+    let result = mouse_capture_mode(mode);
+    assert_eq!(result & unrelated_bit, unrelated_bit, "unrelated pre-existing bits must survive the OR");
+}
+
+#[test]
+fn mouse_capture_mode_is_idempotent() {
+    let mode = 0x2000; // some unrelated bit plus defaults
+    let once = mouse_capture_mode(mode);
+    let twice = mouse_capture_mode(once);
+    assert_eq!(once, twice, "applying mouse_capture_mode twice must equal applying it once");
+}
+
+#[test]
+fn mouse_capture_mode_edge_inputs() {
+    let from_zero = mouse_capture_mode(0);
+    assert_eq!(
+        from_zero,
+        ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT,
+        "mode 0 in: only the three OR'd-in bits should be set, QUICK_EDIT stays clear"
+    );
+
+    let from_max = mouse_capture_mode(u32::MAX);
+    assert_eq!(
+        from_max & ENABLE_QUICK_EDIT_MODE,
+        0,
+        "mode u32::MAX in: QUICK_EDIT_MODE must still be cleared"
+    );
+    assert_eq!(
+        from_max & (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT),
+        ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT,
+        "mode u32::MAX in: mouse/extended/window bits must still be set"
+    );
+    // every other bit besides QUICK_EDIT_MODE was already 1 in u32::MAX and
+    // must remain 1 (OR never clears bits it doesn't own).
+    assert_eq!(from_max, u32::MAX & !ENABLE_QUICK_EDIT_MODE);
+}

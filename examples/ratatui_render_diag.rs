@@ -4,11 +4,9 @@
 mod term;
 
 use term::backend::VtBackend;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::Terminal;
-use std::io::Write;
 
 fn main() {
     // Create terminal that writes to an in-memory buffer
