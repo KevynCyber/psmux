@@ -12,7 +12,7 @@
 /// mapped to lowercase.
 
 use super::*;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 use crate::config::{parse_key_name, parse_bind_key, normalize_key_for_binding};
 
 fn mock_app() -> AppState {

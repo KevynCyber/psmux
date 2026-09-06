@@ -570,7 +570,7 @@ fn bind_key_local_adds_binding() {
     // Verify a binding was added to the prefix table
     let prefix_binds = app.key_tables.get("prefix");
     assert!(prefix_binds.is_some(), "prefix table should exist after bind-key");
-    let has_z = prefix_binds.unwrap().iter().any(|b| matches!(b.key.0, crossterm::event::KeyCode::Char('z')));
+    let has_z = prefix_binds.unwrap().iter().any(|b| matches!(b.key.0, crate::term::event::KeyCode::Char('z')));
     assert!(has_z, "should have a binding for 'z' key");
 }
 

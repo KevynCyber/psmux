@@ -228,7 +228,7 @@ fn set_option_silence_action() {
 
 // ── Root table binding tests (discussion #130: vim-style C-hjkl nav) ────
 
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 use crate::config::{normalize_key_for_binding, parse_bind_key};
 use crate::types::{Action, FocusDir};
 

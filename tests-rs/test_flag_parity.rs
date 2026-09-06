@@ -484,7 +484,7 @@ fn bind_key_default_prefix_table() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind-key z split-window -v").unwrap();
     let table = app.key_tables.get("prefix").expect("prefix table");
-    assert!(table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('z')),
+    assert!(table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('z')),
         "default bind goes to prefix table");
 }
 
@@ -493,7 +493,7 @@ fn bind_key_flag_n_root_table() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind-key -n F3 split-window -v").unwrap();
     let table = app.key_tables.get("root").expect("root table");
-    assert!(table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::F(3)),
+    assert!(table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::F(3)),
         "-n flag: should bind to root table");
 }
 
@@ -502,7 +502,7 @@ fn bind_key_flag_T_custom_table() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind-key -T copy-mode-vi v send-keys -X begin-selection").unwrap();
     let table = app.key_tables.get("copy-mode-vi").expect("copy-mode-vi table");
-    assert!(table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('v')),
+    assert!(table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('v')),
         "-T flag: should bind to named table");
 }
 
@@ -511,7 +511,7 @@ fn bind_key_flag_r_repeat() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind-key -r n next-window").unwrap();
     let table = app.key_tables.get("prefix").expect("prefix table");
-    let bind = table.iter().find(|b| b.key.0 == crossterm::event::KeyCode::Char('n'));
+    let bind = table.iter().find(|b| b.key.0 == crate::term::event::KeyCode::Char('n'));
     assert!(bind.is_some(), "-r flag: key should be bound");
     assert!(bind.unwrap().repeat, "-r flag: should mark binding as repeatable");
 }
@@ -530,7 +530,7 @@ fn bind_key_flag_T_root() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind-key -T root F7 new-window").unwrap();
     let table = app.key_tables.get("root").expect("root table");
-    assert!(table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::F(7)),
+    assert!(table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::F(7)),
         "-T root: should bind to root table");
 }
 
@@ -540,8 +540,8 @@ fn bind_key_ctrl_modifier() {
     execute_command_string(&mut app, "bind-key C-x kill-pane").unwrap();
     let table = app.key_tables.get("prefix").expect("prefix table");
     let found = table.iter().any(|b| {
-        b.key.0 == crossterm::event::KeyCode::Char('x')
-            && b.key.1.contains(crossterm::event::KeyModifiers::CONTROL)
+        b.key.0 == crate::term::event::KeyCode::Char('x')
+            && b.key.1.contains(crate::term::event::KeyModifiers::CONTROL)
     });
     assert!(found, "C-x should bind Ctrl+x in prefix table");
 }
@@ -552,8 +552,8 @@ fn bind_key_alt_modifier() {
     execute_command_string(&mut app, "bind-key -n M-h select-pane -L").unwrap();
     let table = app.key_tables.get("root").expect("root table");
     let found = table.iter().any(|b| {
-        b.key.0 == crossterm::event::KeyCode::Char('h')
-            && b.key.1.contains(crossterm::event::KeyModifiers::ALT)
+        b.key.0 == crate::term::event::KeyCode::Char('h')
+            && b.key.1.contains(crate::term::event::KeyModifiers::ALT)
     });
     assert!(found, "M-h should bind Alt+h in root table");
 }
@@ -566,9 +566,9 @@ fn bind_key_alt_modifier() {
 fn unbind_key_specific_key() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind-key q display-panes").unwrap();
-    assert!(app.key_tables.get("prefix").unwrap().iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('q')));
+    assert!(app.key_tables.get("prefix").unwrap().iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('q')));
     execute_command_string(&mut app, "unbind-key q").unwrap();
-    assert!(!app.key_tables.get("prefix").unwrap().iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('q')),
+    assert!(!app.key_tables.get("prefix").unwrap().iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('q')),
         "unbind should remove the key");
 }
 
@@ -590,7 +590,7 @@ fn unbind_key_flag_n_root_table() {
     execute_command_string(&mut app, "unbind-key -n F9").unwrap();
     let empty = vec![];
     let table = app.key_tables.get("root").unwrap_or(&empty);
-    assert!(!table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::F(9)),
+    assert!(!table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::F(9)),
         "-n flag: should unbind from root table");
 }
 
@@ -601,7 +601,7 @@ fn unbind_key_flag_T_named_table() {
     execute_command_string(&mut app, "unbind-key -T copy-mode-vi y").unwrap();
     let empty = vec![];
     let table = app.key_tables.get("copy-mode-vi").unwrap_or(&empty);
-    assert!(!table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('y')),
+    assert!(!table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('y')),
         "-T flag: should unbind from named table");
 }
 
@@ -2009,7 +2009,7 @@ fn alias_bind() {
     let mut app = mock_app_with_window();
     execute_command_string(&mut app, "bind x new-window").unwrap();
     let table = app.key_tables.get("prefix").expect("prefix table");
-    assert!(table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('x')),
+    assert!(table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('x')),
         "'bind' alias should work");
 }
 

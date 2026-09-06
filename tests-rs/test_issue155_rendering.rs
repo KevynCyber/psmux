@@ -11,6 +11,11 @@
 // Unlike test_issue155_sgr_attrs.rs (parser-only), these tests exercise
 // the rendering output path that the user actually sees.
 
+// [[test]] integration file: no crate:: visibility, so src/term is pulled
+// in the same way examples/latency_harness.rs pulls in src/pty.
+#[path = "../src/term/mod.rs"]
+mod term;
+
 use ratatui::style::{Color, Modifier, Style};
 
 // ─── vt_to_color: replicated from rendering.rs ─────────────────────
@@ -388,7 +393,7 @@ fn ratatui_buffer_color_idx15_is_white() {
 
 #[test]
 fn crossterm_output_strikethrough_emits_sgr9() {
-    use ratatui::backend::CrosstermBackend;
+    use term::backend::VtBackend as CrosstermBackend;
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
     use ratatui::backend::Backend;
@@ -423,7 +428,7 @@ fn crossterm_output_strikethrough_emits_sgr9() {
 
 #[test]
 fn crossterm_output_hidden_cell_is_space_not_sgr8() {
-    use ratatui::backend::CrosstermBackend;
+    use term::backend::VtBackend as CrosstermBackend;
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
     use ratatui::backend::Backend;

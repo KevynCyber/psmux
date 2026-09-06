@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 use crate::config::{parse_key_name, parse_key_string, normalize_key_for_binding, format_key_binding};
 
 /// Issue #157: bind-key should be case-sensitive for single character keys.

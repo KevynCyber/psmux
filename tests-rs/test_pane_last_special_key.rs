@@ -10,7 +10,7 @@
 
 use crate::config::format_key_binding;
 use crate::input::is_text_input_key;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::term::event::{KeyCode, KeyEvent, KeyModifiers};
 
 fn is_special(code: KeyCode, mods: KeyModifiers) -> bool {
     !is_text_input_key(&KeyEvent::new(code, mods))

@@ -1,5 +1,5 @@
 use super::*;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use crate::term::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 
 /// Helper: build a KeyEvent with the given code and modifiers.
 fn key(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
@@ -393,7 +393,7 @@ fn alt_enter_encoding_for_conpty() {
 #[cfg(windows)]
 #[test]
 fn augment_enter_shift_noop_when_already_shift() {
-    use crossterm::event::KeyModifiers;
+    use crate::term::event::KeyModifiers;
     let mut ev = key(KeyCode::Enter, KeyModifiers::SHIFT);
     crate::platform::augment_enter_shift(&mut ev);
     assert!(ev.modifiers.contains(KeyModifiers::SHIFT),
@@ -403,7 +403,7 @@ fn augment_enter_shift_noop_when_already_shift() {
 #[cfg(windows)]
 #[test]
 fn augment_enter_shift_ignores_non_enter() {
-    use crossterm::event::KeyModifiers;
+    use crate::term::event::KeyModifiers;
     let mut ev = key(KeyCode::Char('a'), KeyModifiers::ALT);
     crate::platform::augment_enter_shift(&mut ev);
     assert!(ev.modifiers.contains(KeyModifiers::ALT),

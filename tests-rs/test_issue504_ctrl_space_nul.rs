@@ -23,7 +23,7 @@
 // neighbouring keys or break an existing `bind-key C-2`.
 
 use super::*;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;

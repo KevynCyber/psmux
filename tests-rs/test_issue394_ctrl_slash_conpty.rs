@@ -14,7 +14,7 @@
 // encode to 0x1f (^_), matching tmux and Ctrl+_.
 
 use super::*;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use crate::term::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 
 fn key(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
     KeyEvent { code, modifiers, kind: KeyEventKind::Press, state: KeyEventState::NONE }

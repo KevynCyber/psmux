@@ -300,10 +300,10 @@ fn populate_default_bindings_leaves_root_table_empty() {
     // default — in particular PageUp must reach the running application.
     // PageUp -> copy-mode -u lives in the PREFIX table instead.
     if let Some(root_table) = app.key_tables.get("root") {
-        let has_pageup = root_table.iter().any(|b| b.key.0 == crossterm::event::KeyCode::PageUp);
+        let has_pageup = root_table.iter().any(|b| b.key.0 == crate::term::event::KeyCode::PageUp);
         assert!(!has_pageup, "root table must NOT have a default PageUp binding (issue #488)");
     }
     let prefix = app.key_tables.get("prefix").expect("prefix table populated");
-    let has_pageup = prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::PageUp);
+    let has_pageup = prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::PageUp);
     assert!(has_pageup, "prefix table should have PageUp -> copy-mode -u (tmux parity)");
 }

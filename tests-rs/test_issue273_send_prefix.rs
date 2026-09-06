@@ -12,7 +12,7 @@
 use super::*;
 use crate::config::{ensure_prefix_self_binding, populate_default_bindings};
 use crate::types::Action;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 
 fn fresh_app() -> AppState {
     let mut app = AppState::new("issue273".to_string());

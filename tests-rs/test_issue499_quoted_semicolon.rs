@@ -209,7 +209,7 @@ fn bind_key_with_quoted_semicolon_stays_one_command() {
     let table = app.key_tables.get("prefix").expect("prefix table");
     let kb = table
         .iter()
-        .find(|kb| kb.key.0 == crossterm::event::KeyCode::Char('X'))
+        .find(|kb| kb.key.0 == crate::term::event::KeyCode::Char('X'))
         .expect("binding for X should exist");
     match &kb.action {
         crate::types::Action::CommandChain(cmds) => panic!(
@@ -232,7 +232,7 @@ fn bind_key_real_chain_still_produces_a_chain() {
     let table = app.key_tables.get("prefix").expect("prefix table");
     let kb = table
         .iter()
-        .find(|kb| kb.key.0 == crossterm::event::KeyCode::Char('Y'))
+        .find(|kb| kb.key.0 == crate::term::event::KeyCode::Char('Y'))
         .expect("binding for Y should exist");
     match &kb.action {
         crate::types::Action::CommandChain(cmds) => {

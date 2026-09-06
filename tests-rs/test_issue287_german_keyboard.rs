@@ -3,7 +3,7 @@
 // non-lowercase-letter Char events on Windows so that bindings like `[`,
 // `]`, `@`, `\` work on German/Czech/etc. keyboards.
 
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 
 #[test]
 fn altgr_bracket_normalized_to_plain() {

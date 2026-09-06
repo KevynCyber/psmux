@@ -107,7 +107,7 @@ fn handle_key_skips_root_pageup_when_scroll_off() {
 
     // After handle_key, the mode should remain Passthrough (NOT CopyMode)
     // because the root binding is skipped when scroll_enter_copy_mode is off.
-    let key = crossterm::event::KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE);
+    let key = crate::term::event::KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE);
     // We cannot call handle_key directly here since there is no real PTY,
     // but we can verify the logic that handle_key uses:
     let key_tuple = crate::config::normalize_key_for_binding((key.code, key.modifiers));
@@ -134,7 +134,7 @@ fn handle_key_executes_root_pageup_when_scroll_on() {
     app.scroll_enter_copy_mode = true;
     app.mode = Mode::Passthrough;
 
-    let key = crossterm::event::KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE);
+    let key = crate::term::event::KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE);
     let key_tuple = crate::config::normalize_key_for_binding((key.code, key.modifiers));
     let bind = app.key_tables.get("root")
         .and_then(|t| t.iter().find(|b| b.key == key_tuple))
@@ -171,10 +171,10 @@ fn home_end_not_bound_in_root_table() {
 #[test]
 fn send_key_escape_sequences_correct() {
     // Home -> \x1b[H, End -> \x1b[F, PageUp -> \x1b[5~, PageDown -> \x1b[6~
-    let key_home = crossterm::event::KeyEvent::new(KeyCode::Home, KeyModifiers::NONE);
-    let key_end = crossterm::event::KeyEvent::new(KeyCode::End, KeyModifiers::NONE);
-    let key_pgup = crossterm::event::KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE);
-    let key_pgdn = crossterm::event::KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE);
+    let key_home = crate::term::event::KeyEvent::new(KeyCode::Home, KeyModifiers::NONE);
+    let key_end = crate::term::event::KeyEvent::new(KeyCode::End, KeyModifiers::NONE);
+    let key_pgup = crate::term::event::KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE);
+    let key_pgdn = crate::term::event::KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE);
 
     let enc_home = crate::input::encode_key_event(&key_home);
     let enc_end = crate::input::encode_key_event(&key_end);

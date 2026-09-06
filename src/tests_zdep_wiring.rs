@@ -44,3 +44,15 @@ mod tests_zdep_brace_match;
 #[cfg(all(test, windows))]
 #[path = "../tests-rs/test_zdep_pty_fold.rs"]
 mod tests_zdep_pty_fold;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_term_events.rs"]
+mod tests_zdep_term_events;
+
+#[cfg(all(test, windows))]
+#[path = "../tests-rs/test_zdep_term_console.rs"]
+mod tests_zdep_term_console;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_zdep_term_backend.rs"]
+mod tests_zdep_term_backend;

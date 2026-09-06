@@ -218,7 +218,7 @@ fn issue19_bind_key_basic() {
     execute_command_string(&mut app, "bind-key x split-window -v").unwrap();
     let table = app.key_tables.get("prefix").expect("prefix table should exist");
     let found = table.iter().any(|kb| {
-        kb.key.0 == crossterm::event::KeyCode::Char('x')
+        kb.key.0 == crate::term::event::KeyCode::Char('x')
     });
     assert!(found, "#19: bind-key x should be in prefix table");
 }
@@ -229,7 +229,7 @@ fn issue19_bind_key_root_table() {
     execute_command_string(&mut app, "bind-key -T root F5 split-window -v").unwrap();
     let table = app.key_tables.get("root").expect("root table should exist");
     let found = table.iter().any(|kb| {
-        kb.key.0 == crossterm::event::KeyCode::F(5)
+        kb.key.0 == crate::term::event::KeyCode::F(5)
     });
     assert!(found, "#19: bind-key -T root F5 should be in root table");
 }
@@ -240,8 +240,8 @@ fn issue108_bind_key_ctrl_tab() {
     execute_command_string(&mut app, "bind-key -T root C-Tab next-window").unwrap();
     let table = app.key_tables.get("root").expect("root table should exist");
     let found = table.iter().any(|kb| {
-        kb.key.0 == crossterm::event::KeyCode::Tab
-            && kb.key.1.contains(crossterm::event::KeyModifiers::CONTROL)
+        kb.key.0 == crate::term::event::KeyCode::Tab
+            && kb.key.1.contains(crate::term::event::KeyModifiers::CONTROL)
     });
     assert!(found, "#108: bind-key C-Tab should register in root table");
 }

@@ -1563,7 +1563,7 @@ fn direct_bind_key() {
     let mut app = mock_app();
     parse_config_line(&mut app, "bind-key x kill-pane");
     let prefix = app.key_tables.get("prefix").unwrap();
-    assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('x')));
+    assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('x')));
 }
 
 #[test]
@@ -1573,7 +1573,7 @@ fn direct_unbind_key() {
     parse_config_line(&mut app, "unbind-key y");
     let empty = vec![];
     let prefix = app.key_tables.get("prefix").unwrap_or(&empty);
-    assert!(!prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('y')));
+    assert!(!prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('y')));
 }
 
 #[test]
@@ -1639,7 +1639,7 @@ fn config_continuation_line_bind() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key \\\nx \\\nkill-pane\n");
     let prefix = app.key_tables.get("prefix").unwrap();
-    assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('x')));
+    assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('x')));
 }
 
 #[test]
@@ -1841,7 +1841,7 @@ fn config_bind_key_basic() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key r source-file\n");
     let prefix = app.key_tables.get("prefix").unwrap();
-    assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('r')));
+    assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('r')));
 }
 
 #[test]
@@ -1849,7 +1849,7 @@ fn config_bind_alias() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind s choose-tree\n");
     let prefix = app.key_tables.get("prefix").unwrap();
-    assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('s')));
+    assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('s')));
 }
 
 #[test]
@@ -1857,7 +1857,7 @@ fn config_bind_n_root_table() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key -n F5 kill-pane\n");
     let root = app.key_tables.get("root").unwrap();
-    assert!(root.iter().any(|b| b.key.0 == crossterm::event::KeyCode::F(5)));
+    assert!(root.iter().any(|b| b.key.0 == crate::term::event::KeyCode::F(5)));
 }
 
 #[test]
@@ -1865,7 +1865,7 @@ fn config_bind_T_custom_table() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key -T mymenu x kill-pane\n");
     let tab = app.key_tables.get("mymenu").unwrap();
-    assert!(tab.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('x')));
+    assert!(tab.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('x')));
 }
 
 #[test]
@@ -1873,7 +1873,7 @@ fn config_bind_r_repeat() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key -r Up select-pane -U\n");
     let prefix = app.key_tables.get("prefix").unwrap();
-    let b = prefix.iter().find(|b| b.key.0 == crossterm::event::KeyCode::Up).unwrap();
+    let b = prefix.iter().find(|b| b.key.0 == crate::term::event::KeyCode::Up).unwrap();
     assert!(b.repeat);
 }
 
@@ -1882,7 +1882,7 @@ fn config_bind_command_chain() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key x split-window \\; select-pane -D\n");
     let prefix = app.key_tables.get("prefix").unwrap();
-    let b = prefix.iter().find(|b| b.key.0 == crossterm::event::KeyCode::Char('x')).unwrap();
+    let b = prefix.iter().find(|b| b.key.0 == crate::term::event::KeyCode::Char('x')).unwrap();
     match &b.action {
         crate::types::Action::CommandChain(cmds) => {
             assert_eq!(cmds.len(), 2);
@@ -1897,8 +1897,8 @@ fn config_bind_ctrl_modifier() {
     parse_config_content(&mut app, "bind-key C-a send-prefix\n");
     let prefix = app.key_tables.get("prefix").unwrap();
     assert!(prefix.iter().any(|b| {
-        b.key.0 == crossterm::event::KeyCode::Char('a')
-            && b.key.1.contains(crossterm::event::KeyModifiers::CONTROL)
+        b.key.0 == crate::term::event::KeyCode::Char('a')
+            && b.key.1.contains(crate::term::event::KeyModifiers::CONTROL)
     }));
 }
 
@@ -1908,8 +1908,8 @@ fn config_bind_alt_modifier() {
     parse_config_content(&mut app, "bind-key M-h select-pane -L\n");
     let prefix = app.key_tables.get("prefix").unwrap();
     assert!(prefix.iter().any(|b| {
-        b.key.0 == crossterm::event::KeyCode::Char('h')
-            && b.key.1.contains(crossterm::event::KeyModifiers::ALT)
+        b.key.0 == crate::term::event::KeyCode::Char('h')
+            && b.key.1.contains(crate::term::event::KeyModifiers::ALT)
     }));
 }
 
@@ -1921,7 +1921,7 @@ fn config_unbind_specific_key() {
     parse_config_content(&mut app, "bind-key z kill-pane\nunbind-key z\n");
     let empty = vec![];
     let prefix = app.key_tables.get("prefix").unwrap_or(&empty);
-    assert!(!prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('z')));
+    assert!(!prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('z')));
 }
 
 #[test]
@@ -1936,7 +1936,7 @@ fn config_unbind_n_root() {
     let mut app = mock_app();
     parse_config_content(&mut app, "bind-key -n F5 kill-pane\nunbind-key -n F5\n");
     let root = app.key_tables.get("root").unwrap();
-    assert!(!root.iter().any(|b| b.key.0 == crossterm::event::KeyCode::F(5)));
+    assert!(!root.iter().any(|b| b.key.0 == crate::term::event::KeyCode::F(5)));
 }
 
 // --- set-hook via config file ---
@@ -2081,13 +2081,13 @@ bind-key -r Down select-pane -D
 "#;
     parse_config_content(&mut app, config);
     assert!(app.mouse_enabled);
-    assert_eq!(app.prefix_key.0, crossterm::event::KeyCode::Char('a'));
-    assert!(app.prefix_key.1.contains(crossterm::event::KeyModifiers::CONTROL));
+    assert_eq!(app.prefix_key.0, crate::term::event::KeyCode::Char('a'));
+    assert!(app.prefix_key.1.contains(crate::term::event::KeyModifiers::CONTROL));
     let prefix = app.key_tables.get("prefix").unwrap();
-    assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('|')));
-    assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('-')));
+    assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('|')));
+    assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('-')));
     // Repeatable bindings
-    let up = prefix.iter().find(|b| b.key.0 == crossterm::event::KeyCode::Up).unwrap();
+    let up = prefix.iter().find(|b| b.key.0 == crate::term::event::KeyCode::Up).unwrap();
     assert!(up.repeat);
 }
 
@@ -2253,8 +2253,8 @@ fn config_unquoted_value() {
 fn config_prefix_c_a() {
     let mut app = mock_app();
     parse_config_content(&mut app, "set -g prefix C-a\n");
-    assert_eq!(app.prefix_key.0, crossterm::event::KeyCode::Char('a'));
-    assert!(app.prefix_key.1.contains(crossterm::event::KeyModifiers::CONTROL));
+    assert_eq!(app.prefix_key.0, crate::term::event::KeyCode::Char('a'));
+    assert!(app.prefix_key.1.contains(crate::term::event::KeyModifiers::CONTROL));
 }
 
 #[test]
@@ -2262,14 +2262,14 @@ fn config_prefix2() {
     let mut app = mock_app();
     parse_config_content(&mut app, "set -g prefix2 C-s\n");
     let p2 = app.prefix2_key.unwrap();
-    assert_eq!(p2.0, crossterm::event::KeyCode::Char('s'));
-    assert!(p2.1.contains(crossterm::event::KeyModifiers::CONTROL));
+    assert_eq!(p2.0, crate::term::event::KeyCode::Char('s'));
+    assert!(p2.1.contains(crate::term::event::KeyModifiers::CONTROL));
 }
 
 #[test]
 fn config_prefix2_none() {
     let mut app = mock_app();
-    app.prefix2_key = Some((crossterm::event::KeyCode::Char('s'), crossterm::event::KeyModifiers::CONTROL));
+    app.prefix2_key = Some((crate::term::event::KeyCode::Char('s'), crate::term::event::KeyModifiers::CONTROL));
     parse_config_content(&mut app, "set -g prefix2 none\n");
     assert!(app.prefix2_key.is_none());
 }
@@ -2473,7 +2473,7 @@ fn cross_channel_bind_key_all_paths() {
 
     for app in [&app1, &app2, &app3] {
         let prefix = app.key_tables.get("prefix").unwrap();
-        assert!(prefix.iter().any(|b| b.key.0 == crossterm::event::KeyCode::Char('q')));
+        assert!(prefix.iter().any(|b| b.key.0 == crate::term::event::KeyCode::Char('q')));
     }
 }
 

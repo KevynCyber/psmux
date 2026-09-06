@@ -1,0 +1,1 @@
+\x1b[1;1H\x1b[1m\x1b[38;5;1;49mA\x1b[22m\x1b[2m\x1b[38;5;9;49m\x1b[58;5;99mB\x1b[22m\x1b[3m\x1b[38;2;10;20;30;48;5;7m\x1b[59mC\x1b[2;1H\x1b[23m\x1b[4m\x1b[38;5;15;48;5;200mD\x1b[2;3H\x1b[24m\x1b[39;49mF\x1b[39m\x1b[49m\x1b[59m\x1b[0m\x1b[?25l\x1b[?25h\x1b[2;3H\x1b[2J\x0a\x0a\x1b[?12h\x1b[?12l

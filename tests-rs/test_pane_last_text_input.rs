@@ -8,7 +8,7 @@
 // that injects real key events through the interactive route WILL update it.
 
 use crate::input::is_text_input_key;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::term::event::{KeyCode, KeyEvent, KeyModifiers};
 
 fn k(code: KeyCode, mods: KeyModifiers) -> KeyEvent {
     KeyEvent::new(code, mods)

@@ -1,5 +1,5 @@
 use super::*;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crate::term::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 

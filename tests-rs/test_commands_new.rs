@@ -3,7 +3,7 @@
 // behavioral guarantees, not just mode enum transitions.
 
 use super::*;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crate::term::event::{KeyCode, KeyModifiers};
 
 fn mock_app() -> AppState {
     let mut app = AppState::new("test_session".to_string());
@@ -1562,7 +1562,7 @@ fn respawn_pane_without_port_does_not_crash() {
 //  Window index prompt (prefix + '): jump to any window by typed number
 // ════════════════════════════════════════════════════════════════════════════
 
-use crossterm::event::{KeyEvent, KeyEventKind, KeyEventState};
+use crate::term::event::{KeyEvent, KeyEventKind, KeyEventState};
 use crate::input::handle_key;
 
 fn press(code: KeyCode) -> KeyEvent {
@@ -1864,7 +1864,7 @@ fn display_popup_d_flag_with_percent_dims() {
         Mode::PopupMode { command, width, height, .. } => {
             assert!(!command.contains("/home/user"), "dir should not leak into command");
             // Width/height should be resolved percentages (not the raw "95" or "80")
-            // Since crossterm::terminal::size() varies, just verify they are not the raw fallback defaults
+            // Since crate::term::terminal::size() varies, just verify they are not the raw fallback defaults
             assert!(*width > 0, "width should be resolved");
             assert!(*height > 0, "height should be resolved");
         }
