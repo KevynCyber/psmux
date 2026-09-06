@@ -37,7 +37,6 @@ fn pid_alive(pid: u32) -> bool {
     extern "system" {
         fn OpenProcess(desired_access: u32, inherit_handle: i32, process_id: u32) -> isize;
         fn CloseHandle(handle: isize) -> i32;
-        fn GetExitCodeProcess(h: isize, code: *mut u32) -> i32;
     }
     const STILL_ACTIVE: u32 = 259;
     unsafe {
@@ -46,7 +45,7 @@ fn pid_alive(pid: u32) -> bool {
             return false;
         }
         let mut code: u32 = 0;
-        let ok = GetExitCodeProcess(h, &mut code);
+        let ok = crate::pty::ffi::GetExitCodeProcess(h as *mut _, &mut code);
         CloseHandle(h);
         ok != 0 && code == STILL_ACTIVE
     }

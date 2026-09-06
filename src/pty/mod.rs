@@ -7,7 +7,7 @@
 mod child;
 mod cmdbuilder;
 pub mod conpty;
-mod ffi;
+pub(crate) mod ffi;
 mod handle;
 mod procthreadattr;
 mod psuedocon;

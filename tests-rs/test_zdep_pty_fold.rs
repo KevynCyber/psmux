@@ -15,8 +15,8 @@
 // as a release-publish step.
 
 use crate::pty::{
-    append_quoted, conpty_base_flags, probe_conpty, registry_environment, CommandBuilder, Child,
-    ChildKiller, Error, MasterPty, PtySize, PtySystem, SlavePty, native_pty_system,
+    append_quoted, conpty_base_flags, probe_conpty, registry_environment, CommandBuilder,
+    Error, PtySize, native_pty_system,
     PSEUDOCONSOLE_PASSTHROUGH_MODE, PSEUDOCONSOLE_RESIZE_QUIRK, PSEUDOCONSOLE_WIN32_INPUT_MODE,
 };
 use crate::pty::passthrough_supported;

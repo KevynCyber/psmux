@@ -104,52 +104,10 @@ pub(crate) fn escape_arg_msvcrt(arg: &str) -> String {
 /// `Start-Process -WindowStyle Hidden` in PowerShell.
 #[cfg(windows)]
 pub fn spawn_server_hidden(exe: &std::path::Path, args: &[String]) -> std::io::Result<u32> {
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    struct STARTUPINFOW {
-        cb: u32,
-        lpReserved: *mut u16,
-        lpDesktop: *mut u16,
-        lpTitle: *mut u16,
-        dwX: u32,
-        dwY: u32,
-        dwXSize: u32,
-        dwYSize: u32,
-        dwXCountChars: u32,
-        dwYCountChars: u32,
-        dwFillAttribute: u32,
-        dwFlags: u32,
-        wShowWindow: u16,
-        cbReserved2: u16,
-        lpReserved2: *mut u8,
-        hStdInput: isize,
-        hStdOutput: isize,
-        hStdError: isize,
-    }
-
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    struct PROCESS_INFORMATION {
-        hProcess: isize,
-        hThread: isize,
-        dwProcessId: u32,
-        dwThreadId: u32,
-    }
+    use crate::pty::ffi::{CreateProcessW, PROCESS_INFORMATION, STARTUPINFOW};
 
     #[link(name = "kernel32")]
     extern "system" {
-        fn CreateProcessW(
-            lpApplicationName: *const u16,
-            lpCommandLine: *mut u16,
-            lpProcessAttributes: *const std::ffi::c_void,
-            lpThreadAttributes: *const std::ffi::c_void,
-            bInheritHandles: i32,
-            dwCreationFlags: u32,
-            lpEnvironment: *const std::ffi::c_void,
-            lpCurrentDirectory: *const u16,
-            lpStartupInfo: *const STARTUPINFOW,
-            lpProcessInformation: *mut PROCESS_INFORMATION,
-        ) -> i32;
         fn CloseHandle(handle: isize) -> i32;
     }
 
@@ -175,8 +133,8 @@ pub fn spawn_server_hidden(exe: &std::path::Path, args: &[String]) -> std::io::R
 
     let mut si: STARTUPINFOW = unsafe { std::mem::zeroed() };
     si.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
-    si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE;
+    si.dw_flags = STARTF_USESHOWWINDOW;
+    si.w_show_window = SW_HIDE;
 
     let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
 
@@ -227,12 +185,12 @@ pub fn spawn_server_hidden(exe: &std::path::Path, args: &[String]) -> std::io::R
     // Capture the server PID before closing handles so callers can poll the
     // process for liveness (used by the new-session readiness gate to fail fast
     // if the server dies, instead of waiting out the readiness deadline).
-    let server_pid = pi.dwProcessId;
+    let server_pid = pi.dw_process_id;
 
     // Close handles – we don't need to wait for the child.
     unsafe {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        CloseHandle(pi.h_process as isize);
+        CloseHandle(pi.h_thread as isize);
     }
 
     Ok(server_pid)
