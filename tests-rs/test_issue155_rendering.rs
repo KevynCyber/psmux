@@ -384,16 +384,16 @@ fn ratatui_buffer_color_idx15_is_white() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Crossterm output byte verification
+// VtBackend output byte verification
 //
-// THE ULTIMATE PROOF: render through ratatui's CrosstermBackend into
+// THE ULTIMATE PROOF: render through ratatui's VtBackend into
 // a byte buffer and verify the actual escape sequences that would be
 // written to the terminal.
 // ═══════════════════════════════════════════════════════════════════
 
 #[test]
-fn crossterm_output_strikethrough_emits_sgr9() {
-    use term::backend::VtBackend as CrosstermBackend;
+fn vt_output_strikethrough_emits_sgr9() {
+    use term::backend::VtBackend;
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
     use ratatui::backend::Backend;
@@ -407,9 +407,9 @@ fn crossterm_output_strikethrough_emits_sgr9() {
     buf[(1u16, 0u16)].set_symbol("Y");
     buf[(2u16, 0u16)].set_symbol("Z");
 
-    // Render through CrosstermBackend into a Vec<u8>
+    // Render through VtBackend into a Vec<u8>
     let mut output = Vec::new();
-    let mut backend = CrosstermBackend::new(&mut output);
+    let mut backend = VtBackend::new(&mut output);
 
     // Draw the buffer content
     let cells: Vec<(u16, u16, &ratatui::buffer::Cell)> = buf.content().iter().enumerate().map(|(i, cell)| {
@@ -423,12 +423,12 @@ fn crossterm_output_strikethrough_emits_sgr9() {
 
     // SGR 9 = \x1b[9m (crossedout/strikethrough)
     assert!(out_str.contains("\x1b[9m"),
-        "CrosstermBackend output must contain \\e[9m for CROSSED_OUT. Got:\n{:?}", out_str);
+        "VtBackend output must contain \\e[9m for CROSSED_OUT. Got:\n{:?}", out_str);
 }
 
 #[test]
-fn crossterm_output_hidden_cell_is_space_not_sgr8() {
-    use term::backend::VtBackend as CrosstermBackend;
+fn vt_output_hidden_cell_is_space_not_sgr8() {
+    use term::backend::VtBackend;
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
     use ratatui::backend::Backend;
@@ -448,9 +448,9 @@ fn crossterm_output_hidden_cell_is_space_not_sgr8() {
         }
     }
 
-    // Render through CrosstermBackend
+    // Render through VtBackend
     let mut output = Vec::new();
-    let mut backend = CrosstermBackend::new(&mut output);
+    let mut backend = VtBackend::new(&mut output);
     let cells: Vec<(u16, u16, &ratatui::buffer::Cell)> = buf.content().iter().enumerate().map(|(i, cell)| {
         let x = i as u16 % area.width;
         let y = i as u16 / area.width;

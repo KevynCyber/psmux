@@ -1,6 +1,6 @@
 /// Diagnostic: verify what crate::term's VtBackend emits for CROSSED_OUT,
 /// HIDDEN modifiers and named/indexed colors (ZDEP-027 native backend).
-/// Run with: cargo run --example crossterm_sgr_diag
+/// Run with: cargo run --example vt_sgr_diag
 use std::io::Write;
 
 fn main() {

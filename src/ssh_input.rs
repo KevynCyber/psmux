@@ -423,7 +423,7 @@ pub fn conpty_mouse_supported() -> bool {
 /// ```
 pub enum InputSource {
     /// Local terminal — delegates to `crate::term::event` (native console).
-    Crossterm,
+    Native,
     /// SSH session on Windows — reads via a background thread + VT parser.
     #[cfg(windows)]
     Ssh {
@@ -439,7 +439,7 @@ impl InputSource {
     /// (native console) with zero overhead.
     pub fn new(ssh: bool) -> io::Result<Self> {
         if !ssh {
-            return Ok(InputSource::Crossterm);
+            return Ok(InputSource::Native);
         }
 
         #[cfg(windows)]
@@ -449,16 +449,16 @@ impl InputSource {
                 Err(e) => {
                     // Log to file instead of stderr (raw mode garbles eprintln).
                     ssh_debug_log(&format!("SSH VT input init failed: {}; falling back to native console input", e));
-                    Ok(InputSource::Crossterm)
+                    Ok(InputSource::Native)
                 }
             }
         }
 
         #[cfg(not(windows))]
         {
-            // On Unix, crossterm already reads raw VT bytes and handles mouse.
+            // On Unix, the native console path already reads raw VT bytes and handles mouse.
             let _ = ssh;
-            Ok(InputSource::Crossterm)
+            Ok(InputSource::Native)
         }
     }
 
@@ -466,7 +466,7 @@ impl InputSource {
     #[inline]
     pub fn read_timeout(&self, timeout: Duration) -> io::Result<Option<Event>> {
         match self {
-            InputSource::Crossterm => {
+            InputSource::Native => {
                 if crate::term::event::poll(timeout)? {
                     Ok(Some(crate::term::event::read()?))
                 } else {
@@ -494,7 +494,7 @@ impl InputSource {
     #[inline]
     pub fn try_read(&self) -> io::Result<Option<Event>> {
         match self {
-            InputSource::Crossterm => {
+            InputSource::Native => {
                 if crate::term::event::poll(Duration::ZERO)? {
                     Ok(Some(crate::term::event::read()?))
                 } else {
@@ -2074,13 +2074,13 @@ impl InputSource {
                 Ok(rx) => Ok(InputSource::Ssh { rx }),
                 Err(e) => {
                     ssh_debug_log(&format!("pipe VT input init failed: {}; falling back to native console input", e));
-                    Ok(InputSource::Crossterm)
+                    Ok(InputSource::Native)
                 }
             }
         }
         #[cfg(not(windows))]
         {
-            Ok(InputSource::Crossterm)
+            Ok(InputSource::Native)
         }
     }
 }

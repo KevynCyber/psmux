@@ -168,7 +168,7 @@ append_lines, size, window_size (Err), flush. `PsmuxBackend`
 "underline-color"]`. tests/monitor drops its `ratatui::crossterm` /
 CrosstermBackend usage, includes `src/term/mod.rs` via `#[path]` (same
 technique as examples/latency_harness for src/pty) and sets the same
-ratatui feature flags. examples/crossterm_sgr_diag.rs, enter_diag.rs,
+ratatui feature flags. examples/vt_sgr_diag.rs, enter_diag.rs,
 key_diag.rs, key_test.rs are deleted (crossterm-only diagnostics);
 pipeline_diag.rs and ratatui_render_diag.rs are ported to `#[path] mod
 term;` + VtBackend. `docs/configuration.md`'s bold-is-bright section and
