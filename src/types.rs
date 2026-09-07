@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::term::event::{KeyCode, KeyModifiers};
 use crate::pty::MasterPty;
-use ratatui::prelude::Rect;
+use psmux_tui::prelude::Rect;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

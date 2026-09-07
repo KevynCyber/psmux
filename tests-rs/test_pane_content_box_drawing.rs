@@ -53,10 +53,10 @@ fn split(kind: &str, children: Vec<LayoutJson>) -> LayoutJson {
 #[cfg(windows)]
 #[test]
 fn fix_border_intersections_leaves_pane_content_table_untouched() {
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::{Color, Style};
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::{Color, Style};
+    use psmux_tui::Terminal;
 
     // 2-pane horizontal split: a real separator column exists somewhere near
     // the middle of the 40-wide buffer. We inject the markdown table into the
@@ -159,10 +159,10 @@ fn fix_border_intersections_leaves_pane_content_table_untouched() {
 #[cfg(windows)]
 #[test]
 fn fix_border_intersections_leaves_zoomed_pane_content_untouched() {
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::{Color, Style};
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::{Color, Style};
+    use psmux_tui::Terminal;
 
     // Zoomed 2-pane horizontal split, sizes [100, 0] — exactly how
     // window_ops::toggle_zoom encodes "pane 0 is zoomed".

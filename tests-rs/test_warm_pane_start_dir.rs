@@ -97,7 +97,7 @@ fn rehome_command_includes_current_directory_sync_on_windows() {
 fn test_app() -> AppState {
     let mut app = AppState::new("warm_start_dir_test".to_string());
     app.warm_enabled = true;
-    app.last_window_area = ratatui::prelude::Rect { x: 0, y: 0, width: 100, height: 30 };
+    app.last_window_area = psmux_tui::prelude::Rect { x: 0, y: 0, width: 100, height: 30 };
     app
 }
 

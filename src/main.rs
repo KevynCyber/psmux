@@ -51,7 +51,7 @@ use std::io::{self, Write, Read as _, BufRead as _, IsTerminal};
 use std::time::Duration;
 use std::env;
 
-use ratatui::Terminal;
+use psmux_tui::Terminal;
 use crate::term::terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crate::term::cursor::{EnableBlinking, DisableBlinking};
 use crate::term::event::{EnableMouseCapture, DisableMouseCapture, EnableBracketedPaste, DisableBracketedPaste};
@@ -67,8 +67,8 @@ use crate::client::run_remote;
 use crate::ssh_input::{send_mouse_enable, InputSource};
 
 /// Convert a ratatui Color to an ANSI SGR escape sequence.
-fn color_to_ansi(c: ratatui::style::Color, fg: bool) -> String {
-    use ratatui::style::Color;
+fn color_to_ansi(c: psmux_tui::style::Color, fg: bool) -> String {
+    use psmux_tui::style::Color;
     let base = if fg { 30 } else { 40 };
     let bright = if fg { 90 } else { 100 };
     match c {
@@ -684,10 +684,10 @@ fn run_main() -> io::Result<()> {
                 Some(l) => l,
                 None => { eprintln!("failed to fetch window-dump for {}:@{}", sess, win_id); std::process::exit(3); }
             };
-            use ratatui::Terminal;
-            use ratatui::backend::TestBackend;
-            use ratatui::layout::Rect;
-            use ratatui::style::Color;
+            use psmux_tui::Terminal;
+            use psmux_tui::backend::TestBackend;
+            use psmux_tui::layout::Rect;
+            use psmux_tui::style::Color;
             let backend = TestBackend::new(w, h);
             let mut term = Terminal::new(backend).unwrap();
             term.draw(|f| {

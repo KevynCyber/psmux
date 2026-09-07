@@ -1,4 +1,4 @@
-use ratatui::layout::Rect;
+use psmux_tui::layout::Rect;
 use crate::layout::LayoutJson;
 
 // Regression tests for zoom pane bleed bug.
@@ -35,7 +35,7 @@ fn leaf(id: usize, active: bool) -> LayoutJson {
     }
 }
 
-// Each test uses ratatui's TestBackend to render and inspect the cell buffer.
+// Each test uses psmux_tui's TestBackend to render and inspect the cell buffer.
 // The invariant: when zoomed, the hidden child must never be rendered.
 // We verify this by giving each leaf a distinct pane_index label (via
 // border_format="#{pane_index}" + border_status="bottom") and asserting:
@@ -50,9 +50,9 @@ fn zoomed_left_active_hidden_pane_label_never_rendered() {
     // Before the fix, split_with_gaps([100, 0]) gave leaf 1 a 1-px rect at
     // x=210; render_layout_json would visit it and draw its "1" label there.
     // After the fix, leaf 1 is never visited and "1" must not appear anywhere.
-    use ratatui::backend::TestBackend;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = LayoutJson::Split {
         kind: "Horizontal".to_string(),
@@ -106,9 +106,9 @@ fn zoomed_right_active_hidden_pane_label_never_rendered() {
     // leaf 1's origin to x=2, so its "1" label landed at x=2 not x=0.
     // After the fix, leaf 0 is never visited and leaf 1 gets the full area
     // (x=0), so its "1" label appears at column 0.
-    use ratatui::backend::TestBackend;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = LayoutJson::Split {
         kind: "Horizontal".to_string(),
@@ -162,9 +162,9 @@ fn zoomed_top_active_hidden_pane_label_never_rendered() {
     // split_with_gaps with is_horizontal=false would steal 1 row from leaf 0
     // and give it to leaf 1 at y=20, rendering its label there.
     // After the fix, leaf 1 is never visited.
-    use ratatui::backend::TestBackend;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = LayoutJson::Split {
         kind: "Vertical".to_string(),
@@ -218,9 +218,9 @@ fn zoomed_bottom_active_hidden_pane_label_never_rendered() {
     // The buggy path would give leaf 0 a 1-row rect at y=0 and shift leaf 1's
     // origin to y=2, so its label would land at y=2 not y=0.
     // After the fix, leaf 0 is never visited and leaf 1 gets the full area (y=0).
-    use ratatui::backend::TestBackend;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = LayoutJson::Split {
         kind: "Vertical".to_string(),

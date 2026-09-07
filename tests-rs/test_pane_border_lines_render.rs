@@ -1,7 +1,7 @@
 // Feature: pane-border-lines — deterministic render proof.
 //
 // Renders a real 2-pane split through the actual client render function
-// (`render_layout_json` + `fix_border_intersections`) into a headless ratatui
+// (`render_layout_json` + `fix_border_intersections`) into a headless psmux_tui
 // TestBackend, then asserts the separator glyphs match the selected style.
 // This exercises the exact code path the attached client uses, without a
 // pseudo-console, so it is deterministic on Windows CI.
@@ -45,10 +45,10 @@ fn split(kind: &str, children: Vec<LayoutJson>) -> LayoutJson {
 /// Render a 2-pane split with the given `pane-border-lines` style and return a
 /// map of char -> count over the whole buffer.
 fn render_counts(kind: &str, style: &str, w: u16, h: u16) -> std::collections::HashMap<char, usize> {
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = split(kind, vec![leaf(0, true), leaf(1, false)]);
     let backend = TestBackend::new(w, h);
@@ -138,10 +138,10 @@ fn vertical_split_uses_horizontal_glyph() {
 fn nested_split_produces_double_junction() {
     // H[ leaf, V[leaf, leaf] ] with double style: the outer vertical separator
     // meets the inner horizontal separator, so a ╬/╠/╣ junction must appear.
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = split("Horizontal", vec![
         leaf(0, true),

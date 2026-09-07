@@ -10,7 +10,7 @@
 //! flipping any call site that builds a `Paragraph` from a literal
 //! containing `\n`.
 
-use super::Line;
+use super::{Line, Span};
 use crate::layout::Alignment;
 use crate::style::Style;
 
@@ -30,6 +30,15 @@ impl<'a> From<&'a str> for Text<'a> {
 impl From<String> for Text<'_> {
     fn from(s: String) -> Self {
         Self { lines: vec![Line::from(s)], ..Default::default() }
+    }
+}
+
+/// Ported from `ratatui-core` 0.1.2 `src/text/text.rs` `From<Span> for
+/// Text` -- needed by `Paragraph::new(Span::styled(...))` call sites (e.g.
+/// `src/client.rs:5472`).
+impl<'a> From<Span<'a>> for Text<'a> {
+    fn from(span: Span<'a>) -> Self {
+        Self { lines: vec![Line::from(span)], ..Default::default() }
     }
 }
 

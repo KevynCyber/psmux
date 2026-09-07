@@ -4,8 +4,8 @@
 //! single place, eliminating duplication between rendering.rs and client.rs.
 //! Both the server-side renderer and the remote client import from here.
 
-use ratatui::prelude::*;
-use ratatui::style::{Style, Modifier};
+use psmux_tui::prelude::*;
+use psmux_tui::style::{Style, Modifier};
 
 use crate::debug_log::style_log;
 
@@ -765,7 +765,7 @@ pub fn layout_format_line(text: &str, width: usize, base_style: Style) -> Layout
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ratatui::style::{Color, Style};
+    use psmux_tui::style::{Color, Style};
 
     /// Issue #164: parse_inline_styles must parse #[fg=red] and apply the style,
     /// NOT render it as literal text.

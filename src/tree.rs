@@ -1,5 +1,5 @@
 use std::io;
-use ratatui::prelude::*;
+use psmux_tui::prelude::*;
 
 use crate::types::{AppState, Pane, Node, LayoutKind, DragState};
 use crate::platform::process_kill;

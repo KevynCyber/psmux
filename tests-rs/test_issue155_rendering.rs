@@ -2,11 +2,11 @@
 //
 // These tests replicate the EXACT cell → span conversion logic from
 // rendering.rs::render_node to prove that:
-//   1. Hidden cells (SGR 8) render as spaces (workaround for ratatui-crossterm bug)
+//   1. Hidden cells (SGR 8) render as spaces (workaround for psmux_tui-crossterm bug)
 //   2. Strikethrough cells (SGR 9) get Modifier::CROSSED_OUT on the Style
 //   3. Color index 7 maps to Color::Gray (palette 7), not Color::White
 //   4. Color index 15 maps to Color::White (palette 15), not Color::Gray
-//   5. The full ratatui rendering pipeline emits correct escape codes
+//   5. The full psmux_tui rendering pipeline emits correct escape codes
 //
 // Unlike test_issue155_sgr_attrs.rs (parser-only), these tests exercise
 // the rendering output path that the user actually sees.
@@ -16,7 +16,7 @@
 #[path = "../src/term/mod.rs"]
 mod term;
 
-use ratatui::style::{Color, Modifier, Style};
+use psmux_tui::style::{Color, Modifier, Style};
 
 // ─── vt_to_color: replicated from rendering.rs ─────────────────────
 // We replicate this here because the function lives inside psmux's binary
@@ -61,7 +61,7 @@ fn cell_to_text_and_style(cell: &vt100::Cell) -> (String, Style) {
     if cell.inverse() { style = style.add_modifier(Modifier::REVERSED); }
     if cell.blink() { style = style.add_modifier(Modifier::SLOW_BLINK); }
     if cell.strikethrough() { style = style.add_modifier(Modifier::CROSSED_OUT); }
-    // HIDDEN workaround: ratatui-crossterm 0.1.0 omits SGR 8
+    // HIDDEN workaround: psmux_tui-crossterm 0.1.0 omits SGR 8
     let text = if cell.hidden() {
         " ".to_string()
     } else {
@@ -272,17 +272,17 @@ fn strikethrough_hidden_cell_renders_as_space_with_crossed_out() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Full ratatui Buffer rendering proof
+// Full psmux_tui Buffer rendering proof
 //
-// This is the real end-to-end test: we render cells through ratatui's
+// This is the real end-to-end test: we render cells through psmux_tui's
 // Buffer into crossterm's output and verify the actual escape codes
 // that would be sent to the terminal.
 // ═══════════════════════════════════════════════════════════════════
 
 #[test]
-fn ratatui_buffer_hidden_cell_produces_space_in_output() {
-    use ratatui::buffer::Buffer;
-    use ratatui::layout::Rect;
+fn psmux_tui_buffer_hidden_cell_produces_space_in_output() {
+    use psmux_tui::buffer::Buffer;
+    use psmux_tui::layout::Rect;
 
     let area = Rect::new(0, 0, 10, 1);
     let mut buf = Buffer::empty(area);
@@ -310,9 +310,9 @@ fn ratatui_buffer_hidden_cell_produces_space_in_output() {
 }
 
 #[test]
-fn ratatui_buffer_strikethrough_has_correct_modifier() {
-    use ratatui::buffer::Buffer;
-    use ratatui::layout::Rect;
+fn psmux_tui_buffer_strikethrough_has_correct_modifier() {
+    use psmux_tui::buffer::Buffer;
+    use psmux_tui::layout::Rect;
 
     let area = Rect::new(0, 0, 10, 1);
     let mut buf = Buffer::empty(area);
@@ -342,9 +342,9 @@ fn ratatui_buffer_strikethrough_has_correct_modifier() {
 }
 
 #[test]
-fn ratatui_buffer_color_idx7_is_gray() {
-    use ratatui::buffer::Buffer;
-    use ratatui::layout::Rect;
+fn psmux_tui_buffer_color_idx7_is_gray() {
+    use psmux_tui::buffer::Buffer;
+    use psmux_tui::layout::Rect;
 
     let area = Rect::new(0, 0, 5, 1);
     let mut buf = Buffer::empty(area);
@@ -363,9 +363,9 @@ fn ratatui_buffer_color_idx7_is_gray() {
 }
 
 #[test]
-fn ratatui_buffer_color_idx15_is_white() {
-    use ratatui::buffer::Buffer;
-    use ratatui::layout::Rect;
+fn psmux_tui_buffer_color_idx15_is_white() {
+    use psmux_tui::buffer::Buffer;
+    use psmux_tui::layout::Rect;
 
     let area = Rect::new(0, 0, 5, 1);
     let mut buf = Buffer::empty(area);
@@ -386,7 +386,7 @@ fn ratatui_buffer_color_idx15_is_white() {
 // ═══════════════════════════════════════════════════════════════════
 // VtBackend output byte verification
 //
-// THE ULTIMATE PROOF: render through ratatui's VtBackend into
+// THE ULTIMATE PROOF: render through psmux_tui's VtBackend into
 // a byte buffer and verify the actual escape sequences that would be
 // written to the terminal.
 // ═══════════════════════════════════════════════════════════════════
@@ -394,9 +394,9 @@ fn ratatui_buffer_color_idx15_is_white() {
 #[test]
 fn vt_output_strikethrough_emits_sgr9() {
     use term::backend::VtBackend;
-    use ratatui::buffer::Buffer;
-    use ratatui::layout::Rect;
-    use ratatui::backend::Backend;
+    use psmux_tui::buffer::Buffer;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::backend::Backend;
 
     let area = Rect::new(0, 0, 3, 1);
     let mut buf = Buffer::empty(area);
@@ -412,7 +412,7 @@ fn vt_output_strikethrough_emits_sgr9() {
     let mut backend = VtBackend::new(&mut output);
 
     // Draw the buffer content
-    let cells: Vec<(u16, u16, &ratatui::buffer::Cell)> = buf.content().iter().enumerate().map(|(i, cell)| {
+    let cells: Vec<(u16, u16, &psmux_tui::buffer::Cell)> = buf.content().iter().enumerate().map(|(i, cell)| {
         let x = i as u16 % area.width;
         let y = i as u16 / area.width;
         (x, y, cell)
@@ -429,9 +429,9 @@ fn vt_output_strikethrough_emits_sgr9() {
 #[test]
 fn vt_output_hidden_cell_is_space_not_sgr8() {
     use term::backend::VtBackend;
-    use ratatui::buffer::Buffer;
-    use ratatui::layout::Rect;
-    use ratatui::backend::Backend;
+    use psmux_tui::buffer::Buffer;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::backend::Backend;
 
     let area = Rect::new(0, 0, 6, 1);
     let mut buf = Buffer::empty(area);
@@ -451,7 +451,7 @@ fn vt_output_hidden_cell_is_space_not_sgr8() {
     // Render through VtBackend
     let mut output = Vec::new();
     let mut backend = VtBackend::new(&mut output);
-    let cells: Vec<(u16, u16, &ratatui::buffer::Cell)> = buf.content().iter().enumerate().map(|(i, cell)| {
+    let cells: Vec<(u16, u16, &psmux_tui::buffer::Cell)> = buf.content().iter().enumerate().map(|(i, cell)| {
         let x = i as u16 % area.width;
         let y = i as u16 / area.width;
         (x, y, cell)

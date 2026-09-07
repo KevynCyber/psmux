@@ -113,7 +113,7 @@ fn send_prefix_command_dispatches_with_c_a_prefix() {
         active_path: vec![],
         name: "shell".into(),
         id: 0,
-        area: ratatui::layout::Rect::new(0, 0, 120, 30),
+        area: psmux_tui::layout::Rect::new(0, 0, 120, 30),
         window_size: None,
         activity_flag: false,
         bell_flag: false,

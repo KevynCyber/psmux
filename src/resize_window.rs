@@ -1,4 +1,4 @@
-use ratatui::layout::Rect;
+use psmux_tui::layout::Rect;
 
 use crate::cli::parse_target;
 use crate::types::AppState;

@@ -536,12 +536,12 @@ fn json_esc_inline(s: &str, out: &mut String) {
 /// Reads the popup pane's vt100 screen directly and renders with full
 /// color/style support.
 pub fn render_popup_overlay(
-    f: &mut ratatui::Frame,
-    area: ratatui::prelude::Rect,
+    f: &mut psmux_tui::Frame,
+    area: psmux_tui::prelude::Rect,
     app: &AppState,
 ) {
-    use ratatui::prelude::*;
-    use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+    use psmux_tui::prelude::*;
+    use psmux_tui::widgets::{Block, Borders, Clear, Paragraph};
 
     if let Mode::PopupMode {
         command,
@@ -573,11 +573,11 @@ pub fn render_popup_overlay(
             Style::default().fg(Color::Yellow)
         };
         let border_type = match app.user_options.get("popup-border-lines").map(|s| s.as_str()) {
-            Some("double") => ratatui::widgets::BorderType::Double,
-            Some("heavy") => ratatui::widgets::BorderType::Thick,
-            Some("rounded") => ratatui::widgets::BorderType::Rounded,
-            Some("none") | Some("simple") => ratatui::widgets::BorderType::Plain,
-            _ => ratatui::widgets::BorderType::Plain,
+            Some("double") => psmux_tui::widgets::BorderType::Double,
+            Some("heavy") => psmux_tui::widgets::BorderType::Thick,
+            Some("rounded") => psmux_tui::widgets::BorderType::Rounded,
+            Some("none") | Some("simple") => psmux_tui::widgets::BorderType::Plain,
+            _ => psmux_tui::widgets::BorderType::Plain,
         };
         let block = Block::default()
             .borders(Borders::ALL)

@@ -12,12 +12,12 @@ name = "psmux-test-monitor"
 path = "src/main.rs"
 
 [dependencies]
-ratatui = { version = "0.30.2", default-features = false, features = ["std", "all-widgets"] }
+psmux-tui = { path = "../../crates/psmux-tui", default-features = false }
 psmux-json = { path = "../../crates/psmux-json" }
 
 # Declared (never enabled) so src/term/backend.rs's
 # #[cfg(feature = "underline-color")] doesn't trip check-cfg here; this
-# crate's own ratatui build omits the matching ratatui feature.
+# crate's own psmux-tui build omits the matching underline-color feature.
 [features]
 underline-color = []
 

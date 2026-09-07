@@ -11,10 +11,10 @@
 // These tests replicate the EXACT overlay construction from client.rs to
 // prove the title text is correct for both window and session renaming.
 
-use ratatui::backend::TestBackend;
-use ratatui::layout::Rect;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use ratatui::Terminal;
+use psmux_tui::backend::TestBackend;
+use psmux_tui::layout::Rect;
+use psmux_tui::widgets::{Block, Borders, Clear, Paragraph};
+use psmux_tui::Terminal;
 
 /// Extract all text content from a TestBackend buffer as a single string.
 fn buffer_text(backend: &TestBackend) -> String {

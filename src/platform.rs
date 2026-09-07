@@ -4527,62 +4527,62 @@ impl std::io::Write for PsmuxBackend {
     }
 }
 
-impl ratatui::backend::Backend for PsmuxBackend {
+impl psmux_tui::backend::Backend for PsmuxBackend {
     type Error = std::io::Error;
 
     fn draw<'a, I>(&mut self, content: I) -> std::io::Result<()>
     where
-        I: Iterator<Item = (u16, u16, &'a ratatui::buffer::Cell)>,
+        I: Iterator<Item = (u16, u16, &'a psmux_tui::buffer::Cell)>,
     {
-        ratatui::backend::Backend::draw(&mut self.inner, content)
+        psmux_tui::backend::Backend::draw(&mut self.inner, content)
     }
 
     fn hide_cursor(&mut self) -> std::io::Result<()> {
-        ratatui::backend::Backend::hide_cursor(&mut self.inner)
+        psmux_tui::backend::Backend::hide_cursor(&mut self.inner)
     }
 
     fn show_cursor(&mut self) -> std::io::Result<()> {
-        ratatui::backend::Backend::show_cursor(&mut self.inner)
+        psmux_tui::backend::Backend::show_cursor(&mut self.inner)
     }
 
-    fn get_cursor_position(&mut self) -> std::io::Result<ratatui::layout::Position> {
-        ratatui::backend::Backend::get_cursor_position(&mut self.inner)
+    fn get_cursor_position(&mut self) -> std::io::Result<psmux_tui::layout::Position> {
+        psmux_tui::backend::Backend::get_cursor_position(&mut self.inner)
     }
 
-    fn set_cursor_position<P: Into<ratatui::layout::Position>>(&mut self, position: P) -> std::io::Result<()> {
-        ratatui::backend::Backend::set_cursor_position(&mut self.inner, position)
+    fn set_cursor_position<P: Into<psmux_tui::layout::Position>>(&mut self, position: P) -> std::io::Result<()> {
+        psmux_tui::backend::Backend::set_cursor_position(&mut self.inner, position)
     }
 
     fn clear(&mut self) -> std::io::Result<()> {
-        ratatui::backend::Backend::clear(&mut self.inner)
+        psmux_tui::backend::Backend::clear(&mut self.inner)
     }
 
-    fn clear_region(&mut self, clear_type: ratatui::backend::ClearType) -> std::io::Result<()> {
-        ratatui::backend::Backend::clear_region(&mut self.inner, clear_type)
+    fn clear_region(&mut self, clear_type: psmux_tui::backend::ClearType) -> std::io::Result<()> {
+        psmux_tui::backend::Backend::clear_region(&mut self.inner, clear_type)
     }
 
     fn append_lines(&mut self, n: u16) -> std::io::Result<()> {
-        ratatui::backend::Backend::append_lines(&mut self.inner, n)
+        psmux_tui::backend::Backend::append_lines(&mut self.inner, n)
     }
 
-    fn size(&self) -> std::io::Result<ratatui::layout::Size> {
+    fn size(&self) -> std::io::Result<psmux_tui::layout::Size> {
         if let Some((cols, rows)) = pipe_term_size() {
-            return Ok(ratatui::layout::Size::new(cols, rows));
+            return Ok(psmux_tui::layout::Size::new(cols, rows));
         }
-        ratatui::backend::Backend::size(&self.inner)
+        psmux_tui::backend::Backend::size(&self.inner)
     }
 
-    fn window_size(&mut self) -> std::io::Result<ratatui::backend::WindowSize> {
+    fn window_size(&mut self) -> std::io::Result<psmux_tui::backend::WindowSize> {
         if let Some((cols, rows)) = pipe_term_size() {
-            return Ok(ratatui::backend::WindowSize {
-                columns_rows: ratatui::layout::Size::new(cols, rows),
-                pixels: ratatui::layout::Size::new(0, 0),
+            return Ok(psmux_tui::backend::WindowSize {
+                columns_rows: psmux_tui::layout::Size::new(cols, rows),
+                pixels: psmux_tui::layout::Size::new(0, 0),
             });
         }
-        ratatui::backend::Backend::window_size(&mut self.inner)
+        psmux_tui::backend::Backend::window_size(&mut self.inner)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        ratatui::backend::Backend::flush(&mut self.inner)
+        psmux_tui::backend::Backend::flush(&mut self.inner)
     }
 }

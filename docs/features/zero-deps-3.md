@@ -99,3 +99,38 @@ crates); `grep -rn ratatui` on both manifests still finds the existing
 dependency lines (the flip has not happened).
 Tests: inline `#[cfg(test)]` modules under `crates/psmux-tui/src/{layout,
 buffer,backend,terminal}/`.
+
+## ZDEP-045..047 S8c flip half: ratatui dropped from both manifests
+
+- ZDEP-045: the S8c FLIP half. Root `Cargo.toml` and `tests/monitor/Cargo.toml`
+  drop the `ratatui = "0.30.2"` dependency and take `psmux-tui = { path = ...
+  , default-features = false }` instead; the root crate's own
+  `underline-color` feature now forwards as `["psmux-tui/underline-color"]`
+  rather than being an empty marker. 18 `src/**` files, 3 `examples/*.rs`,
+  ~55 `tests-rs/*.rs` files and `tests/monitor/src/{app,main,ui}.rs` swap
+  every `ratatui::` code path to `psmux_tui::`. Prose/comment mentions of
+  the external `ratatui` crate that describe its historical behaviour are
+  deliberately left in place -- the criterion is zero `ratatui::` code-path
+  matches, not zero occurrences of the word.
+- ZDEP-046: three API gaps in `crates/psmux-tui` closed by faithful port
+  from ratatui-core 0.1.2, needed only once the flip made them reachable:
+  `impl Sub for Modifier` (`crates/psmux-tui/src/style/modifier.rs`)
+  delegating to `difference()`, matching upstream's bitflags-generated
+  bitwise-remove; `impl<'a> From<Span<'a>> for Text<'a>`
+  (`crates/psmux-tui/src/text/text.rs`) wrapping `Line::from(span)`; and
+  `Style::patch<S: Into<Self>>` (`crates/psmux-tui/src/style/style.rs`)
+  where `fg`/`bg`/`underline_color` use `other.field.or(self.field)` and
+  `add_modifier`/`sub_modifier` layer via `remove`/`insert` in upstream's
+  exact order.
+- ZDEP-047: `src/rendering.rs`'s `centered_rect` drops its
+  `Layout`/`.split()` call for verified integer arithmetic, since
+  psmux-tui has no `Layout`. The replacement reproduces ratatui 0.30.2's
+  percentage-constraint split exactly (swept over 3219 `(area_height,
+  clamped_h)` pairs, zero mismatches): `top_height = max(ceil(H/2) - h,
+  min(h, H - h))` floored at 0 with `h` pre-clamped to `H`; `mid_y = r.y +
+  top_height`; `mid_height = min(clamped_h, r.height)`. Three properties
+  the code comment names so nobody "simplifies" it back to `(r.height -
+  clamped_h) / 2`: the split is ASYMMETRIC (the bottom keeps its full
+  50%, the top absorbs the deficit); `mid_y` is NON-MONOTONIC in `h`; on
+  odd totals the extra row goes to the TOP. No float rounding anywhere.
+  Horizontal x/width behaviour is unchanged.

@@ -105,10 +105,10 @@ fn render_three_panes_does_not_color_unrelated_separator_active() {
     // adjacent to the active pane (id=0) and therefore must NOT be colored as
     // active_border_fg. Before PR #255, the legacy "both_leaves" half-highlight
     // path would color half of that inner separator as if its leaf were active.
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = split(
         "Horizontal",
@@ -180,10 +180,10 @@ fn render_two_panes_keeps_half_highlight_path() {
     // For exactly 2 panes, the legacy half-highlight path is preserved
     // (left side colored as active when left is active). Verifies that the
     // `total_panes == 2` guard does not break the simple split case.
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
 
     let layout = split("Horizontal", vec![leaf(0, true), leaf(1, false)]);
     let backend = TestBackend::new(40, 12);

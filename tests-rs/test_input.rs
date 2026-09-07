@@ -523,8 +523,8 @@ fn bug3_double_delivery_prevention() {
 // ── Issue #134: wrapped directional navigation geometry tests ──
 
 /// Build a two-pane horizontal layout (left | right) for geometry tests.
-fn two_pane_h_rects() -> Vec<(Vec<usize>, ratatui::layout::Rect)> {
-    use ratatui::layout::Rect;
+fn two_pane_h_rects() -> Vec<(Vec<usize>, psmux_tui::layout::Rect)> {
+    use psmux_tui::layout::Rect;
     vec![
         (vec![0], Rect { x: 0,  y: 0, width: 40, height: 24 }), // left
         (vec![1], Rect { x: 40, y: 0, width: 40, height: 24 }), // right
@@ -579,8 +579,8 @@ fn issue134_direct_neighbor_takes_priority_over_wrap() {
 // ── Issue #141: wrapped nav must not jump columns/rows ──
 
 /// Build a three-pane horizontal layout (left | center | right) for issue #141.
-fn three_pane_h_rects() -> Vec<(Vec<usize>, ratatui::layout::Rect)> {
-    use ratatui::layout::Rect;
+fn three_pane_h_rects() -> Vec<(Vec<usize>, psmux_tui::layout::Rect)> {
+    use psmux_tui::layout::Rect;
     vec![
         (vec![0], Rect { x: 0,  y: 0, width: 60, height: 30 }), // %1 left
         (vec![1], Rect { x: 61, y: 0, width: 29, height: 30 }), // %2 center
@@ -622,8 +622,8 @@ fn issue141_wrap_down_single_row_stays_on_self() {
 }
 
 /// Build a three-pane vertical layout (top / middle / bottom) for issue #141.
-fn three_pane_v_rects() -> Vec<(Vec<usize>, ratatui::layout::Rect)> {
-    use ratatui::layout::Rect;
+fn three_pane_v_rects() -> Vec<(Vec<usize>, psmux_tui::layout::Rect)> {
+    use psmux_tui::layout::Rect;
     vec![
         (vec![0], Rect { x: 0, y: 0,  width: 80, height: 10 }), // top
         (vec![1], Rect { x: 0, y: 11, width: 80, height: 10 }), // middle
@@ -667,7 +667,7 @@ fn issue141_wrap_right_single_column_stays_on_self() {
 fn issue141_wrap_up_still_works_with_column_overlap() {
     // Two panes stacked vertically. Wrap Up from bottom should still reach top
     // because they overlap on the perpendicular (x) axis.
-    use ratatui::layout::Rect;
+    use psmux_tui::layout::Rect;
     let rects: Vec<(Vec<usize>, Rect)> = vec![
         (vec![0], Rect { x: 0, y: 0,  width: 80, height: 12 }),
         (vec![1], Rect { x: 0, y: 13, width: 80, height: 12 }),

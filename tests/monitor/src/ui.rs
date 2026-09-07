@@ -1,13 +1,13 @@
-// Rendering: turns an &mut App into a ratatui frame. Also records hit-test
+// Rendering: turns an &mut App into a psmux_tui frame. Also records hit-test
 // rectangles (header tabs, list area, detail area) back onto App so the
 // event loop can resolve mouse clicks/scrolls against the layout that was
 // actually drawn this frame.
 
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Bar, BarChart, BarGroup, Block, BorderType, Borders, Gauge, List, ListItem, Paragraph};
-use ratatui::Frame;
+use psmux_tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use psmux_tui::style::{Color, Modifier, Style};
+use psmux_tui::text::{Line, Span};
+use psmux_tui::widgets::{Bar, BarChart, BarGroup, Block, BorderType, Borders, Gauge, List, ListItem, Paragraph};
+use psmux_tui::Frame;
 
 use crate::app::App;
 use crate::model::{FilterTab, Status};

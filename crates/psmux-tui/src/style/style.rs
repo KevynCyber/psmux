@@ -1,7 +1,6 @@
-//! Ported from `ratatui-core` 0.1.2 `src/style.rs` `Style` (ZDEP-029),
-//! reduced per the spec: `.patch` is not ported (no call site merges two
-//! `Style`s incrementally). `add_modifier`/`remove_modifier` keep upstream's
-//! exact accounting between `add_modifier`/`sub_modifier`.
+//! Ported from `ratatui-core` 0.1.2 `src/style.rs` `Style` (ZDEP-029).
+//! `add_modifier`/`remove_modifier`/`patch` keep upstream's exact accounting
+//! between `add_modifier`/`sub_modifier`.
 
 use super::{Color, Modifier};
 
@@ -45,6 +44,32 @@ impl Style {
     pub fn remove_modifier(mut self, modifier: Modifier) -> Self {
         self.add_modifier = self.add_modifier.difference(modifier);
         self.sub_modifier = self.sub_modifier.union(modifier);
+        self
+    }
+
+    /// Ported from `ratatui-core` 0.1.2 `src/style.rs` `Style::patch`:
+    /// layers `other` onto `self` field-by-field, so a field `other` never
+    /// sets (`fg`/`bg` still `None`, or a modifier bit `other` never
+    /// touches) leaves `self`'s existing value in place, rather than
+    /// overwriting wholesale. `Into<Style>` (not a bare `Style` param)
+    /// matches upstream's signature so callers can pass e.g. a `Color`
+    /// directly. Needed at `src/client.rs:5500,5546,5585`.
+    #[must_use = "`patch` returns the modified style without modifying the original"]
+    pub fn patch<S: Into<Self>>(mut self, other: S) -> Self {
+        let other = other.into();
+        self.fg = other.fg.or(self.fg);
+        self.bg = other.bg.or(self.bg);
+
+        #[cfg(feature = "underline-color")]
+        {
+            self.underline_color = other.underline_color.or(self.underline_color);
+        }
+
+        self.add_modifier.remove(other.sub_modifier);
+        self.add_modifier.insert(other.add_modifier);
+        self.sub_modifier.remove(other.add_modifier);
+        self.sub_modifier.insert(other.sub_modifier);
+
         self
     }
 }

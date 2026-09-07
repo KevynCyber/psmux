@@ -17,10 +17,10 @@ fn row_of(ch: char, n: usize) -> RowRunsJson {
     }
 }
 
-fn render(fl: &FloatJson, cw: u16, ch: u16) -> ratatui::buffer::Buffer {
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::Terminal;
+fn render(fl: &FloatJson, cw: u16, ch: u16) -> psmux_tui::buffer::Buffer {
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::Terminal;
     let backend = TestBackend::new(cw, ch);
     let mut term = Terminal::new(backend).unwrap();
     term.draw(|f| {
@@ -29,7 +29,7 @@ fn render(fl: &FloatJson, cw: u16, ch: u16) -> ratatui::buffer::Buffer {
     term.backend().buffer().clone()
 }
 
-fn cell_char(buf: &ratatui::buffer::Buffer, x: u16, y: u16) -> char {
+fn cell_char(buf: &psmux_tui::buffer::Buffer, x: u16, y: u16) -> char {
     let w = buf.area.width as usize;
     buf.content[(y as usize) * w + (x as usize)].symbol().chars().next().unwrap_or(' ')
 }

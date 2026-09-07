@@ -6,7 +6,7 @@
 //! `Style::add_modifier`/`remove_modifier` and `Cell::set_style`, mirroring
 //! upstream's own use of `bitflags`' generated `insert`/`remove`).
 
-use std::ops::BitOr;
+use std::ops::{BitOr, Sub};
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Modifier(u16);
@@ -55,6 +55,18 @@ impl BitOr for Modifier {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self {
         self.union(rhs)
+    }
+}
+
+/// Ported from `bitflags`' generated `Sub` impl (what upstream `Modifier`
+/// gets via its `bitflags!` macro, `ratatui-core` 0.1.2 `src/style.rs`):
+/// bitwise remove, i.e. `self` with every bit in `rhs` cleared -- not a
+/// checked/saturating subtraction. Needed by `src/term/backend.rs`'s
+/// `write_modifier_diff` (`from - to`, `to - from`).
+impl Sub for Modifier {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        self.difference(rhs)
     }
 }
 

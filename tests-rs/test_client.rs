@@ -224,7 +224,7 @@ fn paste_states_do_not_zero_latency_flush() {
 #[cfg(windows)]
 #[test]
 fn status_format_inline_styles_end_to_end() {
-    use ratatui::style::{Color, Style};
+    use psmux_tui::style::{Color, Style};
 
     // Simulate what the server sends: status_format with style directives
     let status_format: Vec<String> = vec![
@@ -297,7 +297,7 @@ fn status_format_json_roundtrip_preserves_styles() {
         "Multi-directive styles must survive JSON roundtrip");
 
     // Now verify parse_inline_styles produces correct output from deserialized data
-    use ratatui::style::{Color, Style};
+    use psmux_tui::style::{Color, Style};
     let base = Style::default();
 
     let spans1 = crate::style::parse_inline_styles(&parsed.status_format[1], base);
@@ -486,7 +486,7 @@ fn extract_selection_text_clips_reading_order_to_origin_pane() {
             make_leaf(1, &["ABCDE", "FGHIJ", "KLMNO"]),
         ],
     };
-    let pane_clip = ratatui::layout::Rect { x: 0, y: 0, width: 5, height: 3 };
+    let pane_clip = psmux_tui::layout::Rect { x: 0, y: 0, width: 5, height: 3 };
 
     let text = extract_selection_text(&layout, 11, 3, (1, 0), (3, 2), false, Some(pane_clip), "off", "");
 
@@ -504,7 +504,7 @@ fn extract_selection_text_clips_block_mode_to_origin_pane() {
             make_leaf(1, &["ABCDE", "FGHIJ", "KLMNO"]),
         ],
     };
-    let pane_clip = ratatui::layout::Rect { x: 0, y: 0, width: 5, height: 3 };
+    let pane_clip = psmux_tui::layout::Rect { x: 0, y: 0, width: 5, height: 3 };
 
     let text = extract_selection_text(&layout, 11, 3, (1, 0), (8, 2), true, Some(pane_clip), "off", "");
 
@@ -541,7 +541,7 @@ fn word_bounds_at_finds_word() {
         title: None,
     };
 
-    let pane_rect = ratatui::layout::Rect { x: 0, y: 0, width: 20, height: 1 };
+    let pane_rect = psmux_tui::layout::Rect { x: 0, y: 0, width: 20, height: 1 };
 
     // Click on 'h' (col 0): word is "hello" -> (0, 4)
     assert_eq!(word_bounds_at(&layout, 20, 1, pane_rect, 0, 0, "off", ""), Some((0, 4)));

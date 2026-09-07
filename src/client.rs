@@ -3,8 +3,8 @@ use std::time::{Duration, Instant};
 use std::env;
 
 use crate::term::event::{Event, KeyCode, KeyModifiers, KeyEventKind};
-use ratatui::prelude::*;
-use ratatui::widgets::*;
+use psmux_tui::prelude::*;
+use psmux_tui::widgets::*;
 
 use crate::layout::LayoutJson;
 use crate::help;
@@ -89,7 +89,7 @@ pub(crate) struct HyperlinkRun {
     pub y: u16,
     pub text: String,
     pub uri: String,
-    pub style: ratatui::style::Style,
+    pub style: psmux_tui::style::Style,
 }
 
 thread_local! {
@@ -116,8 +116,8 @@ pub(crate) fn frame_hyperlinks_take() -> Vec<HyperlinkRun> {
 /// SGR parameters for a ratatui color as a foreground (`base` 38/foreground)
 /// or background (`base` 48). Returns the numeric params without the leading
 /// `\x1b[` or trailing `m`.
-fn color_sgr(c: ratatui::style::Color, fg: bool) -> String {
-    use ratatui::style::Color::*;
+fn color_sgr(c: psmux_tui::style::Color, fg: bool) -> String {
+    use psmux_tui::style::Color::*;
     // 30-37 / 40-47 normal, 90-97 / 100-107 bright, 39/49 default.
     let (base, bright_base, def) = if fg { (30u8, 90u8, 39u8) } else { (40u8, 100u8, 49u8) };
     match c {
@@ -148,7 +148,7 @@ fn color_sgr(c: ratatui::style::Color, fg: bool) -> String {
 /// position, set its style, write the text wrapped in OSC 8, and finally
 /// restore the cursor. Pure function so it can be unit-tested.
 pub(crate) fn build_osc8_overlay(runs: &[HyperlinkRun]) -> String {
-    use ratatui::style::Modifier;
+    use psmux_tui::style::Modifier;
     if runs.is_empty() {
         return String::new();
     }
@@ -160,8 +160,8 @@ pub(crate) fn build_osc8_overlay(runs: &[HyperlinkRun]) -> String {
         }
         // Move to 1-based (row;col), reset, then set the run's style.
         out.push_str(&format!("\x1b[{};{}H\x1b[0m", run.y + 1, run.x + 1));
-        let mut params = vec![color_sgr(run.style.fg.unwrap_or(ratatui::style::Color::Reset), true),
-                              color_sgr(run.style.bg.unwrap_or(ratatui::style::Color::Reset), false)];
+        let mut params = vec![color_sgr(run.style.fg.unwrap_or(psmux_tui::style::Color::Reset), true),
+                              color_sgr(run.style.bg.unwrap_or(psmux_tui::style::Color::Reset), false)];
         let m = run.style.add_modifier;
         if m.contains(Modifier::BOLD) { params.push("1".into()); }
         if m.contains(Modifier::DIM) { params.push("2".into()); }
@@ -3919,7 +3919,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
 
                                     if !on_border {
                                         let clicked_pane = client_pane_rects.iter().find(|(_, rect)| {
-                                            rect.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                            rect.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                         });
 
                                         if let Some(&(pane_id, pane_rect)) = clicked_pane {
@@ -4052,7 +4052,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 if tui_active {
                                     // Forward right-click as pane-relative mouse event
                                     if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                        r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                        r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                     }) {
                                         let rel_col = me.column as i16 - pane_rect.x as i16;
                                         let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);
@@ -4104,7 +4104,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                             }
                             MouseEventKind::Down(MouseButton::Middle) => {
                                 if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                    r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                    r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                 }) {
                                     let rel_col = me.column as i16 - pane_rect.x as i16;
                                     let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);
@@ -4138,7 +4138,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 } else if rsel_start.is_none() || !client_mouse_selection {
                                     if client_copy_mode {
                                         if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                            r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                            r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                         }) {
                                             let rel_col = me.column as i16 - pane_rect.x as i16;
                                             let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);
@@ -4243,7 +4243,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                     selection_changed = true;
                                     if client_copy_mode {
                                         if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                            r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                            r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                         }) {
                                             let rel_col = me.column as i16 - pane_rect.x as i16;
                                             let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);
@@ -4282,7 +4282,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 }
                                 // Forward hover to PTY
                                 if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                    r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                    r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                 }) {
                                     let rel_col = me.column as i16 - pane_rect.x as i16;
                                     let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);
@@ -4298,7 +4298,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 rsel_dragged = false;
                                 selection_changed = true;
                                 if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                    r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                    r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                 }) {
                                     let rel_col = me.column as i16 - pane_rect.x as i16;
                                     let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);
@@ -4313,7 +4313,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 rsel_dragged = false;
                                 selection_changed = true;
                                 if let Some(&(pane_id, pane_rect)) = client_pane_rects.iter().find(|(_, r)| {
-                                    r.contains(ratatui::layout::Position { x: me.column, y: me.row })
+                                    r.contains(psmux_tui::layout::Position { x: me.column, y: me.row })
                                 }) {
                                     let rel_col = me.column as i16 - pane_rect.x as i16;
                                     let rel_row = (me.row as i16 - pane_content_inner(pane_rect, &client_border_status, &client_border_format).y as i16).max(0);

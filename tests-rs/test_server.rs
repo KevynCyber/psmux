@@ -454,7 +454,7 @@ fn mock_window_for_server(name: &str) -> crate::types::Window {
         active_path: vec![],
         name: name.to_string(),
         id: 0,
-        area: ratatui::layout::Rect::new(0, 0, 120, 30),
+        area: psmux_tui::layout::Rect::new(0, 0, 120, 30),
         window_size: None,
         activity_flag: false,
         bell_flag: false,

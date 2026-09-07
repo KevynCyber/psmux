@@ -1,5 +1,5 @@
 use crate::types::{AppState, ControlNotification, Node, LayoutKind, Window};
-use ratatui::layout::Rect;
+use psmux_tui::layout::Rect;
 
 /// Compute tmux's 16-bit rotating checksum over the layout body.
 /// Matches `layout_checksum()` in tmux's layout-custom.c.

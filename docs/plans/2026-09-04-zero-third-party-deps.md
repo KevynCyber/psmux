@@ -214,6 +214,8 @@ cell.
     CRITERIA: widget fixtures 0 mismatches; Terminal double-buffer diff + cursor-restore tests pass; Frame API + Block::inner call sites covered;
     ratatui removed from root + monitor.
     SIGNALS: monitor --snapshot golden identical; CI green.
+    STATUS (2026-09-07): S8c (crates/psmux-tui, docs/features/zero-deps-3.md ZDEP-028..047) is COMPLETE: additive half plus the flip. ratatui is
+    gone from both the root and tests/monitor manifests, satisfying this slice's CRITERIA.
 
 S9. Zero-dep flip: remove remaining manifest entries, `cargo update`, un-ignore the gate test, replace CI cargo-audit steps with the gate test, pin
 toolchain channel in rust-toolchain.toml, README "Zero third-party dependencies" section (+ how toolchain advisories are tracked), version 4.0.0.

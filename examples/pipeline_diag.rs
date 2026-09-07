@@ -9,11 +9,11 @@
 mod term;
 
 use term::backend::VtBackend;
-use ratatui::layout::Rect;
-use ratatui::prelude::*;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Clear, Paragraph};
-use ratatui::Terminal;
+use psmux_tui::layout::Rect;
+use psmux_tui::prelude::*;
+use psmux_tui::style::{Color, Modifier, Style};
+use psmux_tui::widgets::{Clear, Paragraph};
+use psmux_tui::Terminal;
 
 /// Identical to rendering.rs vt_to_color
 fn vt_to_color(c: vt100::Color) -> Color {

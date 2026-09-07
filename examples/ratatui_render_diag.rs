@@ -4,9 +4,9 @@
 mod term;
 
 use term::backend::VtBackend;
-use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::Terminal;
+use psmux_tui::layout::Rect;
+use psmux_tui::style::{Color, Modifier, Style};
+use psmux_tui::Terminal;
 
 fn main() {
     // Create terminal that writes to an in-memory buffer

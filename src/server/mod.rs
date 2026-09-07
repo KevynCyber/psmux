@@ -11,7 +11,7 @@ use std::env;
 use std::net::TcpListener;
 
 use crate::pty::native_pty_system;
-use ratatui::prelude::Rect;
+use psmux_tui::prelude::Rect;
 
 use crate::types::{AppState, CtrlReq, Mode, FocusDir, LayoutKind, PipePaneState, VERSION,
     WaitChannel, WaitForOp, Node, Action, Bind};
@@ -1008,7 +1008,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
     // Apply initial dimensions BEFORE warm pane spawn so spawn_warm_pane()
     // uses the correct terminal size.
     if let Some((w, h)) = init_size {
-        let area = ratatui::layout::Rect { x: 0, y: 0, width: w, height: h };
+        let area = psmux_tui::layout::Rect { x: 0, y: 0, width: w, height: h };
         app.client_area = area;
         app.last_window_area = area;
     }
@@ -2955,7 +2955,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                                 if was_zoomed {
                                 // Zoom-aware: check direct neighbor or wrap target (tmux parity: unzoom+wrap).
                                 let win = &app.windows[app.active_idx];
-                                let mut rects: Vec<(Vec<usize>, ratatui::layout::Rect)> = Vec::new();
+                                let mut rects: Vec<(Vec<usize>, psmux_tui::layout::Rect)> = Vec::new();
                                 crate::tree::compute_rects(&win.root, app.last_window_area, &mut rects);
                                 let active_idx = rects.iter().position(|(path, _)| *path == win.active_path);
                                 let has_target = 
@@ -3664,7 +3664,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                 CtrlReq::DisplayPaneSelect(digit) => {
                     // User pressed a digit during display-panes overlay: select the matching pane
                     let win = &app.windows[app.active_idx];
-                    let mut rects: Vec<(Vec<usize>, ratatui::layout::Rect)> = Vec::new();
+                    let mut rects: Vec<(Vec<usize>, psmux_tui::layout::Rect)> = Vec::new();
                     crate::tree::compute_rects(&win.root, app.last_window_area, &mut rects);
                     for (i, (path, _)) in rects.iter().enumerate() {
                         if i >= 10 { break; }

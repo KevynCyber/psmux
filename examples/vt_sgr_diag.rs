@@ -56,7 +56,7 @@ fn main() {
     }
 
     println!("\n=== ratatui Color -> VtBackend SGR mapping ===");
-    use ratatui::style::Color;
+    use psmux_tui::style::Color;
     println!("  Color::Red       = {:?} -> 38;5;1", Color::Red);
     println!("  Color::Indexed(1) = {:?} -> 38;5;1", Color::Indexed(1));
     println!("  Color::LightRed  = {:?} -> 38;5;9", Color::LightRed);

@@ -1,4 +1,4 @@
-use ratatui::layout::Rect;
+use psmux_tui::layout::Rect;
 use crate::layout::LayoutJson;
 
 fn leaf(id: usize, active: bool) -> LayoutJson {

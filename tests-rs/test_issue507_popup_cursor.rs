@@ -12,7 +12,7 @@
 // server_client_reset_state takes BOTH cursor and cursor mode from the overlay
 // whenever one is drawn. These tests pin the equivalent psmux mapping.
 
-use ratatui::layout::Rect;
+use psmux_tui::layout::Rect;
 
 use crate::client::{popup_cursor_screen_pos, popup_overlay_rect};
 

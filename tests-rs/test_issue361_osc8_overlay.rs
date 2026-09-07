@@ -2,7 +2,7 @@
 // the hyperlink runs collected during a frame and produces the raw escape bytes
 // that re-emit each run wrapped in OSC 8 at its screen position.
 use crate::client::{build_osc8_overlay, HyperlinkRun};
-use ratatui::style::{Color, Modifier, Style};
+use psmux_tui::style::{Color, Modifier, Style};
 
 #[test]
 fn wraps_run_in_osc8_at_position() {

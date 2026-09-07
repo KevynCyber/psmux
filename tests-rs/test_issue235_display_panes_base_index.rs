@@ -30,7 +30,7 @@ fn make_window(name: &str, id: usize) -> crate::types::Window {
         active_path: vec![],
         name: name.to_string(),
         id,
-        area: ratatui::layout::Rect::new(0, 0, 120, 30),
+        area: psmux_tui::layout::Rect::new(0, 0, 120, 30),
         window_size: None,
         activity_flag: false,
         bell_flag: false,
@@ -103,7 +103,7 @@ fn digit_computation_with_base_index_0() {
 #[test]
 fn display_panes_enters_pane_chooser_mode() {
     let mut app = mock_app_with_window();
-    app.last_window_area = ratatui::prelude::Rect { x: 0, y: 0, width: 120, height: 30 };
+    app.last_window_area = psmux_tui::prelude::Rect { x: 0, y: 0, width: 120, height: 30 };
     execute_action(&mut app, &Action::DisplayPanes).unwrap();
     match &app.mode {
         Mode::PaneChooser { .. } => {}
@@ -150,7 +150,7 @@ fn format_variable_pane_base_index() {
 fn display_panes_single_pane_with_base_index_1() {
     let mut app = mock_app_with_window();
     app.pane_base_index = 1;
-    app.last_window_area = ratatui::prelude::Rect { x: 0, y: 0, width: 120, height: 30 };
+    app.last_window_area = psmux_tui::prelude::Rect { x: 0, y: 0, width: 120, height: 30 };
     execute_action(&mut app, &Action::DisplayPanes).unwrap();
     match &app.mode {
         Mode::PaneChooser { .. } => {},

@@ -8,8 +8,8 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
+use psmux_tui::style::{Color, Modifier, Style};
+use psmux_tui::text::{Line, Span};
 
 use crate::session::{fetch_authed_response_multi, read_session_key};
 use crate::util::LayoutSimple;
@@ -326,9 +326,9 @@ pub fn get_or_fetch_layout(
 /// separator so the user can see the split structure.
 pub fn flatten_layout_to_rects(
     layout: &LayoutSimple,
-    area: ratatui::layout::Rect,
-) -> Vec<(usize, bool, ratatui::layout::Rect)> {
-    use ratatui::layout::Rect;
+    area: psmux_tui::layout::Rect,
+) -> Vec<(usize, bool, psmux_tui::layout::Rect)> {
+    use psmux_tui::layout::Rect;
     let mut out: Vec<(usize, bool, Rect)> = Vec::new();
     fn rec(node: &LayoutSimple, area: Rect, out: &mut Vec<(usize, bool, Rect)>) {
         match node {
@@ -387,9 +387,9 @@ pub fn flatten_layout_to_rects(
 /// vertical bar or 1-cell tall horizontal bar.
 pub fn layout_separators(
     layout: &LayoutSimple,
-    area: ratatui::layout::Rect,
-) -> Vec<(ratatui::layout::Rect, bool)> {
-    use ratatui::layout::Rect;
+    area: psmux_tui::layout::Rect,
+) -> Vec<(psmux_tui::layout::Rect, bool)> {
+    use psmux_tui::layout::Rect;
     let mut out: Vec<(Rect, bool)> = Vec::new();
     fn rec(node: &LayoutSimple, area: Rect, out: &mut Vec<(Rect, bool)>) {
         if let LayoutSimple::Split { kind, sizes, children } = node {
@@ -566,9 +566,9 @@ pub fn render_runs_line(
 /// algorithm as `flatten_layout_to_rects` but for the rich tree).
 pub fn flatten_dump_rects<'a>(
     layout: &'a crate::layout::LayoutJson,
-    area: ratatui::layout::Rect,
-) -> Vec<(&'a crate::layout::LayoutJson, ratatui::layout::Rect)> {
-    use ratatui::layout::Rect;
+    area: psmux_tui::layout::Rect,
+) -> Vec<(&'a crate::layout::LayoutJson, psmux_tui::layout::Rect)> {
+    use psmux_tui::layout::Rect;
     let mut out: Vec<(&crate::layout::LayoutJson, Rect)> = Vec::new();
     fn rec<'b>(
         node: &'b crate::layout::LayoutJson,
@@ -627,9 +627,9 @@ pub fn flatten_dump_rects<'a>(
 /// algorithm to `layout_separators` but for the dump tree).
 pub fn dump_separators(
     layout: &crate::layout::LayoutJson,
-    area: ratatui::layout::Rect,
-) -> Vec<(ratatui::layout::Rect, bool)> {
-    use ratatui::layout::Rect;
+    area: psmux_tui::layout::Rect,
+) -> Vec<(psmux_tui::layout::Rect, bool)> {
+    use psmux_tui::layout::Rect;
     let mut out: Vec<(Rect, bool)> = Vec::new();
     fn rec(node: &crate::layout::LayoutJson, area: Rect, out: &mut Vec<(Rect, bool)>) {
         if let crate::layout::LayoutJson::Split { kind, sizes, children } = node {
@@ -684,9 +684,9 @@ pub fn dump_separators(
 /// every color, every cell of pane content matches what the user
 /// would see if they switched to that window.
 pub fn render_dump_tree(
-    f: &mut ratatui::Frame,
+    f: &mut psmux_tui::Frame,
     layout: &crate::layout::LayoutJson,
-    area: ratatui::layout::Rect,
+    area: psmux_tui::layout::Rect,
     border_fg: Color,
     active_border_fg: Color,
     _highlight_pid: Option<usize>,
@@ -716,7 +716,7 @@ pub fn render_dump_tree(
 #[cfg(test)]
 mod tests_ansi {
     use super::*;
-    use ratatui::style::{Color, Modifier};
+    use psmux_tui::style::{Color, Modifier};
 
     #[test]
     fn parse_ansi_lines_preserves_red_marker() {

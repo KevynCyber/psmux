@@ -5,10 +5,10 @@
 use super::cursor::{Hide, MoveTo, Show};
 use super::style::Print;
 use super::Command;
-use ratatui::backend::{Backend, ClearType, WindowSize};
-use ratatui::buffer::Cell;
-use ratatui::layout::{Position, Size};
-use ratatui::style::{Color, Modifier};
+use psmux_tui::backend::{Backend, ClearType, WindowSize};
+use psmux_tui::buffer::Cell;
+use psmux_tui::layout::{Position, Size};
+use psmux_tui::style::{Color, Modifier};
 use std::io::{self, Write};
 
 /// TUI backend over any `io::Write` sink. Same shape as

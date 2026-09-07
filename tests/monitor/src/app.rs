@@ -6,8 +6,8 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use ratatui::layout::Rect;
-use ratatui::widgets::ListState;
+use psmux_tui::layout::Rect;
+use psmux_tui::widgets::ListState;
 
 use crate::model::{FilterTab, RunSnapshot, Status};
 use crate::parse::{parse_progress_line, parse_results_jsonl, ProgressEvent};

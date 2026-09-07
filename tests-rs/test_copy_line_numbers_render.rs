@@ -33,10 +33,10 @@ fn copy_leaf(w: u16, h: u16, cy: u16, oy: usize) -> LayoutJson {
 
 /// Render and return the gutter text (leading `gw` columns) of each row.
 fn render_gutters(leaf: &LayoutJson, mode: CopyLnMode, hsize: usize, w: u16, h: u16, gw: usize) -> Vec<String> {
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::{Color, Style};
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::{Color, Style};
+    use psmux_tui::Terminal;
 
     let backend = TestBackend::new(w, h);
     let mut term = Terminal::new(backend).unwrap();
@@ -105,10 +105,10 @@ fn off_draws_no_gutter_and_keeps_content() {
     // With mode Off (copy_ln None), the first columns are content 'X', not numbers.
     let h = 6u16;
     let leaf = copy_leaf(40, h, 0, 0);
-    use ratatui::backend::TestBackend;
-    use ratatui::layout::Rect;
-    use ratatui::style::Color;
-    use ratatui::Terminal;
+    use psmux_tui::backend::TestBackend;
+    use psmux_tui::layout::Rect;
+    use psmux_tui::style::Color;
+    use psmux_tui::Terminal;
     let backend = TestBackend::new(40, h);
     let mut term = Terminal::new(backend).unwrap();
     term.draw(|f| {
@@ -133,10 +133,10 @@ fn gutter_shifts_content_right() {
     let leaf = copy_leaf(40, h, 0, 0);
     let gw = crate::copy_line_numbers::gutter_width(CopyLnMode::Relative, 0, h as usize);
     let gutters_and_content = {
-        use ratatui::backend::TestBackend;
-        use ratatui::layout::Rect;
-        use ratatui::style::{Color, Style};
-        use ratatui::Terminal;
+        use psmux_tui::backend::TestBackend;
+        use psmux_tui::layout::Rect;
+        use psmux_tui::style::{Color, Style};
+        use psmux_tui::Terminal;
         let backend = TestBackend::new(40, h);
         let mut term = Terminal::new(backend).unwrap();
         let copy_ln = Some(CopyLnRender {

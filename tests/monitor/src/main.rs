@@ -10,12 +10,12 @@ use std::io::stdout;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ratatui::backend::{Backend, TestBackend};
+use psmux_tui::backend::{Backend, TestBackend};
 use term::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, MouseButton, MouseEventKind,
 };
 use term::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use ratatui::Terminal;
+use psmux_tui::Terminal;
 
 use app::App;
 
@@ -116,7 +116,7 @@ fn restore_terminal() {
     let _ = execute!(stdout(), LeaveAlternateScreen, DisableMouseCapture);
 }
 
-// ratatui 0.30 turned `Backend::Error` into an associated type rather than
+// psmux_tui 0.30 turned `Backend::Error` into an associated type rather than
 // always being `std::io::Error`, so `?` on `draw` needs the conversion spelled
 // out. The only caller passes a `VtBackend`, whose error already is
 // `std::io::Error`.
@@ -211,6 +211,6 @@ fn handle_mouse(app: &mut App, mouse: term::event::MouseEvent) {
     }
 }
 
-fn rect_contains(rect: ratatui::layout::Rect, col: u16, row: u16) -> bool {
+fn rect_contains(rect: psmux_tui::layout::Rect, col: u16, row: u16) -> bool {
     col >= rect.x && col < rect.x + rect.width && row >= rect.y && row < rect.y + rect.height
 }

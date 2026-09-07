@@ -829,7 +829,7 @@ pub fn execute_action(app: &mut AppState, action: &Action) -> io::Result<bool> {
     match action {
         Action::DisplayPanes => {
             let win = &app.windows[app.active_idx];
-            let mut rects: Vec<(Vec<usize>, ratatui::prelude::Rect)> = Vec::new();
+            let mut rects: Vec<(Vec<usize>, psmux_tui::prelude::Rect)> = Vec::new();
             compute_rects(&win.root, app.last_window_area, &mut rects);
             app.display_map.clear();
             for (i, (path, _)) in rects.into_iter().enumerate() {
@@ -1105,7 +1105,7 @@ fn execute_command_string_single(app: &mut AppState, cmd: &str) -> io::Result<()
                 crate::tree::resize_all_panes(app);
                 // Find direct neighbor only (no wrap when zoomed — tmux parity)
                 let win = &app.windows[app.active_idx];
-                let mut rects: Vec<(Vec<usize>, ratatui::layout::Rect)> = Vec::new();
+                let mut rects: Vec<(Vec<usize>, psmux_tui::layout::Rect)> = Vec::new();
                 crate::tree::compute_rects(&win.root, app.last_window_area, &mut rects);
                 let active_idx = rects.iter().position(|(path, _)| *path == win.active_path);
                 let has_target = if let Some(ai) = active_idx {
@@ -1212,7 +1212,7 @@ fn execute_command_string_single(app: &mut AppState, cmd: &str) -> io::Result<()
         }
         "display-panes" | "displayp" => {
             let win = &app.windows[app.active_idx];
-            let mut rects: Vec<(Vec<usize>, ratatui::layout::Rect)> = Vec::new();
+            let mut rects: Vec<(Vec<usize>, psmux_tui::layout::Rect)> = Vec::new();
             compute_rects(&win.root, app.last_window_area, &mut rects);
             app.display_map.clear();
             for (i, (path, _)) in rects.into_iter().enumerate() {

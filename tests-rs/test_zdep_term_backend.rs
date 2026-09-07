@@ -1,24 +1,24 @@
 // Covers: ZDEP-027
 // Requirement: `crate::term::backend::VtBackend<W: Write>` replaces
-// `ratatui::backend::CrosstermBackend`, byte-identical for the exact SGR /
+// `psmux_tui::backend::CrosstermBackend`, byte-identical for the exact SGR /
 // cursor / clear / append-lines / blink sequences psmux emits (crossterm and
-// ratatui-crossterm are removed from the root and monitor manifests, and
+// psmux_tui-crossterm are removed from the root and monitor manifests, and
 // Cargo.lock no longer carries either crate). Cell-for-cell fidelity is
 // pinned against tests-rs/fixtures/vt_backend_golden_3x2.bin, a byte capture
-// taken from ratatui::backend::CrosstermBackend BEFORE crossterm was
+// taken from psmux_tui::backend::CrosstermBackend BEFORE crossterm was
 // removed (see git history for the throwaway capture harness that produced
 // it); this file only reads the committed fixture, it does not regenerate
 // it.
 
 use crate::term::backend::VtBackend;
-use ratatui::backend::Backend;
-use ratatui::buffer::{Buffer, Cell};
-use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use psmux_tui::backend::Backend;
+use psmux_tui::buffer::{Buffer, Cell};
+use psmux_tui::layout::Rect;
+use psmux_tui::style::{Color, Modifier, Style};
 
 /// Must stay byte-identical to the buffer-building code that produced
 /// tests-rs/fixtures/vt_backend_golden_3x2.bin (captured via
-/// ratatui::backend::CrosstermBackend before the crossterm removal).
+/// psmux_tui::backend::CrosstermBackend before the crossterm removal).
 fn build_test_buffer() -> (Rect, Buffer) {
     let area = Rect::new(0, 0, 3, 2);
     let mut buf = Buffer::empty(area);
@@ -135,7 +135,7 @@ fn vt_backend_set_cursor_position() {
 
 #[test]
 fn vt_backend_clear_variants() {
-    use ratatui::backend::ClearType;
+    use psmux_tui::backend::ClearType;
     let cases: &[(ClearType, &str)] = &[
         (ClearType::All, "\x1b[2J"),
         (ClearType::AfterCursor, "\x1b[J"),
@@ -172,7 +172,7 @@ fn vt_backend_blink_csi() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// (b) manifest-line tests: crossterm gone, ratatui line exact.
+// (b) manifest-line tests: crossterm gone, psmux_tui line exact.
 // ═══════════════════════════════════════════════════════════════════════
 
 #[test]
@@ -196,28 +196,28 @@ fn monitor_manifest_has_no_crossterm_line() {
 }
 
 #[test]
-fn root_manifest_ratatui_line_is_exact() {
+fn root_manifest_psmux_tui_line_is_exact() {
     let root = env!("CARGO_MANIFEST_DIR");
     let manifest = std::fs::read_to_string(format!("{}/Cargo.toml", root)).unwrap();
-    let expected = r#"ratatui = { version = "0.30.2", default-features = false, features = ["std", "all-widgets", "underline-color"] }"#;
+    let expected = r#"psmux_tui = { version = "0.30.2", default-features = false, features = ["std", "all-widgets", "underline-color"] }"#;
     assert!(
         manifest.lines().any(|l| l.trim() == expected),
         "root Cargo.toml must contain exactly:\n{}\ngot lines:\n{}",
         expected,
-        manifest.lines().filter(|l| l.contains("ratatui")).collect::<Vec<_>>().join("\n")
+        manifest.lines().filter(|l| l.contains("psmux_tui")).collect::<Vec<_>>().join("\n")
     );
 }
 
 #[test]
-fn monitor_manifest_ratatui_line_is_exact_minus_underline_color() {
+fn monitor_manifest_psmux_tui_line_is_exact_minus_underline_color() {
     let root = env!("CARGO_MANIFEST_DIR");
     let manifest = std::fs::read_to_string(format!("{}/tests/monitor/Cargo.toml", root)).unwrap();
-    let expected = r#"ratatui = { version = "0.30.2", default-features = false, features = ["std", "all-widgets"] }"#;
+    let expected = r#"psmux_tui = { version = "0.30.2", default-features = false, features = ["std", "all-widgets"] }"#;
     assert!(
         manifest.lines().any(|l| l.trim() == expected),
         "tests/monitor/Cargo.toml must contain exactly:\n{}\ngot lines:\n{}",
         expected,
-        manifest.lines().filter(|l| l.contains("ratatui")).collect::<Vec<_>>().join("\n")
+        manifest.lines().filter(|l| l.contains("psmux_tui")).collect::<Vec<_>>().join("\n")
     );
 }
 
@@ -266,7 +266,7 @@ fn src_term_has_no_crate_paths() {
 // ═══════════════════════════════════════════════════════════════════════
 // (d) The normal-edge dependency tree no longer carries the crossterm
 // family. (Cargo.lock cannot be the oracle: it resolves the union of all
-// optional features, so ratatui's optional `crossterm` feature keeps the
+// optional features, so psmux_tui's optional `crossterm` feature keeps the
 // family in the lock file regardless; the tree golden is enforced against
 // live `cargo tree -e normal` by test_zdep_crate_tree.rs.)
 // ═══════════════════════════════════════════════════════════════════════
@@ -279,7 +279,7 @@ fn crate_tree_has_no_crossterm_family_packages() {
         root
     ))
     .unwrap();
-    for banned in ["crossterm", "crossterm_winapi", "ratatui-crossterm", "winapi"] {
+    for banned in ["crossterm", "crossterm_winapi", "psmux_tui-crossterm", "winapi"] {
         let hit = tree.lines().any(|l| {
             l.trim().split_whitespace().next() == Some(banned)
         });

@@ -41,13 +41,13 @@ pub fn set_named_buffer_override(name: Option<String>) {
 ///   Single pane:  `80x24,0,0,0`
 ///   Horiz split:  `80x24,0,0{40x24,0,0,0,39x24,41,0,1}`
 ///   Vert split:   `80x24,0,0[80x12,0,0,0,80x11,0,13,1]`
-pub fn generate_window_layout(node: &Node, area: ratatui::prelude::Rect) -> String {
+pub fn generate_window_layout(node: &Node, area: psmux_tui::prelude::Rect) -> String {
     let body = layout_node(node, area);
     let checksum = tmux_layout_checksum(&body);
     format!("{:04x},{}", checksum, body)
 }
 
-fn layout_node(node: &Node, area: ratatui::prelude::Rect) -> String {
+fn layout_node(node: &Node, area: psmux_tui::prelude::Rect) -> String {
     match node {
         Node::Leaf(pane) => {
             // WxH,X,Y,pane_id

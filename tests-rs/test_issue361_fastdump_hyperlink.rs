@@ -114,7 +114,7 @@ fn make_window() -> crate::types::Window {
         active_path: vec![],
         name: "w".to_string(),
         id: 0,
-        area: ratatui::layout::Rect::new(0, 0, COLS, ROWS),
+        area: psmux_tui::layout::Rect::new(0, 0, COLS, ROWS),
         window_size: None,
         activity_flag: false,
         bell_flag: false,
@@ -146,7 +146,7 @@ fn fast_dump_of(bytes: &[u8]) -> String {
     win.active_path = vec![];
     app.windows.push(win);
     app.active_idx = 0;
-    app.last_window_area = ratatui::layout::Rect::new(0, 0, COLS, ROWS);
+    app.last_window_area = psmux_tui::layout::Rect::new(0, 0, COLS, ROWS);
     crate::layout::dump_layout_json_fast(&mut app).expect("fast dump")
 }
 

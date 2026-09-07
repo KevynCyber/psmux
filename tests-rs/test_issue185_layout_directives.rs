@@ -1,5 +1,5 @@
 use super::*;
-use ratatui::style::{Color, Style};
+use psmux_tui::style::{Color, Style};
 
 // ─── parse_format_segments tests ────────────────────────────────────────────
 
@@ -116,11 +116,11 @@ fn segments_style_plus_layout() {
 
 // ─── layout_format_line tests ───────────────────────────────────────────────
 
-fn collect_text(spans: &[ratatui::text::Span]) -> String {
+fn collect_text(spans: &[psmux_tui::text::Span]) -> String {
     spans.iter().map(|s| s.content.as_ref()).collect()
 }
 
-fn visible_text(spans: &[ratatui::text::Span]) -> String {
+fn visible_text(spans: &[psmux_tui::text::Span]) -> String {
     spans.iter()
         .map(|s| s.content.as_ref())
         .collect::<String>()

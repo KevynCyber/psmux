@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use crate::term::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use crate::pty::native_pty_system;
-use ratatui::prelude::*;
+use psmux_tui::prelude::*;
 
 use crate::types::{AppState, Mode, FocusDir, LayoutKind, DragState, Node, Pane};
 use crate::tree::{active_pane, active_pane_mut, compute_rects, compute_split_borders,
@@ -2421,7 +2421,7 @@ pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io
             } else {
                 crate::rendering::centered_rect((width * 100 / full_area.width.max(1)).max(30), height, full_area)
             };
-            let pos = ratatui::layout::Position { x: me.column, y: me.row };
+            let pos = psmux_tui::layout::Position { x: me.column, y: me.row };
             if menu_area.contains(pos) {
                 // Block border is 1 row top
                 let inner_y = me.row.saturating_sub(menu_area.y + 1);
@@ -2492,7 +2492,7 @@ pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io
         compute_rects(&win.root, window_area, &mut rects_check);
         let mut clicked_new_path: Option<Vec<usize>> = None;
         for (path, area) in rects_check.iter() {
-            if area.contains(ratatui::layout::Position { x: me.column, y: me.row }) {
+            if area.contains(psmux_tui::layout::Position { x: me.column, y: me.row }) {
                 if *path != win.active_path {
                     clicked_new_path = Some(path.clone());
                 }
@@ -2575,7 +2575,7 @@ pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io
 
             // Switch pane focus if clicking inside a pane
             for (path, area) in rects.iter() {
-                if area.contains(ratatui::layout::Position { x: me.column, y: me.row }) {
+                if area.contains(psmux_tui::layout::Position { x: me.column, y: me.row }) {
                     win.active_path = path.clone();
                     // Update MRU for clicked pane
                     if let Some(pid) = crate::tree::get_active_pane_id(&win.root, path) {
@@ -2807,7 +2807,7 @@ pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io
                 scroll_copy_up(app, 3);
                 return Ok(());
             }
-            if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(ratatui::layout::Position { x: me.column, y: me.row })) {
+            if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(psmux_tui::layout::Position { x: me.column, y: me.row })) {
                 win.active_path = path.clone();
                 active_area = Some(*area);
             }
@@ -2852,7 +2852,7 @@ pub fn handle_mouse(app: &mut AppState, me: MouseEvent, window_area: Rect) -> io
                 }
                 return Ok(());
             }
-            if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(ratatui::layout::Position { x: me.column, y: me.row })) {
+            if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(psmux_tui::layout::Position { x: me.column, y: me.row })) {
                 win.active_path = path.clone();
                 active_area = Some(*area);
             }

@@ -3,7 +3,7 @@
 //! screen→cell mouse mapping must use the same content-inner rect as the
 //! render, or they land one row off the content (#288).
 
-use ratatui::layout::Rect;
+use psmux_tui::layout::Rect;
 
 const FMT: &str = "#{pane_index} \"#{pane_title}\"";
 

@@ -47,7 +47,7 @@ pub fn size() -> io::Result<(u16, u16)> {
 
 /// Window pixel size is not implemented for the Windows console API
 /// (matches crossterm's own `window_size()` on Windows).
-pub fn window_size() -> io::Result<ratatui::backend::WindowSize> {
+pub fn window_size() -> io::Result<psmux_tui::backend::WindowSize> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
         "window pixel size not implemented",

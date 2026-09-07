@@ -2,7 +2,7 @@ use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
 use crate::pty::{PtySize, native_pty_system};
-use ratatui::prelude::*;
+use psmux_tui::prelude::*;
 
 use crate::types::{AppState, Mode, Pane, Node, LayoutKind, DragState, Window, FocusDir};
 use crate::tree::{active_pane, active_pane_mut, compute_rects, compute_split_borders,
@@ -710,7 +710,7 @@ pub fn remote_mouse_down(app: &mut AppState, x: u16, y: u16) {
     compute_rects(&win.root, app.last_window_area, &mut rects);
     let mut active_area: Option<Rect> = None;
     for (path, area) in rects.iter() {
-        if area.contains(ratatui::layout::Position { x, y }) {
+        if area.contains(psmux_tui::layout::Position { x, y }) {
             win.active_path = path.clone();
             // Update MRU for clicked pane (tmux parity #70)
             if let Some(pid) = crate::tree::get_active_pane_id(&win.root, path) {
@@ -808,7 +808,7 @@ pub fn remote_mouse_drag(app: &mut AppState, x: u16, y: u16) {
     compute_rects(&win.root, app.last_window_area, &mut rects);
 
     if matches!(app.mode, Mode::CopyMode | Mode::CopySearch { .. }) {
-        if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(ratatui::layout::Position { x, y })) {
+        if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(psmux_tui::layout::Position { x, y })) {
             win.active_path = path.clone();
             let (row, col) = copy_cell_for_area(*area, x, y);
             if app.copy_anchor.is_none() {
@@ -855,7 +855,7 @@ pub fn remote_mouse_up(app: &mut AppState, x: u16, y: u16) {
     compute_rects(&win.root, app.last_window_area, &mut rects);
 
     if matches!(app.mode, Mode::CopyMode | Mode::CopySearch { .. }) {
-        if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(ratatui::layout::Position { x, y })) {
+        if let Some((path, area)) = rects.iter().find(|(_, area)| area.contains(psmux_tui::layout::Position { x, y })) {
             win.active_path = path.clone();
             let (row, col) = copy_cell_for_area(*area, x, y);
             app.copy_pos = Some((row, col));
@@ -1045,7 +1045,7 @@ fn remote_scroll_wheel(app: &mut AppState, x: u16, y: u16, up: bool) {
 
         let mut target_area: Option<Rect> = None;
         for (path, area) in &rects {
-            if area.contains(ratatui::layout::Position { x, y }) {
+            if area.contains(psmux_tui::layout::Position { x, y }) {
                 win.active_path = path.clone();
                 target_area = Some(*area);
                 break;
@@ -1526,7 +1526,7 @@ pub fn resolve_position_token(token: &str, area: Rect, rects: &[(Vec<usize>, Rec
 #[cfg(test)]
 mod position_token_tests {
     use super::resolve_position_token;
-    use ratatui::layout::Rect;
+    use psmux_tui::layout::Rect;
     fn layout() -> (Rect, Vec<(Vec<usize>, Rect)>) {
         // ABTOP top-left, SMALL bottom-left, BIG right (mirrors the user's panel).
         let area = Rect { x: 0, y: 0, width: 160, height: 40 };
@@ -1562,7 +1562,7 @@ mod window_ops_tests {
     use super::swap_pane_with_path;
     use crate::proxy_pane::create_proxy_pane;
     use crate::types::{AppState, LayoutKind, Mode, Node, Window};
-    use ratatui::layout::Rect;
+    use psmux_tui::layout::Rect;
     use std::net::{TcpListener, TcpStream};
 
     fn tcp_pair() -> (TcpStream, TcpStream) {
