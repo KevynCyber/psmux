@@ -896,7 +896,7 @@ dependencies = [
 
 [[package]]
 name = "psmux"
-version = "3.3.8"
+version = "3.4.0"
 dependencies = [
  "psmux-json",
  "psmux-regex",
@@ -911,6 +911,10 @@ version = "0.1.0"
 
 [[package]]
 name = "psmux-regex"
+version = "0.1.0"
+
+[[package]]
+name = "psmux-tui"
 version = "0.1.0"
 
 [[package]]

@@ -1,0 +1,15 @@
+[package]
+name = "psmux-tui"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+# Mirrors the root crate's own "underline-color" feature (Cargo.toml:16-17)
+# so this crate's Cell/Style/Backend can #[cfg(feature = "underline-color")]
+# the same field, and tests/monitor's own empty same-named feature keeps its
+# check-cfg happy without pulling the field in.
+[features]
+default = ["underline-color"]
+underline-color = []
+
+[dependencies]
