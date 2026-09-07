@@ -3,5 +3,8 @@ name = "psmux-json"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+# Not published to crates.io: psmux is zero-third-party-dep and its crates
+# are versionless in-tree path deps, which cargo publish cannot normalize.
+publish = false
 
 [dependencies]

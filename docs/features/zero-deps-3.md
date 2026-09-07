@@ -179,3 +179,61 @@ workspace path crates (psmux, psmux-json, psmux-regex, psmux-tui,
 psmux-unicode, vt100-psmux); zero `source = ` lines in both
 `Cargo.lock` and `tests/monitor/Cargo.lock`; `cargo check --workspace
 --locked` exits 0.
+
+- ZDEP-051: close the crates.io publishing channel. After the S9 zero-dep
+  flip (ZDEP-048), every workspace dependency is a versionless in-tree
+  `path = ...` dep; `cargo publish` normalizes path deps into registry
+  deps, so it cannot publish this workspace at all, and the
+  `publish-crates` job in `.github/workflows/release.yml` was already dead,
+  failing on every tag. An adversary round (three read-only agents, one per
+  option) rejected the alternative of versioning the five path deps and
+  publishing six crates: the published dependency graph would reintroduce
+  four registry-sourced crates for anyone installing from crates.io, and
+  `tests-rs/test_zero_third_party_deps.rs` reads only this repo's own
+  `Cargo.lock`, so it is structurally blind to that regression -- the
+  guarantee and its enforcement test would measure different things.
+  Closing the channel turns a latent failure into a deliberate no-op:
+  - the `publish-crates` job (formerly lines 261-302 of
+    `.github/workflows/release.yml`, including its `CARGO_REGISTRY_TOKEN`
+    env and a "Verify crate compiles with crates.io dependencies" step
+    meaningless under zero-deps) is deleted;
+  - `publish = false` is added to the `[package]` section of all six
+    workspace manifests (root `Cargo.toml` plus `crates/vt100-psmux`,
+    `crates/psmux-unicode`, `crates/psmux-json`, `crates/psmux-regex`,
+    `crates/psmux-tui`), each with a two-line comment giving the reason, so
+    a stray manual `cargo publish` fails deterministically;
+  - `README.md`'s "Using Cargo" section and the release-notes template's
+    "Via Cargo" block (`.github/workflows/release.yml:216-218`) now say
+    `cargo install --git https://github.com/psmux/psmux`; README also
+    states plainly that psmux is no longer published to crates.io and that
+    versions still listed there are stale (`grep -rn "cargo install
+    psmux" README.md docs/ .github/` returns no matches).
+
+  Deliberately not done, and why: no "one final 4.0.0 crates.io release"
+  (`cargo publish` refuses outright once `publish = false` is set, so that
+  ordering is self-contradictory); no `cargo yank` of the 29 stale `psmux`
+  / 9 `vt100-psmux` versions (yank only affects dependency resolution --
+  yanked versions stay installable via `cargo install` -- and the root
+  crate is bin-only, three `[[bin]]` targets, no `[lib]`, no
+  `src/lib.rs`, so there are no reverse deps for a yank to protect;
+  purely cosmetic, so skipped). `README.md:197,205,215,223` still advertise
+  `cargo install pstop` / `psnet` / `tmuxpanel` / `omp-manager`: those are
+  separate crates in other repos, live and unyanked on crates.io (`pstop`
+  max_version 0.5.4 checked this session), unaffected by this repo's
+  zero-dep flip, and correct as written. The release matrix is
+  Windows-only (`release.yml` runners are all `windows-latest`), so
+  crates.io filled no cross-platform binary gap.
+
+  Correction to a prior claim: an earlier handoff note asserted that
+  `cargo install --git` would resolve `vt100` against the crates.io
+  registry copy, calling it a correctness trap. That is false: `vt100` is
+  a path dep into the in-repo workspace member `crates/vt100-psmux`
+  (`Cargo.toml:22`), so a git clone resolves it locally; `grep -c "^source
+  = " Cargo.lock` returns 0 and there is no `[patch]` section.
+  `cargo install --git` is therefore a fully correct install route.
+
+  Tests: `tests-rs/test_no_crates_io_publish.rs` (Covers: ZDEP-051)
+  asserts every manifest listed in the root `[workspace] members` array
+  carries `publish = false`, that `release.yml` has no `cargo publish` or
+  `CARGO_REGISTRY_TOKEN`, and that the bare registry install form (`cargo install` plus the crate name) appears nowhere
+  under `README.md`/`docs/`/`.github/`.

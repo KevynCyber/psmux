@@ -56,13 +56,15 @@ psmux is a **native Windows terminal multiplexer** built from the ground up in R
 winget install psmux
 ```
 
-### Using Cargo
+### Using Cargo (from source)
 
 ```powershell
-cargo install psmux
+cargo install --git https://github.com/psmux/psmux
 ```
 
 This installs `psmux`, `pmux`, and `tmux` binaries to your Cargo bin directory.
+
+psmux is no longer published to crates.io; any versions still listed there are stale.
 
 ### Using Scoop
 

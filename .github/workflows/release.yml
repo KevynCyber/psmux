@@ -213,9 +213,9 @@ jobs:
             echo "winget install marlocarlo.psmux"
             echo "\`\`\`"
             echo ""
-            echo "**Via Cargo:**"
+            echo "**Via Cargo (from source):**"
             echo "\`\`\`powershell"
-            echo "cargo install psmux"
+            echo "cargo install --git https://github.com/psmux/psmux"
             echo "\`\`\`"
             echo ""
             echo "**Via PowerShell:**"
@@ -257,48 +257,6 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-crates:
-    name: Publish to crates.io
-    needs: release
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.97.0
-
-      - name: Verify crate compiles with crates.io dependencies
-        run: |
-          cargo check 2>&1
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Crate fails to compile with crates.io dependencies! Fix before publishing."
-            exit 1
-          }
-        shell: pwsh
-
-      - name: Publish sub-crates then main crate to crates.io
-        shell: pwsh
-        run: |
-          # Sub-crates must be published first so crates.io can resolve path deps
-          cargo publish --allow-dirty -p vt100-psmux 2>&1
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "vt100-psmux publish failed (may already be published)"
-          }
-          Start-Sleep 45
-          $out = cargo publish --allow-dirty 2>&1
-          $out | Write-Output
-          if ($LASTEXITCODE -ne 0) {
-            # Treat "already exists" as a warning so re-runs don't break
-            if ($out -match "already exists") {
-              Write-Warning "psmux already published at this version -- skipping"
-            } else {
-              Write-Error "psmux publish failed!"
-              exit 1
-            }
-          }
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   publish-chocolatey:
     name: Publish to Chocolatey

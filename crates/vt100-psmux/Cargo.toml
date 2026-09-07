@@ -14,6 +14,9 @@ edition = "2021"
 rust-version = "1.70"
 name = "vt100-psmux"
 version = "0.16.10"
+# Not published to crates.io: psmux is zero-third-party-dep and its crates
+# are versionless in-tree path deps, which cargo publish cannot normalize.
+publish = false
 authors = ["Jesse Luehrs <doy@tozt.net>"]
 build = false
 include = [

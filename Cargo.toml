@@ -4,6 +4,9 @@ version = "4.0.0"
 edition = "2021"
 description = "Terminal multiplexer for Windows - tmux alternative for PowerShell and Windows Terminal"
 license = "MIT"
+# Not published to crates.io: psmux is zero-third-party-dep and its crates
+# are versionless in-tree path deps, which cargo publish cannot normalize.
+publish = false
 repository = "https://github.com/psmux/psmux"
 readme = "README.md"
 keywords = ["terminal", "multiplexer", "tmux", "windows", "powershell"]
@@ -82,6 +85,10 @@ path = "tests-rs/test_issue494_copymode_freeze.rs"
 [[test]]
 name = "test_zero_third_party_deps"
 path = "tests-rs/test_zero_third_party_deps.rs"
+
+[[test]]
+name = "test_no_crates_io_publish"
+path = "tests-rs/test_no_crates_io_publish.rs"
 
 [[test]]
 name = "test_unsafe_inventory"
