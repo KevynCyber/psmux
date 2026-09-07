@@ -247,3 +247,5 @@ in the separate `tests/monitor` workspace (still resolves the real
 `ratatui`/`ratatui-widgets` crates, untouched).
 Tests: inline `#[cfg(test)]` modules under
 `crates/psmux-tui/src/{symbols,widgets}/`.
+
+Continued in `docs/features/zero-deps-3.md` (ZDEP-040 onward, S8c).

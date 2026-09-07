@@ -2,7 +2,7 @@
 //! `new`, `Default`, and `contains(Position)` only -- see `layout/mod.rs`
 //! for what's deliberately excluded.
 
-use super::Position;
+use super::{Position, Size};
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Rect {
@@ -25,6 +25,16 @@ impl Rect {
         let right = self.x.saturating_add(self.width);
         let bottom = self.y.saturating_add(self.height);
         position.x >= self.x && position.x < right && position.y >= self.y && position.y < bottom
+    }
+}
+
+/// Ported from `ratatui-core` 0.1.2 `src/layout/rect.rs` (ZDEP-041): needed by
+/// `Terminal::resize`/`autoresize`, which build the new viewport `Rect` from
+/// `Backend::size()`'s `Size` -- one call site (`client.rs`) also does this
+/// explicitly via `sz.into()`.
+impl From<Size> for Rect {
+    fn from(size: Size) -> Self {
+        Self { x: 0, y: 0, width: size.width, height: size.height }
     }
 }
 
@@ -64,5 +74,11 @@ mod tests {
     fn contains_empty_rect_never_true() {
         let rect = Rect::new(1, 1, 0, 0);
         assert!(!rect.contains(Position::new(1, 1)));
+    }
+
+    // Covers: ZDEP-041
+    #[test]
+    fn from_size_is_origin_rect() {
+        assert_eq!(Rect::from(Size::new(80, 24)), Rect::new(0, 0, 80, 24));
     }
 }

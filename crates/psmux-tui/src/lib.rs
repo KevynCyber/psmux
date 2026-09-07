@@ -12,10 +12,27 @@
 //!   `C:/Users/Kev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-core-0.1.2/src/`
 //!   `C:/Users/Kev/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ratatui-widgets-0.3.2/src/`
 //!
-//! S8a and S8b are ADDITIVE AND INERT: this crate is not yet wired into any
-//! call site. `ratatui` itself still stays in the root and `tests/monitor`
-//! manifests until the flip slice (S8c). `Terminal`, `Frame`, and
-//! `TestBackend` are later slices.
+//! ZDEP-040..044 (slice S8c, additive half) add the last layer: a
+//! `Layout::default().direction(...).constraints(...)` builder (matching
+//! every real call site's shape, not just `Layout::new`), `Rect::from(Size)`,
+//! `Buffer::{resize,reset,diff}`, `backend::TestBackend`, and a
+//! fullscreen-only `terminal::{Terminal, Frame, CompletedFrame}` -- see
+//! `terminal/mod.rs` for what's dropped (`Viewport`/`with_options`/inline
+//! mode/`try_draw`/`insert_before`, none of which any call site uses).
+//! `prelude` re-exports the flip's glob-import surface
+//! (`ratatui::prelude::*` / `ratatui::widgets::*` sites, see
+//! `docs/features/zero-deps-2.md`).
+//!
+//! S8a, S8b, and this additive half of S8c are ADDITIVE AND INERT: this
+//! crate is still not wired into any call site. `ratatui` itself still stays
+//! in the root and `tests/monitor` manifests. Flipping the ~130 real call
+//! sites in `src/`, `examples/`, `tests-rs/`, and `tests/monitor/` off
+//! `ratatui` needs `ratatui::` -> `psmux_tui::` path edits inside ~56
+//! `tests-rs/*.rs` files and `tests/monitor/src/*.rs` -- both gated to
+//! test-engineer by `agent-write-gate`/HOOKS-129's path classification
+//! (verified live: a one-line probe `Edit` to `tests-rs/test_zoom_bleed.rs`
+//! and to `tests/monitor/src/ui.rs` were both denied with "test-engineer owns
+//! all test writes"), so the flip itself is a separate dispatch.
 //!
 //! Upstream deps stripped and how each was replaced (none of them appear in
 //! this crate's `Cargo.toml`):
@@ -37,7 +54,11 @@
 pub mod backend;
 pub mod buffer;
 pub mod layout;
+pub mod prelude;
 pub mod style;
 pub mod symbols;
+pub mod terminal;
 pub mod text;
 pub mod widgets;
+
+pub use terminal::{CompletedFrame, Frame, Terminal};

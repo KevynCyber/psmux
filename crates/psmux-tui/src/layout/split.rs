@@ -23,9 +23,29 @@ pub struct Layout {
     constraints: Vec<Constraint>,
 }
 
+impl Default for Layout {
+    fn default() -> Self {
+        Self { direction: Direction::default(), constraints: Vec::new() }
+    }
+}
+
 impl Layout {
     pub fn new<I: IntoIterator<Item = Constraint>>(direction: Direction, constraints: I) -> Self {
         Self { direction, constraints: constraints.into_iter().collect() }
+    }
+
+    /// Builder-style setters mirroring upstream's `Layout::default().direction(...)`
+    /// call-site shape (ZDEP-040): every `.split(...)` call site in this repo chains
+    /// off `Layout::default()` rather than `Layout::new(direction, constraints)`.
+    pub fn direction(mut self, direction: Direction) -> Self {
+        self.direction = direction;
+        self
+    }
+
+    /// See [`Layout::direction`].
+    pub fn constraints<I: IntoIterator<Item = Constraint>>(mut self, constraints: I) -> Self {
+        self.constraints = constraints.into_iter().collect();
+        self
     }
 
     pub fn split(&self, area: Rect) -> Vec<Rect> {
@@ -95,6 +115,36 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Covers: ZDEP-040
+    #[test]
+    fn default_direction_and_constraints_builder_matches_new() {
+        let area = Rect::new(0, 0, 30, 10);
+        let built = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Length(10), Constraint::Length(20)])
+            .split(area);
+        let via_new = Layout::new(Direction::Horizontal, [
+            Constraint::Length(10),
+            Constraint::Length(20),
+        ]).split(area);
+        assert_eq!(built, via_new);
+    }
+
+    // Covers: ZDEP-040
+    #[test]
+    fn default_direction_is_vertical() {
+        let area = Rect::new(0, 0, 4, 8);
+        let vertical = Layout::default().constraints([Constraint::Min(0)]).split(area);
+        let explicit = Layout::new(Direction::Vertical, [Constraint::Min(0)]).split(area);
+        assert_eq!(vertical, explicit);
+    }
+
+    // Covers: ZDEP-040
+    #[test]
+    fn default_with_no_constraints_splits_into_nothing() {
+        assert_eq!(Layout::default().split(Rect::new(0, 0, 1, 1)), Vec::<Rect>::new());
+    }
 
     // Covers: ZDEP-028
     #[test]
