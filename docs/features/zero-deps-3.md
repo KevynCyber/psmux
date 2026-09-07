@@ -4,7 +4,7 @@
 Same plan and scope (`docs/plans/2026-09-04-zero-third-party-deps.md`).
 
 ## ZDEP-040..044 Terminal/Frame/TestBackend layer folded into
-crates/psmux-tui (S8c, additive half; the flip is NOT done -- see below)
+crates/psmux-tui (S8c, additive half; the flip landed in ZDEP-045..047 below)
 
 `crates/psmux-tui` gains the last CORE-layer surface needed to render, per
 the 2026-09-06 project-wide inventory (S8c plan entry):
