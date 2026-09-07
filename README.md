@@ -29,6 +29,7 @@
   <a href="docs/scripting.md">Scripting</a> ·
   <a href="docs/configuration.md">Config</a> ·
   <a href="docs/mouse-ssh.md">Mouse/SSH</a> ·
+  <a href="#zero-third-party-dependencies">Zero Deps</a> ·
   <a href="docs/faq.md">FAQ</a> ·
   <a href="#related-projects">Related Projects</a>
 </p>
@@ -143,6 +144,20 @@ claude                       # Run Claude Code, agent teams just work
 ```
 
 No extra configuration needed. Full guide: **[docs/claude-code.md](docs/claude-code.md)**
+
+## Zero third-party dependencies
+
+psmux builds with zero third-party crates -- every dependency is a workspace
+path crate (`crates/vt100-psmux`, `crates/psmux-unicode`, `crates/psmux-json`,
+`crates/psmux-regex`, `crates/psmux-tui`), not a registry-sourced one. This is
+enforced in CI by a gate test on every push, not by convention: it fails the
+build if either `Cargo.lock` gains a `source = ` line.
+
+With no registry dependencies, the pinned Rust toolchain (`rust-toolchain.toml`)
+is the project's only remaining external supply-chain surface. The channel is
+pinned and bumped deliberately rather than floating on `stable`; toolchain-level
+advisories (RUSTSEC entries filed against `rust` itself -- rustc, cargo, std)
+are the surface to watch.
 
 ## Documentation
 

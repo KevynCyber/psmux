@@ -33,8 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Pinned to match rust-toolchain.toml's channel: with zero third-party
+      # dependencies the toolchain is the project's only external
+      # supply-chain surface, so the CI install step and rust-toolchain.toml
+      # are pinned to the same version deliberately -- leaving this on
+      # `@stable` meant CI downloaded a toolchain it then never compiled
+      # with, and let `stable` drift silently.
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.97.0
         with:
           targets: ${{ matrix.target }}
 
@@ -57,7 +63,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.97.0
         with:
           targets: ${{ matrix.target }}
 
@@ -91,7 +97,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.97.0
         with:
           targets: aarch64-pc-windows-msvc
 
@@ -109,7 +115,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.97.0
 
       # tests/monitor is its own workspace and is not covered by the build or
       # test jobs above, so nothing caught it when a dependency bump broke its
@@ -159,35 +165,25 @@ jobs:
             throw "monitor snapshot does not match tests-rs/fixtures/monitor_snapshot.txt"
           }
 
-  audit:
-    name: Security advisories
+  zero-deps:
+    name: Zero third-party dependencies
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.97.0
 
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
-
-      # `--deny warnings` is deliberate, and the softer `|| cargo audit` fallback
-      # is deliberately absent. RUSTSEC classifies plenty of real problems as
-      # informational rather than as vulnerabilities, and plain `cargo audit`
-      # exits 0 on those. The lru advisory that prompted this job
-      # (GHSA-rhfx-m35p-ff5j, which Dependabot did report as a vulnerability) is
-      # RUSTSEC-classified "unsound", so a lenient gate would have stayed green
-      # through exactly the issue it exists to catch.
-      #
-      # Consequence to accept: an upstream advisory with no fix released yet will
-      # block PRs. Resolve it, or add a scoped `--ignore RUSTSEC-YYYY-NNNN` here
-      # with a comment saying why, rather than weakening the gate for everything.
-      - name: Audit workspace lockfile
-        run: cargo audit --deny warnings
-
-      - name: Audit test monitor lockfile
-        run: cargo audit --file tests/monitor/Cargo.lock --deny warnings
+      # The supply-chain gate used to be "audit the third-party crates"
+      # (cargo-audit against RUSTSEC advisories). With zero registry
+      # dependencies there is nothing left for cargo-audit to check -- every
+      # manifest dependency is a `path = ...` workspace crate -- so the gate
+      # moved to "prove there are no third-party crates" instead. The one
+      # remaining external supply-chain surface is the Rust toolchain itself,
+      # pinned in rust-toolchain.toml.
+      - name: Run zero-dependency gate test
+        run: cargo test --test test_zero_third_party_deps --locked
 
   posix-helper-tests:
     name: POSIX helper tests (${{ matrix.os }})

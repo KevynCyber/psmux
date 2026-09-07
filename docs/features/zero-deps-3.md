@@ -134,3 +134,48 @@ buffer,backend,terminal}/`.
   50%, the top absorbs the deficit); `mid_y` is NON-MONOTONIC in `h`; on
   odd totals the extra row goes to the TOP. No float rounding anywhere.
   Horizontal x/width behaviour is unchanged.
+
+## ZDEP-048..050 S9: the zero-dep flip
+
+- ZDEP-048: `tests-rs/test_zero_third_party_deps.rs` un-ignored (removed the
+  `#[ignore = "enforced from slice S9"]` attribute) and strengthened. It
+  keeps the original assertion (zero `source = "registry+` lines in both
+  Cargo.lock files) and adds a stricter second check:
+  `packages_with_source_line` walks each `[[package]]` block in both
+  lockfiles and flags ANY block that carries a `source = ` line at all, not
+  just a registry one. A pure path/workspace dependency has no `source` key,
+  so this closes the loophole a registry-only check leaves open for a
+  `git+`-sourced dependency, which would pass the original assertion while
+  still being a third-party (non-path) crate. Offending package names are
+  named in the panic message via `assert_no_source_lines`.
+- ZDEP-049: `rust-toolchain.toml` pins `channel = "1.97.0"` (plus
+  `components = ["clippy"]`). CI's `audit:` job (cargo-audit over both
+  lockfiles) is deleted and replaced by a `zero-deps:` job that runs `cargo
+  test --test test_zero_third_party_deps --locked`. Why cargo-audit was
+  removed rather than kept: RUSTSEC advisories are filed per-crate, and with
+  zero registry dependencies there is nothing left for cargo-audit to
+  check -- every manifest dependency is now a `path = ...` workspace crate.
+  The supply-chain gate therefore moves from "audit the third-party crates"
+  to "prove there are none" (the ZDEP-048 gate test). This does NOT mean the
+  old job's strictness lesson is discarded: the deleted `audit:` job ran
+  with `--deny warnings` specifically because RUSTSEC classifies some real
+  problems as merely "informational" severity, and a lenient default gate
+  would silently pass those. That lesson now applies to the toolchain
+  instead of crates -- `rust-toolchain.toml`'s pinned channel is the
+  project's one remaining external supply-chain surface, and advisories
+  against it (RUSTSEC entries filed against `rust` itself, i.e.
+  rustc/cargo/std) are the thing to watch and react to deliberately when
+  bumping the channel, the same way `--deny warnings` refused to let a
+  registry advisory slide.
+- ZDEP-050: version bumped 3.6.0 -> 4.0.0 in `Cargo.toml` and `Cargo.lock`
+  (S8c's additive-then-flip work stayed on 3.6.0 per its own note above;
+  4.0.0 was reserved for this slice's actual dependency removal).
+  `tests/monitor/Cargo.lock` needed no version-line change: it has no
+  `psmux` package entry (it is a separate workspace that only depends on
+  `psmux-tui` by path).
+
+Verified for this slice: `cargo tree --workspace` lists only the six
+workspace path crates (psmux, psmux-json, psmux-regex, psmux-tui,
+psmux-unicode, vt100-psmux); zero `source = ` lines in both
+`Cargo.lock` and `tests/monitor/Cargo.lock`; `cargo check --workspace
+--locked` exits 0.

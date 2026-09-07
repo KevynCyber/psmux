@@ -1,2 +1,6 @@
+# With zero third-party dependencies, the Rust toolchain is the project's
+# only remaining external supply-chain surface, so its version is pinned
+# and bumped deliberately here rather than floating on `stable`.
 [toolchain]
+channel = "1.97.0"
 components = ["clippy"]

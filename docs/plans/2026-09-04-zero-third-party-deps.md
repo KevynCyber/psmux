@@ -221,6 +221,13 @@ S9. Zero-dep flip: remove remaining manifest entries, `cargo update`, un-ignore 
 toolchain channel in rust-toolchain.toml, README "Zero third-party dependencies" section (+ how toolchain advisories are tracked), version 4.0.0.
     CRITERIA: registry+ count 0 in both locks; `cargo tree` lists only workspace crates; gate test enforced and green.
     SIGNALS: CI green on 3 targets; binary size/startup within 10% (informational).
+    STATUS (2026-09-07): S9 (docs/features/zero-deps-3.md ZDEP-048..050) is COMPLETE for the criteria
+    verifiable from this worktree: registry+ count 0 in both `Cargo.lock` and `tests/monitor/Cargo.lock`
+    (verified: zero `source = ` lines of any kind, a stricter check than registry+-only); `cargo tree
+    --workspace` lists only the six workspace path crates; the gate test (ZDEP-048) is un-ignored and
+    strengthened; version bumped 3.6.0 -> 4.0.0. CI-green-on-3-targets is outside this worktree's scope
+    (ci.yml/Cargo.toml/Cargo.lock/rust-toolchain.toml/tests-rs/ are owned by concurrent sessions) and is
+    not attested here.
 
 ## Evaluation criteria
 
