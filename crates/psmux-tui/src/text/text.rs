@@ -1,5 +1,14 @@
-//! Ported from `ratatui-core` 0.1.2 `src/text/text.rs` (ZDEP-030), reduced
-//! to the `From` conversions the spec scopes in: `Vec<Line>`, `&str`.
+//! Ported from `ratatui-core` 0.1.2 `src/text/text.rs` (ZDEP-030, extended
+//! ZDEP-035 for `Paragraph::new`'s `Into<Text>` bound), reduced to the
+//! `From` conversions this repo's inventory found in use: `&str`, `String`,
+//! `Line`, `Vec<Line>`. Upstream's `Text::from(&str)` splits on `\n` via
+//! `str::lines()`; this port (S8a, ZDEP-030) does not, so a multi-line
+//! `&str`/`String` passed to `Paragraph::new` renders as one line instead
+//! of upstream's per-line split -- flagged as a ZDEP-035 risk since no call
+//! site in the current inventory does this (all multi-line paragraph
+//! content already arrives as `Vec<Line>`), but S8c must re-check before
+//! flipping any call site that builds a `Paragraph` from a literal
+//! containing `\n`.
 
 use super::Line;
 use crate::layout::Alignment;
@@ -15,6 +24,18 @@ pub struct Text<'a> {
 impl<'a> From<&'a str> for Text<'a> {
     fn from(s: &'a str) -> Self {
         Self { lines: vec![Line::from(s)], ..Default::default() }
+    }
+}
+
+impl From<String> for Text<'_> {
+    fn from(s: String) -> Self {
+        Self { lines: vec![Line::from(s)], ..Default::default() }
+    }
+}
+
+impl<'a> From<Line<'a>> for Text<'a> {
+    fn from(line: Line<'a>) -> Self {
+        Self { lines: vec![line], ..Default::default() }
     }
 }
 
@@ -41,5 +62,20 @@ mod tests {
         let lines = vec![Line::from("a"), Line::from("b")];
         let text = Text::from(lines.clone());
         assert_eq!(text.lines, lines);
+    }
+
+    // Covers: ZDEP-035
+    #[test]
+    fn from_string() {
+        let text = Text::from(String::from("hello"));
+        assert_eq!(text.lines, vec![Line::from("hello")]);
+    }
+
+    // Covers: ZDEP-035
+    #[test]
+    fn from_line() {
+        let line = Line::from("hello");
+        let text = Text::from(line.clone());
+        assert_eq!(text.lines, vec![line]);
     }
 }

@@ -13,3 +13,7 @@ default = ["underline-color"]
 underline-color = []
 
 [dependencies]
+# Cell/grapheme width for the widget layer's text-truncation and centering
+# math (Paragraph/Block title/List/Gauge/BarChart) -- same crate that
+# already replaces unicode-width for the root crate (ZDEP-012/013).
+psmux-unicode = { path = "../psmux-unicode" }

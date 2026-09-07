@@ -182,3 +182,68 @@ matches the feature set above; the crate-tree golden loses crossterm,
 crossterm_winapi, ratatui-crossterm, winapi and their now-orphaned
 transitives; src/term has no `crate::` paths.
 Tests: `tests-rs/test_zdep_term_backend.rs`, `tests-rs/test_zdep_crate_tree.rs`
+
+## ZDEP-028..032 ratatui-core CORE layer folded into crates/psmux-tui (S8a)
+
+`crates/psmux-tui` (`layout`, `style`, `text`, `buffer`, `backend`) is an
+additive, inert in-tree port of `ratatui-core` 0.1.2's CORE layer -- landed
+on this branch ahead of the feature-doc entry; see
+`crates/psmux-tui/src/lib.rs`'s own module doc for the full reduced-surface
+breakdown and the deps each module drops. `ratatui` stays in both the root
+and `tests/monitor` manifests; no call site is flipped yet (S8c).
+Tests: inline `#[cfg(test)]` modules under `crates/psmux-tui/src/{layout,
+style,text,buffer,backend}/`.
+
+## ZDEP-033..039 ratatui-widgets WIDGET layer folded into crates/psmux-tui (S8b)
+
+`crates/psmux-tui::widgets` (plus `crates/psmux-tui::symbols::border`) is
+an additive, inert in-tree port of `ratatui-widgets` 0.3.2's widget layer
+and `ratatui-core` 0.1.2's `Widget`/`StatefulWidget` traits -- the exact
+surface this repo's project-wide inventory (`src/`, `tests-rs/`,
+`examples/`, `tests/monitor/`) found in use, per
+`docs/plans/2026-09-04-zero-third-party-deps.md` slice S8b:
+- ZDEP-033: `Widget`/`StatefulWidget` traits (bare, no blanket impls --
+  this repo implements neither for any of its own types) and
+  `symbols::border::Set` (Plain/Rounded/Double/Thick only, 6 glyphs each,
+  no `symbols::line`/`symbols::merge` -- nothing joins adjacent borders)
+  plus `render_text.rs`'s internal per-row line-writing/fill-style helpers
+  (`psmux_unicode::char_width`/`str_width` for truncation and centering).
+- ZDEP-034: `Borders` (a single `ALL` constant, no bitflag composition --
+  every `.borders(...)` call site passes `Borders::ALL`), `BorderType`
+  (Plain/Rounded/Double/Thick), `Block` (`default`, `.borders`,
+  `.border_type`, `.border_style`, `.title` over one `Option<Line>`
+  rendered on the top border row, `.style`, `.inner`; no `.new`/
+  `.bordered`/`.padding`/multi-title/`.shadow`/`.merge_borders`).
+- ZDEP-035: `Paragraph` (`new` over `Into<Text>`, `.block`, `.scroll`,
+  `.alignment`, `.style`; `Wrap` dropped entirely -- unused anywhere in the
+  inventory, so each line truncates to the inner width instead of
+  reflowing) plus the `Text::From<String>`/`From<Line>` impls its
+  `Into<Text>` bound needs (added to `text/text.rs`, ZDEP-030's module).
+- ZDEP-036: `Clear` (resets every cell in its area to `Cell::default()`).
+- ZDEP-037: `Gauge` (`default`, `.gauge_style`, `.ratio`, `.label`,
+  `.block`; `.percent`/`.use_unicode` dropped -- unused, so fill width
+  always rounds to whole cells, never emitting the eighth-cell glyphs).
+- ZDEP-038: `List`/`ListItem`/`ListState` (`List::new`/`.block`/
+  `.highlight_style` rendered via `StatefulWidget`; `ListItem::new(Line)`;
+  `ListState::default`/`.select`/`.offset`). Item height is hardcoded to 1
+  (every item here is a single `Line`) instead of porting upstream's
+  general variable-height `get_items_bounds` windowing; no
+  `highlight_symbol`/`scroll_padding`/`ListDirection` (all unused).
+- ZDEP-039: `Bar`/`BarChart`/`BarGroup` (`.value`, `.label(Line)`,
+  `.text_value`, `.style`, `.data`, `.bar_width`, `.bar_gap`,
+  `.value_style`, `.bars`), single-group vertical bars only, at whole-row
+  resolution -- a visual-fidelity gap vs. upstream's 1/8-cell
+  `symbols::bar::NINE_LEVELS` glyphs, flagged as a risk to revisit at S8c
+  if finer resolution turns out to matter once wired to a real terminal.
+
+`ratatui` stays in both the root and `tests/monitor` manifests; no call
+site is flipped (S8c). Root crate version bumped 3.4.0 -> 3.5.0 (A10: 3.4.x
+per behaviour-preserving slice).
+Acceptance: `cargo test -p psmux-tui` (98 original tests, one top-level
+`#[cfg(test)] mod tests` per feature module tagged `// Covers: ZDEP-0NN`);
+`cargo check -p psmux-tui`/`--workspace`, each with default features,
+`--no-default-features`, and `--features underline-color`; `cargo check`
+in the separate `tests/monitor` workspace (still resolves the real
+`ratatui`/`ratatui-widgets` crates, untouched).
+Tests: inline `#[cfg(test)]` modules under
+`crates/psmux-tui/src/{symbols,widgets}/`.
