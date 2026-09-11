@@ -99,6 +99,20 @@ target\release\pmux.exe
 target\release\tmux.exe
 ```
 
+To run straight from the checkout without installing (the crate defines three binaries from the
+same `src/main.rs`, so `--bin` is required; arguments go after `--`):
+
+```powershell
+cargo run --release --bin psmux
+cargo run --release --bin psmux -- new-session -s work
+```
+
+To install the binaries from your local checkout onto your PATH:
+
+```powershell
+cargo install --path .
+```
+
 ### Docker (build environment)
 
 A ready-made Windows container with Rust + MSVC + SSH for building psmux:
