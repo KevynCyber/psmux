@@ -11,10 +11,12 @@
 //
 // This locks in the pure parsing step the fix needs: splitting the
 // post-colon remainder into (window_part, pane_part) must treat a bare
-// "%<id>" (or bare numeric index, or relative-pane token) with NO dot as a
-// pane-only remainder (window_part = None), not as a window name. Assumed
-// signature for the implementer, to be added in src/main.rs and used by
-// cli_validate_window_pane_target:
+// "%<id>" with NO dot as a pane-only remainder (window_part = None), not as
+// a window name. A bare NUMERIC remainder with no dot is different: tmux
+// reads "sess:4" as WINDOW 4 (only a leading '%' in the window slot names a
+// pane), so that case must stay a window, not be reclassified as a pane.
+// Assumed signature for the implementer, to be added in src/main.rs and used
+// by cli_validate_window_pane_target:
 //
 //   fn split_target_window_pane(rest: &str) -> (Option<&str>, Option<&str>)
 //
@@ -30,10 +32,10 @@ fn bare_pane_id_with_no_dot_is_a_pane_not_a_window() {
 }
 
 #[test]
-fn bare_numeric_index_with_no_dot_is_a_pane_not_a_window() {
-    // tmux also accepts "sess:4" meaning pane index 4 of the active window
-    // when there is no dot.
-    assert_eq!(split_target_window_pane("4"), (None, Some("4")));
+fn bare_numeric_index_with_no_dot_is_a_window() {
+    // "sess:4" -> rest is "4": tmux reads this as WINDOW 4, not a pane --
+    // only a leading '%' in the window slot names a pane.
+    assert_eq!(split_target_window_pane("4"), (Some("4"), None));
 }
 
 #[test]
