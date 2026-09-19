@@ -46,6 +46,7 @@ mod win32;
 mod timefmt;
 #[cfg(test)]
 mod tests_zdep_wiring;
+use cli::split_target_window_pane;
 
 use std::io::{self, Write, Read as _, BufRead as _, IsTerminal};
 use std::time::Duration;
@@ -326,25 +327,10 @@ fn cli_validate_window_pane_target(ns: Option<&str>) {
     if let Some(ci) = full.find(':') {
         let rest = &full[ci + 1..];
         if rest.is_empty() { return; }
-        // Split off a pane component only when it is unambiguous (digits, %id or
-        // a relative specifier after the last dot) — window names may
-        // legitimately contain dots, and a wrong split would false-error on a
-        // real window.
-        let (win_part, pane_part): (&str, Option<&str>) = match rest.rfind('.') {
-            Some(d) => {
-                let p = &rest[d + 1..];
-                if !p.is_empty()
-                    && (p.starts_with('%')
-                        || p.chars().all(|c| c.is_ascii_digit())
-                        || is_relative_pane(p))
-                {
-                    (&rest[..d], Some(p))
-                } else {
-                    (rest, None)
-                }
-            }
-            None => (rest, None),
-        };
+        // Bare "%<id>" (no dot) names a PANE in the window slot (tmux parity,
+        // e.g. `sess:%4`); a bare digit-only remainder stays a WINDOW index.
+        let (win_opt, pane_part) = split_target_window_pane(rest);
+        let win_part = win_opt.unwrap_or("");
         if !win_part.is_empty() && !special(win_part) && cli_window_exists(win_part) == Some(false) {
             eprintln!("psmux: can't find window: {}", win_part);
             std::process::exit(1);

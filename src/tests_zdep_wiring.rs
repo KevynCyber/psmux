@@ -56,3 +56,7 @@ mod tests_zdep_term_console;
 #[cfg(test)]
 #[path = "../tests-rs/test_zdep_term_backend.rs"]
 mod tests_zdep_term_backend;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_session_pane_target.rs"]
+mod test_session_pane_target;
