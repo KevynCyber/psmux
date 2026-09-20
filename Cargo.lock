@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "psmux"
-version = "4.0.1"
+version = "4.1.0"
 dependencies = [
  "psmux-json",
  "psmux-regex",
