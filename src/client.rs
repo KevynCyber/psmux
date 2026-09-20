@@ -22,6 +22,11 @@ use crate::tree::split_with_gaps;
 mod client_json;
 #[path = "dump_state_json.rs"]
 mod dump_state_json;
+#[cfg(windows)]
+#[path = "client_paste.rs"]
+mod client_paste;
+#[cfg(windows)]
+pub(crate) use client_paste::*;
 pub(crate) use client_json::{BindingEntry, CustomizeOption, FloatJson, ServerMenuItem, WinStatus};
 pub(crate) use dump_state_json::DumpState;
 
@@ -1948,123 +1953,20 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
             let _ = writer.flush();
         }
 
-        // ── Windows paste pending-buffer management ────────────────────
-        // Flush or promote chars based on how long they've been buffered.
+        // Windows paste pending-buffer management: flush or promote chars
+        // based on how long they have been buffered.
         #[cfg(windows)]
         {
-            if let Some(start) = paste_pend_start {
-                let elapsed = start.elapsed();
-                if paste_confirmed {
-                    // Ctrl+V Release already seen — send as paste now
-                    if !paste_pend.is_empty() {
-                        if input_log_enabled() {
-                            input_log("paste", &format!("paste CONFIRMED (top), sending {} chars as send-paste: {:?}",
-                                paste_pend.len(), &paste_pend.chars().take(200).collect::<String>()));
-                        }
-                        let encoded = base64_encode(&paste_pend);
-                        cmd_batch.push(format!("send-paste {}\n", encoded));
-                        // Suppress clipboard-read fallback
-                        paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
-                    }
-                    paste_pend.clear();
-                    paste_pend_start = None;
-                    paste_stage2 = false;
-                    paste_confirmed = false;
-                } else if !paste_stage2 && elapsed > Duration::from_millis(20) {
-                    // 20ms window expired
-                    let has_non_ascii = paste_pend.chars().any(|c| !c.is_ascii());
-                    if paste_pend.len() >= 3 && !has_non_ascii {
-                        // ≥3 ASCII chars in 20ms → likely paste, enter stage 2.
-                        // Non-ASCII chars (IME composition, CJK input) are excluded
-                        // because IME routinely generates 3+ chars in <20ms and would
-                        // trigger a false-positive 300ms delay (fixes #91).
-                        paste_stage2 = true;
-                        paste_stage2_last_len = paste_pend.len();
-                        if input_log_enabled() {
-                            input_log("paste", &format!("stage2: {} chars in 20ms, waiting for Ctrl+V Release", paste_pend.len()));
-                        }
-                    } else if paste_pend.len() >= 20 && has_non_ascii {
-                        // ≥20 non-ASCII chars in 20ms — almost certainly a paste
-                        // containing Unicode content (em-dashes, CJK, etc.), not
-                        // IME composition (which rarely exceeds a few chars).
-                        paste_stage2 = true;
-                        paste_stage2_last_len = paste_pend.len();
-                        if input_log_enabled() {
-                            input_log("paste", &format!("stage2 (large non-ASCII): {} chars in 20ms", paste_pend.len()));
-                        }
-                    } else if paste_pend.len() >= 3 && has_non_ascii {
-                        // ≥3 chars but contains non-ASCII (IME input) — flush
-                        // immediately as normal text to avoid 300ms delay.
-                        if input_log_enabled() {
-                            input_log("paste", &format!("flush {} chars as normal (non-ASCII / IME detected)", paste_pend.len()));
-                        }
-                        for c in paste_pend.chars() {
-                            match c {
-                                '\n' => { cmd_batch.push("send-key enter\n".into()); }
-                                '\t' => { cmd_batch.push("send-key tab\n".into()); }
-                                ' '  => { cmd_batch.push("send-key space\n".into()); }
-                                _ => {
-                                    let escaped = match c {
-                                        '"' => "\\\"".to_string(),
-                                        '\\' => "\\\\".to_string(),
-                                        _ => c.to_string(),
-                                    };
-                                    cmd_batch.push(format!("send-text \"{}\"\n", escaped));
-                                }
-                            }
-                        }
-                        paste_pend.clear();
-                        paste_pend_start = None;
-                    } else {
-                        // <3 chars → normal typing, flush as send-text
-                        if input_log_enabled() {
-                            input_log("paste", &format!("flush {} chars as normal (< 3 in 20ms)", paste_pend.len()));
-                        }
-                        for c in paste_pend.chars() {
-                            match c {
-                                '\n' => { cmd_batch.push("send-key enter\n".into()); }
-                                '\t' => { cmd_batch.push("send-key tab\n".into()); }
-                                ' '  => { cmd_batch.push("send-key space\n".into()); }
-                                _ => {
-                                    let escaped = match c {
-                                        '"' => "\\\"".to_string(),
-                                        '\\' => "\\\\".to_string(),
-                                        _ => c.to_string(),
-                                    };
-                                    cmd_batch.push(format!("send-text \"{}\"\n", escaped));
-                                }
-                            }
-                        }
-                        paste_pend.clear();
-                        paste_pend_start = None;
-                    }
-                } else if paste_stage2 && elapsed > Duration::from_millis(300) {
-                    // Stage 2 timeout — no Ctrl+V Release arrived.
-                    // Growth detection: if the buffer grew since last check,
-                    // ConPTY is still injecting characters (large paste).
-                    // Extend the window instead of splitting the paste.
-                    if paste_pend.len() > paste_stage2_last_len {
-                        paste_stage2_last_len = paste_pend.len();
-                        paste_pend_start = Some(Instant::now() - Duration::from_millis(280));
-                    } else {
-                        // Buffer stopped growing — send accumulated chars as
-                        // send-paste so the server wraps in bracketed paste.
-                        if input_log_enabled() {
-                            input_log("paste", &format!("stage2 timeout, sending {} chars as send-paste", paste_pend.len()));
-                        }
-                        let encoded = base64_encode(&paste_pend);
-                        cmd_batch.push(format!("send-paste {}\n", encoded));
-                        paste_pend.clear();
-                        paste_pend_start = None;
-                        paste_stage2 = false;
-                        paste_stage2_last_len = 0;
-                        // Suppress the clipboard-read fallback that fires
-                        // when Ctrl+V Release arrives later (the paste was
-                        // already sent via stage2).
-                        paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
-                    }
-                }
-            }
+            manage_paste_pend(
+                paste_detection_enabled,
+                &mut paste_pend,
+                &mut paste_pend_start,
+                &mut paste_stage2,
+                &mut paste_stage2_last_len,
+                &mut paste_confirmed,
+                &mut paste_suppress_until,
+                &mut cmd_batch,
+            );
         }
 
         {
@@ -2199,6 +2101,8 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                                   && !key.modifiers.contains(KeyModifiers::ALT))
                                     }
                                     KeyCode::Enter | KeyCode::Tab => true, // buffered when pend non-empty
+                                    // Keeps a pending wrapper intact for the closer's ESC.
+                                    KeyCode::Esc => should_buffer_esc_for_paste(key.modifiers, paste_detection_enabled, &paste_pend),
                                     _ => false,
                                 };
                                 if !is_bufferable {
@@ -3773,7 +3677,10 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                 KeyCode::BackTab => { cmd_batch.push("send-key btab\n".into()); }
                                 KeyCode::Backspace => { cmd_batch.push("send-key backspace\n".into()); }
                                 KeyCode::Delete => { cmd_batch.push(format!("send-key {}\n", modified_key_name("Delete", key.modifiers))); }
-                                KeyCode::Esc => { cmd_batch.push("send-key esc\n".into()); }
+                                KeyCode::Esc => {
+                                    #[cfg(windows)] { route_esc_key(key.modifiers, paste_detection_enabled, &mut paste_pend, &mut paste_pend_start, &mut cmd_batch); }
+                                    #[cfg(not(windows))] { cmd_batch.push("send-key esc\n".into()); }
+                                }
                                 KeyCode::Left => { cmd_batch.push(format!("send-key {}\n", modified_key_name("Left", key.modifiers))); }
                                 KeyCode::Right => { cmd_batch.push(format!("send-key {}\n", modified_key_name("Right", key.modifiers))); }
                                 KeyCode::Up => { cmd_batch.push(format!("send-key {}\n", modified_key_name("Up", key.modifiers))); }
@@ -6293,50 +6200,6 @@ fn session_filter_escape_selection(
             .copied()
             .unwrap_or(0),
     )
-}
-
-/// Flush the paste-pending buffer as individual send-text / send-key commands.
-/// Called when a non-bufferable key (Backspace, Delete, Esc, BackTab) interrupts
-/// a potential paste burst, so we emit whatever we had as normal keystrokes.
-#[cfg(windows)]
-fn flush_paste_pend_as_text(
-    paste_pend: &mut String,
-    paste_pend_start: &mut Option<Instant>,
-    paste_stage2: &mut bool,
-    cmd_batch: &mut Vec<String>,
-) {
-    if paste_pend.is_empty() {
-        return;
-    }
-    // If we accumulated enough ASCII chars that stage2 was entered, this
-    // is almost certainly pasted content — send as send-paste so the server
-    // wraps it in bracketed paste sequences (fixes nvim autoindent).
-    // Non-ASCII buffers (IME input) are always flushed as normal text to
-    // avoid the 300ms delay (fixes #91).
-    let has_non_ascii = paste_pend.chars().any(|c| !c.is_ascii());
-    if (*paste_stage2 || paste_pend.len() >= 3) && !has_non_ascii {
-        let encoded = crate::util::base64_encode(paste_pend);
-        cmd_batch.push(format!("send-paste {}\n", encoded));
-    } else {
-        for c in paste_pend.chars() {
-            match c {
-                '\n' => { cmd_batch.push("send-key enter\n".into()); }
-                '\t' => { cmd_batch.push("send-key tab\n".into()); }
-                ' '  => { cmd_batch.push("send-key space\n".into()); }
-                _ => {
-                    let escaped = match c {
-                        '"' => "\\\"".to_string(),
-                        '\\' => "\\\\".to_string(),
-                        _ => c.to_string(),
-                    };
-                    cmd_batch.push(format!("send-text \"{}\"\n", escaped));
-                }
-            }
-        }
-    }
-    paste_pend.clear();
-    *paste_pend_start = None;
-    *paste_stage2 = false;
 }
 
 #[cfg(windows)]
