@@ -40,6 +40,7 @@ mod cross_session;
 mod cross_session_server;
 mod paths;
 mod which;
+mod persist;
 mod globmatch;
 #[cfg(windows)]
 mod win32;
