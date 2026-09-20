@@ -191,14 +191,17 @@ fn two_pane_app() -> (AppState, Arc<AtomicU64>, Arc<AtomicU64>) {
 }
 
 /// Extracts the `{"type":"leaf","id":<id>,...}` object's raw text out of the
-/// dump JSON. Good enough for a hand-serialised, non-nested-brace payload
-/// (leaf objects here never embed another `{"type":"leaf"...}` under the
-/// same id), and matches the string-assertion style already used by
-/// test_issue361_fastdump_hyperlink.rs against this same serialiser.
+/// dump JSON, including nested braces (e.g. a full-dump leaf's `rows_v2`
+/// entries). `start` points at the needle `"type":"leaf","id":<id>,`, which
+/// begins one character past the leaf object's own opening `{`; `depth`
+/// starts at 1 to account for that un-counted enclosing brace, so the loop
+/// still breaks at the object's true closing `}` and matches the
+/// string-assertion style already used by test_issue361_fastdump_hyperlink.rs
+/// against this same serialiser.
 fn leaf_json_for(json: &str, id: usize) -> String {
     let needle = format!("\"type\":\"leaf\",\"id\":{},", id);
     let start = json.find(&needle).unwrap_or_else(|| panic!("no leaf id={id} in {json}"));
-    let mut depth = 0i32;
+    let mut depth = 1i32;
     let mut end = start;
     for (i, ch) in json[start..].char_indices() {
         match ch {
