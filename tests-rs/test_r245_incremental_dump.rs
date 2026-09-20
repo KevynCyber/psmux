@@ -12,8 +12,7 @@
 // for a client that sends no revision map at all (full dump for every
 // pane, exactly like today's dump_layout_json_fast).
 //
-// No spec-cache/FEAT-ID exists yet for this area (.claude/spec-cache is
-// absent from this repo) -- no `// Covers:` tag until one is assigned.
+// Covers: R245-001
 //
 // Dummy PTY (no real spawn), so this stays hermetic and portable, mirroring
 // the harness in test_issue361_fastdump_hyperlink.rs.

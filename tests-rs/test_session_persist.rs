@@ -3,7 +3,9 @@
 // user can restart their machine or the psmux server without losing their
 // working layout.
 //
-// Covers: R245-PERSIST (proposed id; no .claude/spec-cache in this repo yet)
+// Coverage IDs are tagged per section below (R245-003 .. R245-007), since
+// this file locks five distinct requirements; see docs/features/
+// r245-psmux-slices.md.
 //
 // Scope deliberately excluded from this slice (a later slice's job):
 //   - floating panes and their geometry
@@ -60,6 +62,38 @@ fn sample_session(name: &str) -> SessionSnapshot {
         }],
     }
 }
+
+/// Test-only helper: rewrites the schema version field inside a raw
+/// hand-rolled state file to `new_version`, for the future-schema-version
+/// test in the R245-004 section. Exact format is whatever `save_state`
+/// emits; this just needs a version marker to exist and be rewritable.
+fn bump_schema_version_in_raw(raw: &str, new_version: u32) -> String {
+    let current = SCHEMA_VERSION.to_string();
+    if let Some(pos) = raw.find(&current) {
+        let mut out = String::with_capacity(raw.len() + 8);
+        out.push_str(&raw[..pos]);
+        out.push_str(&new_version.to_string());
+        out.push_str(&raw[pos + current.len()..]);
+        out
+    } else {
+        // No literal schema-version marker found (format not yet
+        // implemented) -- fall back to a byte we can still corrupt so the
+        // test at minimum exercises "not the exact bytes save_state wrote".
+        let mut buf = raw.as_bytes().to_vec();
+        if let Some(first) = buf.first_mut() {
+            *first = first.wrapping_add(1);
+        }
+        String::from_utf8_lossy(&buf).into_owned()
+    }
+}
+
+// =====================================================================
+// Covers: R245-003
+// Requirement: a session layout snapshot (windows, nested splits with
+// direction/order/sizes, and each pane's cwd and start_command) survives
+// a save_state/load_state round trip unchanged, so a user's working
+// layout can be reloaded after a restart.
+// =====================================================================
 
 // Lock 1: a single-pane session round-trips through save_state/load_state
 // byte-for-byte as data (identity on the parsed structures).
@@ -140,6 +174,14 @@ fn pane_cwd_and_start_command_round_trip() {
     }
 }
 
+// =====================================================================
+// Covers: R245-004
+// Requirement: the state file is untrusted input at the parse boundary.
+// A future schema version is reported as a typed LoadError, a truncated
+// or corrupt file is reported as corrupt, and a missing file loads as an
+// empty Vec -- none of these ever panic the server.
+// =====================================================================
+
 // Lock 4: a state file declaring a schema version newer than this build
 // understands must be reported as LoadError::UnsupportedSchemaVersion, never
 // panic (the file may have been written by a future psmux version).
@@ -199,6 +241,13 @@ fn missing_file_loads_as_empty_vec() {
     assert_eq!(loaded, Vec::<SessionSnapshot>::new());
 }
 
+// =====================================================================
+// Covers: R245-005
+// Requirement: the persisted state file path is scoped to the data dir
+// and namespace only -- it never depends on the process's current
+// working directory, and two namespaces never share one file.
+// =====================================================================
+
 // Lock 7: state_file_path depends only on the given dir/namespace, never on
 // the process's current working directory.
 #[test]
@@ -232,6 +281,13 @@ fn state_file_path_differs_per_namespace() {
     assert_ne!(ns_a, ns_b);
 }
 
+// =====================================================================
+// Covers: R245-006
+// Requirement: restore is gated on session-name collisions -- it refuses
+// to clobber a live session of the same name (typed error naming the
+// session), and accepts every snapshot when no name collides.
+// =====================================================================
+
 // Lock 9: restoring must refuse to clobber a session name that is already
 // live, reporting a typed NameCollision rather than silently overwriting or
 // silently skipping.
@@ -262,6 +318,14 @@ fn restore_accepts_all_snapshots_when_no_collision() {
     assert!(accepted.contains(&"scratch".to_string()));
 }
 
+// =====================================================================
+// Covers: R245-007
+// Requirement: persisted state carries only the shell/command data
+// needed to recreate a pane (cwd, start_command, dimensions) and never a
+// child application's internal state -- a scope/security boundary on
+// what psmux writes to disk.
+// =====================================================================
+
 // Lock 11 (regression lock): persisted state must contain only the shell/
 // command data needed to recreate a pane's process (cwd, start_command,
 // dimensions) -- never a child application's internal state such as
@@ -284,29 +348,5 @@ fn persisted_state_never_contains_child_app_internal_state() {
             !lower.contains(forbidden),
             "persisted state file must never contain {forbidden:?}, got: {raw}"
         );
-    }
-}
-
-/// Test-only helper: rewrites the schema version field inside a raw
-/// hand-rolled state file to `new_version`, for the future-schema-version
-/// RED test above. Exact format is whatever `save_state` emits; this just
-/// needs a version marker to exist and be rewritable.
-fn bump_schema_version_in_raw(raw: &str, new_version: u32) -> String {
-    let current = SCHEMA_VERSION.to_string();
-    if let Some(pos) = raw.find(&current) {
-        let mut out = String::with_capacity(raw.len() + 8);
-        out.push_str(&raw[..pos]);
-        out.push_str(&new_version.to_string());
-        out.push_str(&raw[pos + current.len()..]);
-        out
-    } else {
-        // No literal schema-version marker found (format not yet
-        // implemented) -- fall back to a byte we can still corrupt so the
-        // test at minimum exercises "not the exact bytes save_state wrote".
-        let mut buf = raw.as_bytes().to_vec();
-        if let Some(first) = buf.first_mut() {
-            *first = first.wrapping_add(1);
-        }
-        String::from_utf8_lossy(&buf).into_owned()
     }
 }
