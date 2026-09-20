@@ -6452,3 +6452,7 @@ mod test_pane_wants_mouse_selection;
 #[cfg(test)]
 #[path = "../tests-rs/test_issue507_popup_cursor.rs"]
 mod test_issue507_popup_cursor;
+
+#[cfg(test)]
+#[path = "../tests-rs/test_bracketed_paste_wrapper_scan.rs"]
+mod test_bracketed_paste_wrapper_scan;
