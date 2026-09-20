@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io;
 
 use crate::types::{AppState, Node, LayoutKind, Mode};
@@ -544,6 +545,14 @@ fn dump_layout_json_inner(app: &mut AppState, win_id_override: Option<usize>) ->
 /// allocations **and** the `psmux_json::to_string` traversal.  Produces the
 /// identical JSON format that the client deserialises into `LayoutJson`.
 pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
+    dump_layout_json_fast_impl(app, None)
+}
+
+pub fn dump_layout_json_fast_incremental(app: &mut AppState, known: &HashMap<usize, (u64, u16, u16)>) -> io::Result<String> {
+    dump_layout_json_fast_impl(app, Some(known))
+}
+
+fn dump_layout_json_fast_impl(app: &mut AppState, known: Option<&HashMap<usize, (u64, u16, u16)>>) -> io::Result<String> {
     let in_copy = matches!(app.mode, Mode::CopyMode | Mode::CopySearch { .. });
     sync_copy_freeze(app, in_copy);
     let scroll_off = app.copy_scroll_offset;
@@ -616,6 +625,7 @@ pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
         anchor_scroll: usize,
         cpos: Option<(u16, u16)>,
         sel_mode: crate::types::SelectionMode,
+        known: Option<&HashMap<usize, (u64, u16, u16)>>,
         out: &mut String,
     ) {
         match node {
@@ -634,7 +644,7 @@ pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
                 for (i, c) in children.iter_mut().enumerate() {
                     if i > 0 { out.push(','); }
                     cur_path.push(i);
-                    write_node(c, cur_path, active_path, in_copy, scroll_off, anchor, anchor_scroll, cpos, sel_mode, out);
+                    write_node(c, cur_path, active_path, in_copy, scroll_off, anchor, anchor_scroll, cpos, sel_mode, known, out);
                     cur_path.pop();
                 }
                 out.push_str("]}");
@@ -650,6 +660,11 @@ pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
                 const FLAG_HIDDEN: u8   = 64;
                 const FLAG_STRIKETHROUGH: u8 = 128;
 
+                if let Some((rev, rows, cols)) = known.and_then(|m| m.get(&p.id).copied()) {
+                    if p.data_version.load(std::sync::atomic::Ordering::Acquire) == rev && rows == p.last_rows && cols == p.last_cols {
+                        let _ = std::fmt::Write::write_fmt(out, format_args!("{{\"type\":\"leaf\",\"id\":{},\"unchanged\":true}}", p.id));
+                        return;
+                    } }
                 // If the pane is squelched, emit a blank leaf.
                 if p.squelch_until.is_some() {
                     let sentinel_arrived = p.term.lock()
@@ -979,7 +994,7 @@ pub fn dump_layout_json_fast(app: &mut AppState) -> io::Result<String> {
     let mut out = String::with_capacity(32768);
     write_node(
         &mut win.root, &mut path, &active_path,
-        in_copy, scroll_off, anchor, anchor_scroll, cpos, sel_mode, &mut out,
+        in_copy, scroll_off, anchor, anchor_scroll, cpos, sel_mode, known, &mut out,
     );
     Ok(out)
 }
