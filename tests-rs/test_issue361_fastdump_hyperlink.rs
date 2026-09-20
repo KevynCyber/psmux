@@ -187,3 +187,6 @@ fn fast_dump_escapes_the_uri() {
         "URI must be JSON-escaped: {json}"
     );
 }
+
+#[path = "test_r245_incremental_dump.rs"]
+mod test_r245_incremental_dump;
