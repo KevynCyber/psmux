@@ -125,7 +125,11 @@ pub(crate) fn manage_paste_pend(
     paste_stage2: &mut bool,
     paste_stage2_last_len: &mut usize,
     paste_confirmed: &mut bool,
-    paste_suppress_until: &mut Option<Instant>,
+    // No longer read here -- kept as a parameter only so callers (client.rs's
+    // Char-intake arm) keep exclusive ownership of the char-intake deadline;
+    // this function now arms only the clipboard-fallback-only field below.
+    _paste_suppress_until: &mut Option<Instant>,
+    clipboard_fallback_suppress_until: &mut Option<Instant>,
     cmd_batch: &mut Vec<String>,
 ) {
     let start = match *paste_pend_start {
@@ -145,8 +149,9 @@ pub(crate) fn manage_paste_pend(
                 }
                 if !payload.is_empty() {
                     cmd_batch.push(format!("send-paste {}\n", base64_encode(&payload)));
-                    // Suppress the clipboard-read fallback.
-                    *paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
+                    // Suppress the clipboard-read fallback only -- char intake
+                    // (paste_suppress_until) must stay open.
+                    *clipboard_fallback_suppress_until = Some(Instant::now() + Duration::from_millis(200));
                 }
                 *paste_pend = rest;
                 *paste_pend_start = if paste_pend.is_empty() { None } else { Some(Instant::now()) };
@@ -178,8 +183,9 @@ pub(crate) fn manage_paste_pend(
                     paste_pend.len(), &paste_pend.chars().take(200).collect::<String>()));
             }
             cmd_batch.push(format!("send-paste {}\n", base64_encode(paste_pend)));
-            // Suppress clipboard-read fallback.
-            *paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
+            // Suppress clipboard-read fallback only -- char intake
+            // (paste_suppress_until) must stay open.
+            *clipboard_fallback_suppress_until = Some(Instant::now() + Duration::from_millis(200));
         }
         paste_pend.clear();
         *paste_pend_start = None;
@@ -245,7 +251,9 @@ pub(crate) fn manage_paste_pend(
             *paste_stage2_last_len = 0;
             // Suppress the clipboard-read fallback that fires when Ctrl+V
             // Release arrives later (the paste was already sent via stage2).
-            *paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
+            // paste_suppress_until stays open so char intake keeps accepting
+            // keys typed right after this flush.
+            *clipboard_fallback_suppress_until = Some(Instant::now() + Duration::from_millis(200));
         }
     }
 }

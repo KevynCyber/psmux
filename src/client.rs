@@ -1651,6 +1651,9 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
     // unconditionally; only the Windows code paths ever read it.
     #[allow(unused_variables)]
     let mut paste_suppress_until: Option<Instant> = None;
+    // Clipboard-fallback-only deadline, kept separate so it never blocks char intake.
+    #[allow(unused_variables)]
+    let mut clipboard_fallback_suppress_until: Option<Instant> = None;
 
     // Track whether a modified Enter Press was already handled this keypress
     // cycle.  WezTerm sends Shift+Enter as Release-only (no Press), so we
@@ -1965,6 +1968,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                 &mut paste_stage2_last_len,
                 &mut paste_confirmed,
                 &mut paste_suppress_until,
+                &mut clipboard_fallback_suppress_until,
                 &mut cmd_batch,
             );
         }
@@ -4310,14 +4314,15 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                 paste_pend_start = None;
                 paste_stage2 = false;
                 paste_confirmed = false;
-                // Suppress subsequent char accumulation and clipboard-read
-                // fallback — the paste was already delivered.
-                paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
+                // Suppress the clipboard-read fallback only — the paste was
+                // already delivered; char intake (paste_suppress_until)
+                // stays open.
+                clipboard_fallback_suppress_until = Some(Instant::now() + Duration::from_millis(200));
             } else if paste_confirmed && paste_pend.is_empty() {
                 // Ctrl+V Release with no buffered chars.  If paste was
                 // already sent via stage2 timeout or Event::Paste, the
                 // suppress window prevents a redundant clipboard read.
-                let suppressed = paste_suppress_until
+                let suppressed = clipboard_fallback_suppress_until
                     .map_or(false, |t| Instant::now() < t);
                 if !suppressed {
                     // No recent paste — read clipboard as fallback
@@ -4328,10 +4333,10 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                             }
                             let encoded = base64_encode(&text);
                             cmd_batch.push(format!("send-paste {}\n", encoded));
-                            // Suppress subsequent char accumulation — the
+                            // Suppress the clipboard-read fallback only — the
                             // clipboard chars may arrive later (async inject)
                             // and would cause a duplicate paste via stage2.
-                            paste_suppress_until = Some(Instant::now() + Duration::from_millis(200));
+                            clipboard_fallback_suppress_until = Some(Instant::now() + Duration::from_millis(200));
                         }
                     }
                 }
