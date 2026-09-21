@@ -19,3 +19,14 @@
   namespace.
 - Run the full test suite only in CI or another disposable Windows environment
   where user sessions cannot be affected.
+
+## Cargo Test Target Selection
+
+- psmux has no `[lib]` target: `cargo test --lib` fails with "no library
+  targets found" -- a target-selection error, not a test failure. Use
+  `cargo test --bin psmux <filter>`.
+- Filters are substring matches: the bare filter `session_persist` matches 47
+  unrelated tests. Use a module path such as
+  `persist::tests_session_persist::`.
+- Scope repo-wide greps to `src/`, `tests-rs/`, `scripts/` -- a root-level
+  `grep -rn` walks every `.claude/worktrees/` copy and takes >120s.
