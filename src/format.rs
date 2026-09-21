@@ -1396,15 +1396,20 @@ fn expand_var_inner(var: &str, app: &AppState, win_idx: usize) -> String {
             if let Some(p) = target_pane() { format!("/dev/pty{}", p.id) }
             else { String::new() }
         }
-        "pane_in_mode" => match app.mode {
-            Mode::CopyMode | Mode::CopySearch { .. } | Mode::ClockMode => "1".into(),
-            _ => "0".into(),
-        },
-        "pane_mode" => match app.mode {
-            Mode::CopyMode | Mode::CopySearch { .. } => "copy-mode".into(),
-            Mode::ClockMode => "clock-mode".into(),
-            _ => String::new(),
-        },
+        "pane_in_mode" => {
+            let pane_copy_mode = target_pane().is_some_and(|p| p.copy_state.is_some());
+            if pane_copy_mode || matches!(app.mode, Mode::ClockMode) { "1".into() } else { "0".into() }
+        }
+        "pane_mode" => {
+            let pane_copy_mode = target_pane().is_some_and(|p| p.copy_state.is_some());
+            if pane_copy_mode {
+                "copy-mode".into()
+            } else if matches!(app.mode, Mode::ClockMode) {
+                "clock-mode".into()
+            } else {
+                String::new()
+            }
+        }
         "pane_synchronized" => if app.sync_input { "1".into() } else { "0".into() },
         "pane_dead" => {
             if let Some(p) = target_pane() {
