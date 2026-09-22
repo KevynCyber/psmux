@@ -138,6 +138,29 @@ pub(crate) fn manage_paste_pend(
     };
     let elapsed = start.elapsed();
 
+    // A buffered ESC that can no longer become a bracketed-paste opener
+    // (neither a prefix of BRACKETED_PASTE_OPEN nor a full opener) must be
+    // flushed on its own as send-key esc, mirroring push_char_as_key's
+    // bare-ESC handling -- otherwise it rides along inside whatever
+    // send-paste the rest of this function emits.
+    if paste_pend.starts_with('\x1b')
+        && !BRACKETED_PASTE_OPEN.starts_with(paste_pend.as_str())
+        && !paste_pend.starts_with(BRACKETED_PASTE_OPEN)
+    {
+        if input_log_enabled() {
+            input_log("paste", "buffered ESC can no longer open a paste wrapper, flushing as send-key esc");
+        }
+        cmd_batch.push("send-key esc\n".to_string());
+        paste_pend.remove(0);
+        if paste_pend.is_empty() {
+            *paste_pend_start = None;
+            *paste_stage2 = false;
+            *paste_stage2_last_len = 0;
+            *paste_confirmed = false;
+            return;
+        }
+    }
+
     // An explicit wrapper takes precedence over the arrival-timing heuristic:
     // the markers are proof of a paste, where timing can only guess and
     // misclassifies large/slow pastes as individual keystrokes.
