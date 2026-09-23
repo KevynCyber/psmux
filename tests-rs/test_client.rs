@@ -704,3 +704,7 @@ fn paste_command_prompt_takes_precedence_over_other_overlays() {
     assert!(pane_title_buf.is_empty());
     assert!(window_idx_buf.is_empty());
 }
+
+// File at file-structure-check cap: additional coverage lives in a sibling
+// file, included here so it shares the `tests` module (make_leaf, etc.).
+include!("test_client_paste_whitespace.rs");
