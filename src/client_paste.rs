@@ -8,6 +8,16 @@ use crate::debug_log::{input_log, input_log_enabled};
 use crate::term::event::KeyModifiers;
 use crate::util::base64_encode;
 
+/// Whether a mouse-drag selection is worth copying to the system clipboard.
+///
+/// A drag across blank prompt rows yields newline/whitespace-only text; if
+/// that gets copied, it silently clobbers whatever the user had on the
+/// clipboard, and the next paste sends N blank lines into the pane instead
+/// (PSMUX-PASTE-WS-001).
+pub(crate) fn selection_worth_copying(text: &str) -> bool {
+    !text.trim().is_empty()
+}
+
 pub(crate) const BRACKETED_PASTE_OPEN: &str = "\x1b[200~";
 const BRACKETED_PASTE_CLOSE: &str = "\x1b[201~";
 

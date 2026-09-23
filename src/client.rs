@@ -3564,7 +3564,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                                 rsel_block,
                                                 rsel_pane_rect, &client_border_status, &client_border_format,
                                             );
-                                            if !text.is_empty() {
+                                            if selection_worth_copying(&text) {
                                                 copy_to_system_clipboard(&text);
                                                 pending_osc52 = Some(text);
                                             }
@@ -3985,7 +3985,7 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                                                 rsel_block,
                                                 rsel_pane_rect, &client_border_status, &client_border_format,
                                             );
-                                            if !text.is_empty() {
+                                            if selection_worth_copying(&text) {
                                                 copy_to_system_clipboard(&text);
                                                 pending_osc52 = Some(text);
                                             }
