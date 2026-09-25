@@ -826,6 +826,9 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
         let _ = std::fs::remove_file(crate::paths::sid_file(&base));
         let _ = std::fs::remove_file(crate::paths::pid_file(&base));
     }));
+    // This thread runs the server loop (keystroke -> ConPTY -> frame push).
+    crate::sched_priority::opt_out_of_power_throttling();
+    crate::sched_priority::raise_current_thread_priority();
     // Install console control handler to prevent termination on client detach
     install_console_ctrl_handler();
 

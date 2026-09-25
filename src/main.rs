@@ -6,6 +6,7 @@ mod types;
 mod pty;
 mod term;
 mod platform;
+mod sched_priority;
 mod cli;
 mod session;
 mod tree;

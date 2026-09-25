@@ -2126,6 +2126,7 @@ pub fn spawn_reader_thread(
     let reader_done_r = reader_done.clone();
     let output_ring_r = output_ring.clone();
     thread::spawn(move || {
+        crate::sched_priority::raise_current_thread_priority();
         // TEST-ONLY (PSMUX_TEST_READER_DELAY_MS): hold off this reader's first
         // read by a fixed duration. The reader is what drains conhost's startup
         // ESC[6n cursor-position request; with PSEUDOCONSOLE_INHERIT_CURSOR set,
@@ -2249,6 +2250,7 @@ pub fn spawn_reader_thread(
 
     // ── Parser thread: coalesces staged bytes, processes under one lock ──
     thread::spawn(move || {
+        crate::sched_priority::raise_current_thread_priority();
         let mut cpr_scanner = CprScanner::new();
         loop {
             // Wait for at least one byte (or shutdown).

@@ -458,6 +458,7 @@ if line.trim() == "PERSISTENT" {
             }
         }
         let _guard = Guard { client_id, shutdown: ws_shutdown, tx: tx_writer };
+        crate::sched_priority::raise_current_thread_priority();
 
         loop {
             // Each iteration drains all three sources in priority order

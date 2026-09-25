@@ -1493,6 +1493,9 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
         let _ = std::fs::write(&last_path, &name);
     }
 
+    // This thread reads keys and renders frames: keep it off EcoQoS.
+    crate::sched_priority::opt_out_of_power_throttling();
+    crate::sched_priority::raise_current_thread_priority();
     // ── Open persistent TCP connection ───────────────────────────────────
     let (mut writer, mut frame_rx) = establish_connection(&addr, &session_key)?;
     // Pending background reconnect: Some(rx) while a reconnect thread is running.
