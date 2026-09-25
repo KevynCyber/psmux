@@ -407,6 +407,10 @@ if line.trim() == "PERSISTENT" {
     // freezing frame delivery. 5 s matches the command-response timeout.
     let _ = ws_bg.set_write_timeout(Some(Duration::from_secs(5)));
     let (resp_tx, resp_rx) = mpsc::channel::<crate::types::WriterMsg>();
+    // LAG-008: register the frame waker (inside WriterHandle) before the
+    // frame slot opens, so the first push into the slot always wakes the
+    // writer instead of waiting out its 5ms fallback poll.
+    let writer_handle = crate::wake::WriterHandle::new(client_id, resp_tx);
 
     // Register a frame slot for server-pushed frames (event-driven rendering).
     // Slot holds at most one pending frame; push_frame() overwrites any
@@ -506,7 +510,7 @@ if line.trim() == "PERSISTENT" {
             }
         }
     });
-    resp_tx_opt = Some(crate::wake::WriterHandle::new(client_id, resp_tx));
+    resp_tx_opt = Some(writer_handle);
     line.clear();
     if r.read_line(&mut line).is_err() {
         return;
