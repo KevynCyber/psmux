@@ -203,3 +203,6 @@ fn burst_writes_survive_backpressure_and_arrive_complete() {
     );
     drop(queue);
 }
+
+#[path = "test_typing_lag_coalesce.rs"]
+mod typing_lag_coalesce;

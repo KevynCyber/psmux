@@ -307,3 +307,7 @@ fn bare_esc_then_fast_typed_chars_flushes_esc_as_key_not_inside_send_paste() {
         cmd_batch
     );
 }
+
+#[cfg(windows)]
+#[path = "test_typing_lag_console_frame_event.rs"]
+mod typing_lag_console_frame_event;

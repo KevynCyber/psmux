@@ -72,3 +72,9 @@ fn push_frame_replaces_stale_backlog() {
     assert_eq!(first.as_deref(), Some("newest"));
     assert!(second.is_none(), "slot should hold at most one frame");
 }
+
+#[path = "test_typing_lag_frame_waker.rs"]
+mod typing_lag_frame_waker;
+
+#[path = "test_typing_lag_server_wake.rs"]
+mod typing_lag_server_wake;

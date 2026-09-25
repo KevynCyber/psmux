@@ -3,9 +3,11 @@
 #![allow(dead_code)]
 
 mod types;
+mod wake;
 mod pty;
 mod term;
 mod platform;
+mod sched_priority;
 mod cli;
 mod session;
 mod tree;

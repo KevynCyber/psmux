@@ -152,6 +152,13 @@ extern "system" {
 extern "system" {
     /// https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
     fn WaitForSingleObject(hHandle: *mut c_void, dwMilliseconds: u32) -> u32;
+    /// https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects
+    fn WaitForMultipleObjects(nCount: u32, lpHandles: *const *mut c_void, bWaitAll: i32, dwMilliseconds: u32) -> u32;
+    /// https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw
+    // isize params/return match the LAG-003 test's own declaration (clashing_extern_declarations).
+    fn CreateEventW(lpEventAttributes: isize, bManualReset: i32, bInitialState: i32, lpName: isize) -> isize;
+    /// https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent
+    fn SetEvent(hEvent: *mut c_void) -> i32;
 }
 
 fn check_handle(h: *mut c_void) -> io::Result<*mut c_void> {
@@ -225,11 +232,28 @@ fn window_top() -> i16 {
     }
 }
 
+fn timeout_ms(timeout: Duration) -> u32 {
+    timeout.as_millis().min(u128::from(u32::MAX - 1)) as u32
+}
+
+/// A zero timeout keeps the single-handle wait so a non-blocking probe never
+/// consumes a pending frame signal meant for the client's blocking wait.
+/// FrameReady reports "no input": the caller's loop then drains its frame
+/// channel and renders instead of sleeping out the rest of `timeout`.
 pub fn poll(timeout: Duration) -> io::Result<bool> {
     unsafe {
         let h = check_handle(GetStdHandle(STD_INPUT_HANDLE))?;
-        let ms = timeout.as_millis().min(u128::from(u32::MAX - 1)) as u32;
-        match WaitForSingleObject(h, ms) {
+        if timeout > Duration::ZERO {
+            return match wait_input_or_frame(h, timeout)? {
+                Wakeup::Input => {
+                    let mut n: u32 = 0;
+                    if GetNumberOfConsoleInputEvents(h, &mut n) == 0 { return Err(last_err()); }
+                    Ok(n > 0)
+                }
+                Wakeup::FrameReady | Wakeup::Timeout => Ok(false),
+            };
+        }
+        match WaitForSingleObject(h, 0) {
             WAIT_OBJECT_0 => {
                 let mut n: u32 = 0;
                 if GetNumberOfConsoleInputEvents(h, &mut n) == 0 { return Err(last_err()); }
@@ -238,6 +262,56 @@ pub fn poll(timeout: Duration) -> io::Result<bool> {
             WAIT_TIMEOUT => Ok(false),
             _ => Err(last_err()),
         }
+    }
+}
+
+// --- frame-ready wakeup (LAG-003) ------------------------------------------
+
+/// Why `wait_input_or_frame` returned.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Wakeup {
+    Input,
+    FrameReady,
+    Timeout,
+}
+
+/// Process-wide auto-reset event; 0 when creation failed, in which case
+/// waits degrade to input-only (the pre-LAG-003 timeout-bounded behaviour).
+static FRAME_EVENT: OnceLock<isize> = OnceLock::new();
+
+fn frame_event() -> isize {
+    *FRAME_EVENT.get_or_init(|| unsafe { CreateEventW(0, 0, 0, 0) })
+}
+
+/// Wake a thread blocked in `wait_input_or_frame`; called by the client's
+/// frame-reader thread after queueing a frame. Auto-reset: one signal wakes
+/// one wait, and signals coalesce while nobody is waiting.
+pub fn signal_frame_ready() {
+    let ev = frame_event();
+    if ev != 0 {
+        unsafe { SetEvent(ev as *mut c_void) };
+    }
+}
+
+/// Block until `input` is signalled, a frame is signalled, or `timeout`
+/// elapses. Input is listed first so WaitForMultipleObjects (lowest index
+/// wins) never starves keystrokes behind frame wakeups.
+pub fn wait_input_or_frame(input: *mut c_void, timeout: Duration) -> io::Result<Wakeup> {
+    let ms = timeout_ms(timeout);
+    let ev = frame_event();
+    let rc = unsafe {
+        if ev == 0 {
+            WaitForSingleObject(input, ms)
+        } else {
+            let handles = [input, ev as *mut c_void];
+            WaitForMultipleObjects(2, handles.as_ptr(), 0, ms)
+        }
+    };
+    match rc {
+        WAIT_OBJECT_0 => Ok(Wakeup::Input),
+        r if r == WAIT_OBJECT_0 + 1 => Ok(Wakeup::FrameReady),
+        WAIT_TIMEOUT => Ok(Wakeup::Timeout),
+        _ => Err(last_err()),
     }
 }
 

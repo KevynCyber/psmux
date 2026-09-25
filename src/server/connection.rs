@@ -370,7 +370,7 @@ let _ = r.get_ref().set_read_timeout(Some(Duration::from_millis(2000)));
 
 // Check for PERSISTENT flag and optional TARGET line
 let mut persistent = false;
-let mut resp_tx_opt: Option<mpsc::Sender<mpsc::Receiver<String>>> = None;
+let mut resp_tx_opt: Option<crate::wake::WriterHandle> = None;
 let mut global_target_win: Option<usize> = None;
 let mut global_target_win_is_id = false;
 let mut global_target_win_name: Option<String> = None;
@@ -406,7 +406,7 @@ if line.trim() == "PERSISTENT" {
     // timeout, a full socket causes write() to block forever, silently
     // freezing frame delivery. 5 s matches the command-response timeout.
     let _ = ws_bg.set_write_timeout(Some(Duration::from_secs(5)));
-    let (resp_tx, resp_rx) = mpsc::channel::<mpsc::Receiver<String>>();
+    let (resp_tx, resp_rx) = mpsc::channel::<crate::types::WriterMsg>();
 
     // Register a frame slot for server-pushed frames (event-driven rendering).
     // Slot holds at most one pending frame; push_frame() overwrites any
@@ -458,6 +458,7 @@ if line.trim() == "PERSISTENT" {
             }
         }
         let _guard = Guard { client_id, shutdown: ws_shutdown, tx: tx_writer };
+        crate::sched_priority::raise_current_thread_priority();
 
         loop {
             // Each iteration drains all three sources in priority order
@@ -470,30 +471,28 @@ if line.trim() == "PERSISTENT" {
                 if write!(ws_bg, "{}\n", directive).is_err() { return; }
                 if ws_bg.flush().is_err() { return; }
             }
-            // 1. Drain pending command responses.
+            // 1. Drain pending command responses. FrameReady (push_frame)
+            // only wakes this recv early; the 5ms timeout stays as fallback.
             match resp_rx.recv_timeout(Duration::from_millis(5)) {
-                Ok(rrx) => {
+                Ok(first) => {
                     // Use a timeout matching the TCP write timeout (5 s) so the
                     // writer thread cannot block indefinitely if the command
                     // handler is slow or panics without sending a response.
                     // A timeout (or disconnected sender) is treated as fatal:
                     // break so Guard::drop fires, the client receives EOF, and
                     // reconnects cleanly rather than stalling on a silent drop.
-                    match rrx.recv_timeout(Duration::from_secs(5)) {
-                        Ok(text) => {
-                            if write!(ws_bg, "{}\n", text).is_err() { return; }
-                            if ws_bg.flush().is_err() { return; }
-                        }
-                        Err(_) => return,
-                    }
-                    while let Ok(rrx) = resp_rx.try_recv() {
-                        match rrx.recv_timeout(Duration::from_secs(5)) {
-                            Ok(text) => {
-                                if write!(ws_bg, "{}\n", text).is_err() { return; }
-                                if ws_bg.flush().is_err() { return; }
+                    let mut next = Some(first);
+                    while let Some(msg) = next {
+                        if let crate::types::WriterMsg::Resp(rrx) = msg {
+                            match rrx.recv_timeout(Duration::from_secs(5)) {
+                                Ok(text) => {
+                                    if write!(ws_bg, "{}\n", text).is_err() { return; }
+                                    if ws_bg.flush().is_err() { return; }
+                                }
+                                Err(_) => return,
                             }
-                            Err(_) => return,
                         }
+                        next = resp_rx.try_recv().ok();
                     }
                 }
                 Err(mpsc::RecvTimeoutError::Disconnected) => return,
@@ -507,7 +506,7 @@ if line.trim() == "PERSISTENT" {
             }
         }
     });
-    resp_tx_opt = Some(resp_tx);
+    resp_tx_opt = Some(crate::wake::WriterHandle::new(client_id, resp_tx));
     line.clear();
     if r.read_line(&mut line).is_err() {
         return;
@@ -1210,7 +1209,7 @@ match cmd {
         if let Some(ref rtx_bg) = resp_tx_opt {
             // Persistent mode: hand off to writer thread (non-blocking).
             // This lets the read loop keep processing keys immediately.
-            let _ = rtx_bg.send(rrx);
+            rtx_bg.send_resp(rrx);
         } else {
             // One-shot mode: block and respond inline
             if let Ok(text) = rrx.recv() { 

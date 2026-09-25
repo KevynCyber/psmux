@@ -9,6 +9,9 @@ use crate::pty::{CommandBuilder, PtySize, native_pty_system};
 use crate::types::{AppState, Pane, Node, LayoutKind, Window};
 use crate::tree::{replace_leaf_with_split, active_pane_mut, kill_leaf};
 use crate::format::hostname_cached;
+#[cfg(test)]
+pub use crate::wake::should_coalesce;
+pub use crate::wake::should_coalesce_batch;
 
 /// Sentinel value for cursor_shape: means "no DECSCUSR received from child yet".
 /// When ConPTY passthrough mode is unavailable, DECSCUSR sequences from child
@@ -2126,6 +2129,7 @@ pub fn spawn_reader_thread(
     let reader_done_r = reader_done.clone();
     let output_ring_r = output_ring.clone();
     thread::spawn(move || {
+        crate::sched_priority::raise_current_thread_priority();
         // TEST-ONLY (PSMUX_TEST_READER_DELAY_MS): hold off this reader's first
         // read by a fixed duration. The reader is what drains conhost's startup
         // ESC[6n cursor-position request; with PSEUDOCONSOLE_INHERIT_CURSOR set,
@@ -2249,6 +2253,7 @@ pub fn spawn_reader_thread(
 
     // ── Parser thread: coalesces staged bytes, processes under one lock ──
     thread::spawn(move || {
+        crate::sched_priority::raise_current_thread_priority();
         let mut cpr_scanner = CprScanner::new();
         loop {
             // Wait for at least one byte (or shutdown).
@@ -2268,7 +2273,7 @@ pub fn spawn_reader_thread(
                                 parser.process(b"\x1b[?25h\x1b[?1049l");
                                 cursor_shape.store(0, Ordering::Release);
                                 dv_writer.fetch_add(1, Ordering::Release);
-                                crate::types::PTY_DATA_READY.store(true, Ordering::Release);
+                                crate::types::mark_pty_data_ready();
                             }
                         }
                         return;
@@ -2292,6 +2297,10 @@ pub fn spawn_reader_thread(
                 lock.lock().map(|b| b.len()).unwrap_or(0)
             };
             loop {
+                // Small complete echo: parse now. Mid-escape / cursor-hidden heads wait.
+                let wait = { let (lock, _) = &*staging;
+                    lock.lock().map(|b| should_coalesce_batch(&b)).unwrap_or(false) };
+                if !wait { break; }
                 if coalesce_start.elapsed().as_millis() >= COALESCE_MAX_MS { break; }
                 thread::sleep(Duration::from_millis(COALESCE_TICK_MS));
                 let cur_len = {
@@ -2350,7 +2359,7 @@ pub fn spawn_reader_thread(
             // before parsing is exactly the latency that made replies miss
             // startup probe windows.
             dv_writer.fetch_add(1, Ordering::Release);
-            crate::types::PTY_DATA_READY.store(true, Ordering::Release);
+            crate::types::mark_pty_data_ready();
         }
     });
 }
