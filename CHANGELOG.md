@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.5.1] - 2026-09-25
+
+### Fixed
+
+- LAG-009: one-shot frame events (audible bell, OSC 52 clipboard) reach every
+  attached client when the LAG-006 rate limit defers a frame push. A
+  dump-state reply built inside the 4ms window no longer consumes them for the
+  requesting client only: `crate::server::frame_push::FramePusher` holds them
+  for the deferred push and delivers each once. The cached dump state no
+  longer carries the clipboard.
+
 ## [4.5.0] - 2026-09-25
 
 ### Performance
