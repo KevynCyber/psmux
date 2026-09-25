@@ -1974,7 +1974,6 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
                 &mut paste_stage2,
                 &mut paste_stage2_last_len,
                 &mut paste_confirmed,
-                &mut paste_suppress_until,
                 &mut clipboard_fallback_suppress_until,
                 &mut cmd_batch,
             );

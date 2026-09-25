@@ -135,10 +135,6 @@ pub(crate) fn manage_paste_pend(
     paste_stage2: &mut bool,
     paste_stage2_last_len: &mut usize,
     paste_confirmed: &mut bool,
-    // No longer read here -- kept as a parameter only so callers (client.rs's
-    // Char-intake arm) keep exclusive ownership of the char-intake deadline;
-    // this function now arms only the clipboard-fallback-only field below.
-    _paste_suppress_until: &mut Option<Instant>,
     clipboard_fallback_suppress_until: &mut Option<Instant>,
     cmd_batch: &mut Vec<String>,
 ) {
