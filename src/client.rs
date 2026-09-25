@@ -27,7 +27,10 @@ mod dump_state_json;
 mod client_paste;
 #[cfg(windows)]
 pub(crate) use client_paste::*;
-pub(crate) use client_json::{BindingEntry, CustomizeOption, FloatJson, ServerMenuItem, WinStatus};
+pub(crate) use client_json::{BindingEntry, CustomizeOption, FloatJson, ServerMenuItem};
+// Only tests-rs/test_zdep_json_types.rs names WinStatus via crate::client.
+#[cfg(test)]
+pub(crate) use client_json::WinStatus;
 pub(crate) use dump_state_json::DumpState;
 
 /// Extract the actual command from a confirm-before argument string.
