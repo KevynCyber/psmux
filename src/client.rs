@@ -1440,6 +1440,8 @@ fn establish_connection(addr: &str, key: &str) -> io::Result<Connection> {
             let line = std::mem::take(&mut buf);
             buf = String::with_capacity(64 * 1024);
             if frame_tx.send(line).is_err() { return; }
+            #[cfg(windows)]
+            crate::term::console::signal_frame_ready();
         }
     });
 
