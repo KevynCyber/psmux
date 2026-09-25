@@ -78,3 +78,12 @@ mod typing_lag_frame_waker;
 
 #[path = "test_typing_lag_server_wake.rs"]
 mod typing_lag_server_wake;
+
+#[path = "test_typing_lag_waker_order.rs"]
+mod typing_lag_waker_order;
+
+#[path = "test_typing_lag_push_rate.rs"]
+mod typing_lag_push_rate;
+
+#[path = "test_typing_lag_timer_resolution.rs"]
+mod typing_lag_timer_resolution;
