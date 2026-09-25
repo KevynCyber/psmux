@@ -90,16 +90,18 @@ pub fn wake_frame_writers(client_ids: &[u64]) {
 
 /// Reader-side handle to a persistent connection's writer. Registers the
 /// frame waker on creation and removes it on drop, so when the reader exits
-/// every Sender is gone and the writer thread sees Disconnected.
+/// every Sender is gone and the writer thread sees Disconnected. Also holds
+/// the 1ms timer while the client is attached.
 pub struct WriterHandle {
     client_id: u64,
     tx: mpsc::Sender<WriterMsg>,
+    _timer_resolution: crate::sched_priority::TimerResolutionGuard,
 }
 
 impl WriterHandle {
     pub fn new(client_id: u64, tx: mpsc::Sender<WriterMsg>) -> Self {
         register_frame_waker(client_id, tx.clone());
-        WriterHandle { client_id, tx }
+        WriterHandle { client_id, tx, _timer_resolution: crate::sched_priority::TimerResolutionGuard::acquire() }
     }
 
     pub fn send_resp(&self, rrx: mpsc::Receiver<String>) {

@@ -1498,6 +1498,8 @@ pub fn run_remote(terminal: &mut Terminal<crate::platform::PsmuxBackend>, input:
     // This thread reads keys and renders frames: keep it off EcoQoS.
     crate::sched_priority::opt_out_of_power_throttling();
     crate::sched_priority::raise_current_thread_priority();
+    // 1ms timer only while attached: released when this function returns.
+    let _timer_resolution = crate::sched_priority::TimerResolutionGuard::acquire();
     // ── Open persistent TCP connection ───────────────────────────────────
     let (mut writer, mut frame_rx) = establish_connection(&addr, &session_key)?;
     // Pending background reconnect: Some(rx) while a reconnect thread is running.
