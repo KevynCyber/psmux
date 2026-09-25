@@ -87,3 +87,6 @@ mod typing_lag_push_rate;
 
 #[path = "test_typing_lag_timer_resolution.rs"]
 mod typing_lag_timer_resolution;
+
+#[path = "test_typing_lag_deferred_oneshots.rs"]
+mod typing_lag_deferred_oneshots;
