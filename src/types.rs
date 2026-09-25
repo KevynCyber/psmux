@@ -1889,7 +1889,8 @@ pub enum CtrlReq {
     Wake,
 }
 
-pub use crate::wake::{mark_pty_data_ready, register_server_waker};
+pub use crate::wake::{mark_pty_data_ready, register_server_waker, WriterMsg};
+#[cfg(test)] pub use crate::wake::register_frame_waker;
 
 /// Global flag set by PTY reader threads when new output arrives.
 /// The server loop checks this to use a shorter recv_timeout, reducing
@@ -2136,6 +2137,7 @@ pub fn shutdown_client_stream(client_id: u64) {
     if let Ok(mut v) = FRAME_PUSH_SLOTS.lock() {
         v.retain(|(cid, _)| *cid != client_id);
     }
+    crate::wake::remove_frame_waker(client_id);
     remove_directive_channel(client_id);
 }
 
@@ -2186,14 +2188,16 @@ pub fn register_frame_channel(client_id: u64) -> FrameSlot {
 /// Option::replace, never across I/O.
 /// Dead slots (poisoned mutex) are pruned automatically.
 pub fn push_frame(frame: &str) {
+    let mut filled = Vec::new(); // slots that went empty -> full need a wake
     if let Ok(mut slots) = FRAME_PUSH_SLOTS.lock() {
-        slots.retain(|(_, slot)| {
+        slots.retain(|(cid, slot)| {
             match slot.lock() {
-                Ok(mut s) => { *s = Some(frame.to_string()); true }
+                Ok(mut s) => { if s.replace(frame.to_string()).is_none() { filled.push(*cid); } true }
                 Err(_) => false, // writer thread panicked; prune
             }
         });
     }
+    crate::wake::wake_frame_writers(&filled);
 }
 
 /// Check if any persistent clients are registered for push.
@@ -2208,6 +2212,7 @@ pub fn deregister_frame_channel(client_id: u64) {
     if let Ok(mut v) = FRAME_PUSH_SLOTS.lock() {
         v.retain(|(cid, _)| *cid != client_id);
     }
+    crate::wake::remove_frame_waker(client_id);
 }
 
 /// Per-client directive channels (queued, not overwritten like frame slots).

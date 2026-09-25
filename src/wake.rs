@@ -31,3 +31,70 @@ pub fn mark_pty_data_ready() {
         }
     }
 }
+
+/// Message to a persistent connection's writer thread.
+pub enum WriterMsg {
+    /// Oneshot receiver for a command response, written in arrival order.
+    Resp(mpsc::Receiver<String>),
+    /// The client's frame slot went empty -> full; take and write it now.
+    FrameReady,
+}
+
+static FRAME_WAKERS: Mutex<Vec<(u64, mpsc::Sender<WriterMsg>)>> = Mutex::new(Vec::new());
+
+/// Register the writer channel that push_frame wakes for `client_id`.
+pub fn register_frame_waker(client_id: u64, tx: mpsc::Sender<WriterMsg>) {
+    if let Ok(mut v) = FRAME_WAKERS.lock() {
+        v.retain(|(cid, _)| *cid != client_id);
+        v.push((client_id, tx));
+    }
+}
+
+/// Drop the registry's sender for `client_id`. The registry must not outlive
+/// the connection: its Sender clone would keep the writer from ever seeing
+/// Disconnected, so teardown would stall.
+pub fn remove_frame_waker(client_id: u64) {
+    if let Ok(mut v) = FRAME_WAKERS.lock() {
+        v.retain(|(cid, _)| *cid != client_id);
+    }
+}
+
+/// Send FrameReady to each listed client's writer. Send errors mean the
+/// writer already exited; its timed poll never needed the signal anyway.
+pub fn wake_frame_writers(client_ids: &[u64]) {
+    if client_ids.is_empty() {
+        return;
+    }
+    if let Ok(v) = FRAME_WAKERS.lock() {
+        for (cid, tx) in v.iter() {
+            if client_ids.contains(cid) {
+                let _ = tx.send(WriterMsg::FrameReady);
+            }
+        }
+    }
+}
+
+/// Reader-side handle to a persistent connection's writer. Registers the
+/// frame waker on creation and removes it on drop, so when the reader exits
+/// every Sender is gone and the writer thread sees Disconnected.
+pub struct WriterHandle {
+    client_id: u64,
+    tx: mpsc::Sender<WriterMsg>,
+}
+
+impl WriterHandle {
+    pub fn new(client_id: u64, tx: mpsc::Sender<WriterMsg>) -> Self {
+        register_frame_waker(client_id, tx.clone());
+        WriterHandle { client_id, tx }
+    }
+
+    pub fn send_resp(&self, rrx: mpsc::Receiver<String>) {
+        let _ = self.tx.send(WriterMsg::Resp(rrx));
+    }
+}
+
+impl Drop for WriterHandle {
+    fn drop(&mut self) {
+        remove_frame_waker(self.client_id);
+    }
+}
