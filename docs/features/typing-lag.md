@@ -46,3 +46,17 @@ Tests: `tests-rs/test_typing_lag_console_frame_event.rs`.
 batch under 256 bytes (keystroke echo) and true at 256 bytes and above.
 The parser thread runs the adaptive coalesce loop only when it is true.
 Tests: `tests-rs/test_typing_lag_coalesce.rs`.
+
+## LAG-005 Small batches that end mid-frame still coalesce
+
+`crate::pane::should_coalesce_batch(bytes: &[u8]) -> bool` decides the
+coalesce wait from the staged bytes, not only their length. It is true when
+`should_coalesce(bytes.len())` is true, when the batch ends inside an
+unterminated escape sequence (a trailing lone ESC, a CSI without its final
+byte, or an OSC without its BEL/ST terminator), or when the batch leaves the
+cursor hidden (its last `ESC[?25l` has no later `ESC[?25h`). A multi-chunk
+ConPTY redraw that opens with a small chunk therefore waits for the rest
+instead of being snapshotted half-applied. A small complete echo (`a`,
+`a ESC[?25h`) is still false, so LAG-004 holds. The parser thread uses
+`should_coalesce_batch` on the current staged bytes.
+Tests: `tests-rs/test_typing_lag_coalesce.rs`.
