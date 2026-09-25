@@ -1,5 +1,26 @@
 # Changelog
 
+## [4.5.0] - 2026-09-25
+
+### Performance
+
+- Typing-lag review follow-ups (spec `docs/features/typing-lag.md`, LAG-006..LAG-008).
+  - LAG-006: server frame pushes are spaced at least 4ms apart
+    (`crate::wake::MIN_FRAME_PUSH_INTERVAL`). The first push after an idle
+    period goes out at once; a deferred dirty frame goes out at its deadline,
+    so streaming output costs at most ~250 JSON frames per second instead of
+    one per Wake.
+  - LAG-007: the 1ms system timer (`timeBeginPeriod(1)`) is held through a
+    ref-counted `TimerResolutionGuard` only while clients are attached (one
+    per `WriterHandle`, plus the client attach loop), instead of for the whole
+    server lifetime.
+
+### Fixed
+
+- LAG-008: the persistent-connection setup registers the frame waker before the
+  frame slot opens, so the first frame pushed to a new client always wakes its
+  writer instead of waiting out the 5ms fallback poll.
+
 ## [4.4.0] - 2026-09-25
 
 ### Performance
