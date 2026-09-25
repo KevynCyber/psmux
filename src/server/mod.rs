@@ -1,6 +1,7 @@
 pub(crate) mod helpers;
 pub(crate) mod options;
 pub(crate) mod option_catalog;
+pub(crate) mod frame_push;
 mod connection;
 
 use std::io::{self, Write};
@@ -39,7 +40,7 @@ use crate::window_ops::{toggle_zoom, remote_mouse_down, remote_mouse_drag, remot
 use crate::config::{load_config, parse_key_string, format_key_binding, normalize_key_for_binding,
     parse_config_content};
 use crate::commands::{parse_command_to_action, format_action, parse_menu_definition, execute_command_string};
-use crate::util::{list_windows_json, list_tree_json, list_windows_tmux, base64_encode};
+use crate::util::{list_windows_json, list_tree_json, list_windows_tmux};
 use crate::control;
 use crate::format::{expand_format, format_list_windows, format_list_panes, set_buffer_idx_override, set_named_buffer_override};
 use crate::help;
@@ -1197,8 +1198,9 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
     }
     let mut state_dirty = true;
     // LAG-006: frame pushes are spaced MIN_FRAME_PUSH_INTERVAL apart; a
-    // deferred dirty frame goes out at push_deadline.
-    let mut last_frame_push: Option<Instant> = None;
+    // deferred dirty frame goes out at push_deadline. LAG-009: one-shot
+    // bell/clipboard events are taken only through frame_pusher.
+    let mut frame_pusher = frame_push::FramePusher::new();
     let mut push_deadline: Option<Instant> = None;
     let mut cached_dump_state = String::new();
     let mut cached_data_version: u64 = 0;
@@ -2300,28 +2302,6 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                     // on the client's stdout to the host terminal.  Gated by
                     // `set-clipboard` inside the helper.
                     crate::server::helpers::drain_osc52(&mut app);
-                    // Inject one-shot clipboard data for OSC 52 delivery to
-                    // the client.  Only the *response* includes this field;
-                    // the cached copy does not, so subsequent NC frames won't
-                    // re-trigger clipboard emission on the client.
-                    if let Some(clip_text) = app.clipboard_osc52.take() {
-                        let clip_b64 = base64_encode(&clip_text);
-                        // Replace trailing '}' with the extra field
-                        if combined_buf.ends_with('}') {
-                            combined_buf.pop();
-                            combined_buf.push_str(",\"clipboard_osc52\":\"");
-                            combined_buf.push_str(&clip_b64);
-                            combined_buf.push_str("\"}");
-                        }
-                    }
-                    // Forward audible bell to client terminal
-                    if app.bell_forward {
-                        app.bell_forward = false;
-                        if combined_buf.ends_with('}') {
-                            combined_buf.pop();
-                            combined_buf.push_str(",\"bell\":true}");
-                        }
-                    }
                     cached_data_version = combined_data_version(&app);
                     state_dirty = false;
                     // Timing log: dump-state build time
@@ -2346,19 +2326,17 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                     // Without this, the DumpState handler clears state_dirty,
                     // and the bottom-of-loop push section never fires for frames
                     // already served to the requesting client.
-                    // Push combined_buf (not cached_dump_state) so one-shot
-                    // fields like bell and clipboard reach all clients.
-                    // The cached copy omits them for NC dedup safety.
-                    // Inside the push interval, keep the state dirty so the
-                    // bottom-of-loop push sends it at the deadline instead.
+                    // The pusher splices one-shot bell/clipboard fields into
+                    // the reply and the push; the cached copy omits them for
+                    // NC dedup safety. Inside the push interval it holds them,
+                    // and the state stays dirty so the bottom-of-loop push
+                    // delivers them at the deadline (LAG-009).
                     let now = Instant::now();
-                    if crate::wake::frame_push_wait(last_frame_push, now).is_zero() {
-                        crate::types::push_frame(&combined_buf);
-                        last_frame_push = Some(now);
-                    } else {
+                    if !frame_pusher.wait(now).is_zero() {
                         state_dirty = true;
                     }
-                    let _ = resp.send(combined_buf.clone());
+                    let reply = frame_pusher.reply(&mut app, &combined_buf, now);
+                    let _ = resp.send(reply);
                     dump_state_seen_full.insert(dump_client_id);
                 }
                 CtrlReq::SendText(s) => { app.status_message = None; crate::input::stamp_interactive_text(&mut app); send_text_to_active(&mut app, &s)?; echo_pending_until = Some(Instant::now()); }
@@ -6122,7 +6100,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
         // for the next client poll cycle (up to 50ms).
         let push_due = (state_dirty || meta_dirty) && crate::types::has_frame_receivers();
         let push_wait = if push_due {
-            crate::wake::frame_push_wait(last_frame_push, Instant::now())
+            frame_pusher.wait(Instant::now())
         } else {
             Duration::ZERO
         };
@@ -6262,30 +6240,13 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
             // `/copy`).  See sibling call in the dump-state response path
             // for full context.  Gated by `set-clipboard` inside the helper.
             crate::server::helpers::drain_osc52(&mut app);
-            // Inject clipboard data if pending
-            if let Some(clip_text) = app.clipboard_osc52.take() {
-                let clip_b64 = base64_encode(&clip_text);
-                if combined_buf.ends_with('}') {
-                    combined_buf.pop();
-                    combined_buf.push_str(",\"clipboard_osc52\":\"");
-                    combined_buf.push_str(&clip_b64);
-                    combined_buf.push_str("\"}");
-                }
-            }
+            // Cache before the pusher splices in one-shot bell/clipboard
+            // fields, so an NC or cached reply never replays them.
             cached_dump_state.clear();
             cached_dump_state.push_str(&combined_buf);
-            // Inject bell AFTER caching (one-shot: should not persist in cache)
-            if app.bell_forward {
-                app.bell_forward = false;
-                if combined_buf.ends_with('}') {
-                    combined_buf.pop();
-                    combined_buf.push_str(",\"bell\":true}");
-                }
-            }
             cached_data_version = combined_data_version(&app);
             state_dirty = false;
-            crate::types::push_frame(&combined_buf);
-            last_frame_push = Some(Instant::now());
+            frame_pusher.push(&mut app, &combined_buf, Instant::now());
         }
         // ── Status-interval timer: fire hooks periodically ──
         if app.should_run_status_interval_timer() {
