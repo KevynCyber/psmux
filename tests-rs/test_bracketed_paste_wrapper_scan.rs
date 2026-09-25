@@ -110,33 +110,18 @@ fn plain_typed_burst_with_no_opener_returns_none() {
 
 // Covers: R245-002
 // Requirement: a user who fast-types (not pastes) while the arrival-timing
-// heuristic has speculatively entered stage 2 must never lose keystrokes.
-// `manage_paste_pend`'s stage-2 timeout branch (client_paste.rs ~line 224)
-// flushes the accumulated buffer as `send-paste` once the 300ms deadline
-// passes with no Ctrl+V Release, and arms `paste_suppress_until` for 200ms
-// to block the Ctrl+V clipboard-read fallback that would otherwise
-// double-deliver the same text. `src/client.rs`'s Char handler (~3608-3613)
-// currently reuses that SAME deadline to gate ordinary char intake, so any
-// key typed in the 200ms after a stage-2 flush is silently dropped
-// ("misse^" instead of "missed"). Char accumulation must stay open across
-// that window; only the clipboard-read fallback may be gated by it.
-//
-// `manage_paste_pend` gains a 9th param, `clipboard_fallback_suppress_until`,
-// dedicated to gating the Ctrl+V clipboard-read fallback; the stage-2
-// timeout, Ctrl+V-confirmed, and wrapper-Complete arms now arm THAT field
-// instead of `paste_suppress_until`. This test recomputes the exact
-// suppression predicate `src/client.rs:3608-3613` uses today
-// (`paste_suppress_until.map_or(false, |t| Instant::now() < t)`) against the
-// state `manage_paste_pend` leaves behind in `paste_suppress_until`. Today
-// that predicate is `true` right after the stage-2 flush, which is the bug:
-// it proves the single shared deadline blocks chars too. Once client.rs
-// stops keying char intake off `paste_suppress_until` and consults the new
-// clipboard-fallback-only field instead (client_paste.rs:149,182,248 and
-// client.rs:4315,4334), `paste_suppress_until` itself must stay unarmed by
-// the stage-2 timeout path, so this predicate must read `false`.
+// heuristic has speculatively entered stage 2 must never lose keystrokes,
+// and the buffered chars must still be delivered once the 300ms stage-2
+// deadline passes with no Ctrl+V Release. `manage_paste_pend`'s stage-2
+// timeout arm flushes the accumulated buffer as `send-paste`. The earlier
+// char-drop bug (the flush armed the same `paste_suppress_until` deadline
+// that client.rs's Char handler uses to drop chars) is now ruled out by the
+// signature itself: `manage_paste_pend` no longer receives the char-intake
+// deadline at all, so it cannot arm it. Only the clipboard-fallback-only
+// deadline is passed in (pinned by the next test).
 #[cfg(windows)]
 #[test]
-fn stage2_timeout_flush_must_not_leave_char_intake_blocked() {
+fn stage2_timeout_flush_emits_buffered_chars_as_send_paste() {
     let mut paste_pend = "abc".to_string();
     // Already 301ms into stage 2 -> past the 300ms timeout deadline.
     let mut paste_pend_start = Some(Instant::now() - Duration::from_millis(301));
@@ -145,7 +130,6 @@ fn stage2_timeout_flush_must_not_leave_char_intake_blocked() {
     // flush as send-paste" arm, not the growth-extends-window arm.
     let mut paste_stage2_last_len = paste_pend.len();
     let mut paste_confirmed = false;
-    let mut paste_suppress_until: Option<Instant> = None;
     let mut clipboard_fallback_suppress_until: Option<Instant> = None;
     let mut cmd_batch: Vec<String> = Vec::new();
 
@@ -157,27 +141,22 @@ fn stage2_timeout_flush_must_not_leave_char_intake_blocked() {
         &mut paste_stage2,
         &mut paste_stage2_last_len,
         &mut paste_confirmed,
-        &mut paste_suppress_until,
         &mut clipboard_fallback_suppress_until,
         &mut cmd_batch,
     );
 
+    let expected = format!("send-paste {}
+", base64_encode("abc"));
     assert!(
-        cmd_batch.iter().any(|c| c.starts_with("send-paste ")),
-        "expected stage2 timeout to flush accumulated chars as send-paste, got {:?}",
+        cmd_batch.iter().any(|c| c == &expected),
+        "expected stage2 timeout to flush the buffered \"abc\" as {:?}, got {:?}",
+        expected,
         cmd_batch
     );
-
-    // The bug: client.rs's Char handler treats an armed paste_suppress_until
-    // as "drop this char". A typed key landing right after this flush must
-    // still be accepted.
-    let would_drop_next_typed_char = paste_suppress_until.map_or(false, |t| Instant::now() < t);
     assert!(
-        !would_drop_next_typed_char,
-        "stage2 timeout flush left paste_suppress_until armed in a way that \
-         (per client.rs:3608-3613's identical predicate) would drop the next \
-         typed char; client.rs needs a clipboard-fallback-only deadline \
-         separate from the field char intake consults"
+        paste_pend.is_empty(),
+        "stage2 timeout flush must drain the paste buffer, left {:?}",
+        paste_pend
     );
 }
 
@@ -189,11 +168,10 @@ fn stage2_timeout_flush_must_not_leave_char_intake_blocked() {
 // via stage2 would read the clipboard again and double-deliver it. This
 // locks the clipboard-fallback side of the contract so a fix that widens
 // char intake cannot regress it by removing the deadline outright. The
-// stage-2 timeout arm sets this deadline on the NEW
-// `clipboard_fallback_suppress_until` param (9th arg to `manage_paste_pend`,
-// added right after `paste_suppress_until`), the field client.rs's Ctrl+V
-// clipboard-read fallback consults once the fix lands; the OTHER test in
-// this file pins that `paste_suppress_until` itself stays unarmed.
+// stage-2 timeout arm sets this deadline on
+// `clipboard_fallback_suppress_until`, the only suppression deadline
+// `manage_paste_pend` receives and the field client.rs's Ctrl+V
+// clipboard-read fallback consults.
 #[cfg(windows)]
 #[test]
 fn stage2_timeout_flush_still_blocks_clipboard_fallback_immediately_after() {
@@ -202,7 +180,6 @@ fn stage2_timeout_flush_still_blocks_clipboard_fallback_immediately_after() {
     let mut paste_stage2 = true;
     let mut paste_stage2_last_len = paste_pend.len();
     let mut paste_confirmed = false;
-    let mut paste_suppress_until: Option<Instant> = None;
     let mut clipboard_fallback_suppress_until: Option<Instant> = None;
     let mut cmd_batch: Vec<String> = Vec::new();
 
@@ -213,7 +190,6 @@ fn stage2_timeout_flush_still_blocks_clipboard_fallback_immediately_after() {
         &mut paste_stage2,
         &mut paste_stage2_last_len,
         &mut paste_confirmed,
-        &mut paste_suppress_until,
         &mut clipboard_fallback_suppress_until,
         &mut cmd_batch,
     );
@@ -255,7 +231,6 @@ fn bare_esc_then_fast_typed_chars_flushes_esc_as_key_not_inside_send_paste() {
     let mut paste_stage2 = true;
     let mut paste_stage2_last_len = paste_pend.len();
     let mut paste_confirmed = false;
-    let mut paste_suppress_until: Option<Instant> = None;
     let mut clipboard_fallback_suppress_until: Option<Instant> = None;
     let mut cmd_batch: Vec<String> = Vec::new();
 
@@ -268,7 +243,6 @@ fn bare_esc_then_fast_typed_chars_flushes_esc_as_key_not_inside_send_paste() {
         &mut paste_stage2,
         &mut paste_stage2_last_len,
         &mut paste_confirmed,
-        &mut paste_suppress_until,
         &mut clipboard_fallback_suppress_until,
         &mut cmd_batch,
     );
