@@ -21,6 +21,14 @@
 # A raw PERSISTENT socket does not exercise it (that false pass is how the
 # #487 regression survived). Everything here runs against a real attached TUI.
 
+param(
+    # psmux namespace (-L). Never the default one; generated if omitted.
+    [Alias('L')] [string]$Namespace = "lat-test-$PID-$(Get-Random)"
+)
+if ([string]::IsNullOrWhiteSpace($Namespace) -or $Namespace -eq 'default') {
+    throw "Refusing to run: -Namespace must be a unique non-default psmux namespace"
+}
+
 $ErrorActionPreference = "Continue"
 $PSMUX = (Get-Command psmux -EA Stop).Source
 $psmuxDir = "$env:USERPROFILE\.psmux"
@@ -39,9 +47,9 @@ function Pct($arr, $p) {
 }
 
 function Cleanup {
-    & $PSMUX kill-session -t $SESSION 2>&1 | Out-Null
+    & $PSMUX -L $Namespace kill-server 2>&1 | Out-Null
     Start-Sleep -Milliseconds 800
-    Remove-Item "$psmuxDir\$SESSION.*" -Force -EA SilentlyContinue
+    Remove-Item "$psmuxDir\${Namespace}__$SESSION.*" -Force -EA SilentlyContinue
 }
 
 # Self-contained: write the 30fps animation script at runtime.
@@ -77,10 +85,10 @@ function Measure-EchoLatency {
     for ($i = 0; $i -lt $Samples; $i++) {
         $m = "RP${Tag}${i}X$(Get-Random -Maximum 99999)"
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        & $PSMUX send-keys -t $PaneTarget "echo $m" Enter 2>&1 | Out-Null
+        & $PSMUX -L $Namespace send-keys -t $PaneTarget "echo $m" Enter 2>&1 | Out-Null
         $found = $false
         while ($sw.ElapsedMilliseconds -lt 10000) {
-            $cap = & $PSMUX capture-pane -t $PaneTarget -p 2>&1 | Out-String
+            $cap = & $PSMUX -L $Namespace capture-pane -t $PaneTarget -p 2>&1 | Out-String
             if ($cap -match $m) { $found = $true; break }
             Start-Sleep -Milliseconds 10
         }
@@ -96,8 +104,8 @@ function Measure-EchoLatency {
 function Measure-Rtt {
     param([int]$Samples)
     $times = [System.Collections.ArrayList]::new()
-    $port = (Get-Content "$psmuxDir\$SESSION.port" -Raw).Trim()
-    $key  = (Get-Content "$psmuxDir\$SESSION.key" -Raw).Trim()
+    $port = (Get-Content "$psmuxDir\${Namespace}__$SESSION.port" -Raw).Trim()
+    $key  = (Get-Content "$psmuxDir\${Namespace}__$SESSION.key" -Raw).Trim()
     $tcp = $null; $w = $null; $r = $null; $st = $null
     for ($i = 0; $i -lt $Samples; $i++) {
         try {
@@ -126,13 +134,13 @@ Write-Host "psmux: $PSMUX" -ForegroundColor DarkGray
 Cleanup
 
 # Real attached client + two panes: A = animation, B = shell we type into.
-$proc = Start-Process -FilePath $PSMUX -ArgumentList "new-session","-s",$SESSION -PassThru
+$proc = Start-Process -FilePath $PSMUX -ArgumentList "-L",$Namespace,"new-session","-s",$SESSION -PassThru
 Start-Sleep -Seconds 5
-& $PSMUX has-session -t $SESSION 2>$null
-if ($LASTEXITCODE -ne 0) { Write-Fail "attached session did not come up"; exit 1 }
-& $PSMUX split-window -h -t $SESSION 2>&1 | Out-Null
+& $PSMUX -L $Namespace has-session -t $SESSION 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Fail "attached session did not come up"; Cleanup; exit 1 }
+& $PSMUX -L $Namespace split-window -h -t $SESSION 2>&1 | Out-Null
 Start-Sleep -Seconds 3
-$panes = @(& $PSMUX list-panes -t $SESSION -F '#{pane_id}' 2>&1)
+$panes = @(& $PSMUX -L $Namespace list-panes -t $SESSION -F '#{pane_id}' 2>&1)
 $paneA = $panes[0].ToString().Trim()
 $paneB = $panes[-1].ToString().Trim()
 Write-Info "panes A=$paneA (animation) B=$paneB (shell), client pid $($proc.Id)"
@@ -151,14 +159,14 @@ else { Write-Fail "idle baseline unusable (timeouts=$($idle.Timeouts))"; Cleanup
 # Phase 2: 30fps heavy repaint in pane A
 # ---------------------------------------------------------------------------
 Write-Host "`n[Phase 2] 30fps per-cell-color repaint in pane A" -ForegroundColor Yellow
-& $PSMUX send-keys -t $paneA "pwsh -NoProfile -ExecutionPolicy Bypass -File '$animPath'" Enter 2>&1 | Out-Null
+& $PSMUX -L $Namespace send-keys -t $paneA "pwsh -NoProfile -ExecutionPolicy Bypass -File '$animPath'" Enter 2>&1 | Out-Null
 Start-Sleep -Seconds 5
 
 # Sanity gate: the animation must actually be advancing, otherwise the rest
 # of the test is measuring an idle pane and passing means nothing.
-$c1 = & $PSMUX capture-pane -t $paneA -p 2>&1 | Out-String
+$c1 = & $PSMUX -L $Namespace capture-pane -t $paneA -p 2>&1 | Out-String
 Start-Sleep -Milliseconds 400
-$c2 = & $PSMUX capture-pane -t $paneA -p 2>&1 | Out-String
+$c2 = & $PSMUX -L $Namespace capture-pane -t $paneA -p 2>&1 | Out-String
 if (($c1 -ne $c2) -and ($c1.Trim().Length -gt 300)) { Write-Pass "animation flood is live and advancing" }
 else { Write-Fail "animation did not start - load phase is not real, aborting"; Cleanup; try { Stop-Process -Id $proc.Id -Force -EA SilentlyContinue } catch {}; exit 1 }
 
@@ -201,7 +209,7 @@ if ($ratio -lt 5 -and $loadP50 -lt 1000) {
 # ---------------------------------------------------------------------------
 # Teardown
 # ---------------------------------------------------------------------------
-& $PSMUX send-keys -t $paneA "C-c" 2>&1 | Out-Null
+& $PSMUX -L $Namespace send-keys -t $paneA "C-c" 2>&1 | Out-Null
 Start-Sleep -Milliseconds 500
 Cleanup
 try { Stop-Process -Id $proc.Id -Force -EA SilentlyContinue } catch {}

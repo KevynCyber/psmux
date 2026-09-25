@@ -11,13 +11,21 @@
 #
 # Uses realistic text WITH SPACES between words.
 
+param(
+    # psmux namespace (-L). Never the default one; generated if omitted.
+    [Alias('L')] [string]$Namespace = "lat-test-$PID-$(Get-Random)"
+)
+if ([string]::IsNullOrWhiteSpace($Namespace) -or $Namespace -eq 'default') {
+    throw "Refusing to run: -Namespace must be a unique non-default psmux namespace"
+}
+
 $ErrorActionPreference = "Continue"
 $PSMUX = (Get-Command psmux -EA Stop).Source
 $psmuxDir = "$env:USERPROFILE\.psmux"
 $SESSION = "latency_test"
 
 function Cleanup {
-    & $PSMUX kill-session -t $SESSION 2>&1 | Out-Null
+    & $PSMUX -L $Namespace kill-server 2>&1 | Out-Null
     Start-Sleep -Milliseconds 500
 }
 
@@ -48,18 +56,18 @@ Cleanup
 Remove-Item "$psmuxDir\input_debug.log" -Force -EA SilentlyContinue
 
 $env:PSMUX_INPUT_DEBUG = "1"
-$proc = Start-Process -FilePath $PSMUX -ArgumentList "new-session","-s",$SESSION -PassThru
+$proc = Start-Process -FilePath $PSMUX -ArgumentList "-L",$Namespace,"new-session","-s",$SESSION -PassThru
 $env:PSMUX_INPUT_DEBUG = $null
 $PID_TUI = $proc.Id
 Write-Host "`nLaunched TUI PID: $PID_TUI" -ForegroundColor Cyan
 Start-Sleep -Seconds 5
 
-& $PSMUX has-session -t $SESSION 2>$null
-if ($LASTEXITCODE -ne 0) { Write-Host "Session creation FAILED" -ForegroundColor Red; exit 1 }
+& $PSMUX -L $Namespace has-session -t $SESSION 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "Session creation FAILED" -ForegroundColor Red; Cleanup; exit 1 }
 
 for ($i = 0; $i -lt 40; $i++) {
     Start-Sleep -Milliseconds 500
-    $cap = & $PSMUX capture-pane -t $SESSION -p 2>&1 | Out-String
+    $cap = & $PSMUX -L $Namespace capture-pane -t $SESSION -p 2>&1 | Out-String
     if ($cap -match "PS [A-Z]:\\") { break }
 }
 Write-Host "Session ready.`n" -ForegroundColor Green
@@ -80,16 +88,16 @@ function Measure-RenderLatency {
     Write-Host "$('=' * 60)" -ForegroundColor Cyan
 
     # Clear pane and set up echo command
-    & $PSMUX send-keys -t $SESSION C-c 2>&1 | Out-Null
+    & $PSMUX -L $Namespace send-keys -t $SESSION C-c 2>&1 | Out-Null
     Start-Sleep -Milliseconds 300
-    & $PSMUX send-keys -t $SESSION "clear" Enter 2>&1 | Out-Null
+    & $PSMUX -L $Namespace send-keys -t $SESSION "clear" Enter 2>&1 | Out-Null
     Start-Sleep -Seconds 1
 
     # Get baseline pane content
-    $baseCap = (& $PSMUX capture-pane -t $SESSION -p 2>&1 | Out-String).Trim()
+    $baseCap = (& $PSMUX -L $Namespace capture-pane -t $SESSION -p 2>&1 | Out-String).Trim()
 
     # We inject into an empty prompt line. First get the current prompt content.
-    $promptCap = & $PSMUX capture-pane -t $SESSION -p 2>&1 | Out-String
+    $promptCap = & $PSMUX -L $Namespace capture-pane -t $SESSION -p 2>&1 | Out-String
     # Find the active line (last non-empty line)
     $baseLen = 0
     $promptLines = $promptCap -split "`n"
@@ -101,14 +109,14 @@ function Measure-RenderLatency {
     # Start monitoring in a background job that polls capture-pane every ~30ms
     # Records: timestamp, visible char count on the active line
     $monitorScript = {
-        param($PSMUX, $SESSION, $baseLen, $totalChars, $durationMs)
+        param($PSMUX, $Namespace, $SESSION, $baseLen, $totalChars, $durationMs)
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $samples = [System.Collections.ArrayList]::new()
         $prevLen = $baseLen
         $allSeen = $false
 
         while ($sw.ElapsedMilliseconds -lt $durationMs -and -not $allSeen) {
-            $cap = & $PSMUX capture-pane -t $SESSION -p 2>&1 | Out-String
+            $cap = & $PSMUX -L $Namespace capture-pane -t $SESSION -p 2>&1 | Out-String
             $ts = $sw.ElapsedMilliseconds
 
             # Get all non-empty content (may wrap across lines)
@@ -159,7 +167,7 @@ function Measure-RenderLatency {
     $expectedDuration = ($totalExpected * $IntervalMs) + 5000  # injection time + buffer
 
     # Start the monitor job
-    $job = Start-Job -ScriptBlock $monitorScript -ArgumentList $PSMUX, $SESSION, $baseLen, $totalExpected, $expectedDuration
+    $job = Start-Job -ScriptBlock $monitorScript -ArgumentList $PSMUX, $Namespace, $SESSION, $baseLen, $totalExpected, $expectedDuration
 
     # Small delay to let monitor start
     Start-Sleep -Milliseconds 200
