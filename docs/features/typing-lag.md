@@ -102,6 +102,22 @@ sent (after which overwrites send nothing, leaving the frame to the
 writer's 5ms fallback poll).
 Tests: `tests-rs/test_typing_lag_waker_order.rs`.
 
+## LAG-009 One-shot frame events reach every client when the push is deferred
+
+One-shot frame events (the audible bell from `AppState.bell_forward` and
+OSC 52 clipboard data from `AppState.clipboard_osc52`) must reach every
+attached client even when the LAG-006 rate limit defers the frame push.
+A dump-state reply built inside the 4ms push window consumes these flags
+for the requesting client's reply; the deferred push sent at the deadline
+must still carry them, so the other attached clients ring the bell and
+receive the clipboard copy. Each event is delivered once and is not
+repeated by later pushes. `crate::server::frame_push::FramePusher` owns
+the last push instant and the events held for a deferred push:
+`reply(&mut AppState, frame, now) -> String` is the dump-state path and
+`push(&mut AppState, frame, now)` is the bottom-of-loop push path; the
+server loop takes one-shot events only through it.
+Tests: `tests-rs/test_typing_lag_deferred_oneshots.rs`.
+
 ## Out of scope: SSH input path frame wakeups
 
 `InputSource::Ssh` (`src/ssh_input.rs`) waits in `rx.recv_timeout` on its
