@@ -98,3 +98,11 @@ impl Drop for WriterHandle {
         remove_frame_waker(self.client_id);
     }
 }
+
+/// Whether the parser thread should run its adaptive coalescing wait for a
+/// staged batch of `len` bytes. A keystroke echo is far below 256 bytes and
+/// is parsed at once: the wait's 1ms sleeps round up to a ~15.6ms Windows
+/// tick. Larger multi-chunk frames still coalesce into one parser update.
+pub fn should_coalesce(len: usize) -> bool {
+    len >= 256
+}
