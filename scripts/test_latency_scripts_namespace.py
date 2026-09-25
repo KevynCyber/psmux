@@ -87,22 +87,24 @@ def _invocations(text):
 
 
 class LatencyScriptsStayOutOfDefaultNamespace(unittest.TestCase):
-    def _each_script(self):
+    def _check_each_script(self, check):
         for path in SCRIPT_PATHS:
             rel = os.path.relpath(path, REPO_ROOT)
             with self.subTest(script=rel):
                 self.assertTrue(os.path.isfile(path), "missing script: %s" % rel)
-                yield rel, _read(path)
+                check(rel, _read(path))
 
     def test_detector_finds_psmux_invocations_in_every_script(self):
-        for rel, text in self._each_script():
+        def check(rel, text):
             self.assertTrue(
                 _invocations(text),
                 "%s: no psmux invocation detected; the analysis would pass vacuously" % rel,
             )
 
+        self._check_each_script(check)
+
     def test_every_psmux_invocation_passes_dash_L(self):
-        for rel, text in self._each_script():
+        def check(rel, text):
             offenders = [
                 "%s:%d: %s" % (rel, n, line)
                 for n, line in _invocations(text)
@@ -112,8 +114,10 @@ class LatencyScriptsStayOutOfDefaultNamespace(unittest.TestCase):
                 offenders, [], "psmux invocations without -L <ns>:\n" + "\n".join(offenders)
             )
 
+        self._check_each_script(check)
+
     def test_kill_server_is_always_namespace_scoped(self):
-        for rel, text in self._each_script():
+        def check(rel, text):
             offenders = [
                 "%s:%d: %s" % (rel, n, line.strip())
                 for n, line in _logical_lines(text)
@@ -123,8 +127,10 @@ class LatencyScriptsStayOutOfDefaultNamespace(unittest.TestCase):
                 offenders, [], "bare kill-server (kills every namespace):\n" + "\n".join(offenders)
             )
 
+        self._check_each_script(check)
+
     def test_declares_namespace_param_with_generated_default(self):
-        for rel, text in self._each_script():
+        def check(rel, text):
             m = re.search(r"\bparam\s*\((.*?)\n\)", text, re.IGNORECASE | re.DOTALL)
             self.assertIsNotNone(m, "%s: no top-level param() block" % rel)
             block = m.group(1)
@@ -134,18 +140,32 @@ class LatencyScriptsStayOutOfDefaultNamespace(unittest.TestCase):
                 "%s: param block lacks [Alias('L')] [string]$Namespace = <generated default>" % rel,
             )
 
+        self._check_each_script(check)
+
     def test_port_and_key_files_use_namespaced_basename(self):
-        for rel, text in self._each_script():
+        def check(rel, text):
+            # A variable assigned a "..__.." string (e.g. $base = "${ns}__${sess}")
+            # also counts as a namespaced basename.
+            ns_vars = set(re.findall(r"\$(\w+)\s*=\s*\"[^\"]*__", text))
+
+            def namespaced(line):
+                if "__" in line:
+                    return True
+                refs = re.findall(r"\$\{?(\w+)\}?\.(?:port|key)\b", line)
+                return bool(refs) and all(r in ns_vars for r in refs)
+
             offenders = [
                 "%s:%d: %s" % (rel, n, line.strip())
                 for n, line in _logical_lines(text)
-                if re.search(r"\.(?:port|key)\b[\"']", line) and "__" not in line
+                if re.search(r"\.(?:port|key)\b[\"']", line) and not namespaced(line)
             ]
             self.assertEqual(
                 offenders,
                 [],
                 "port/key file lookups not using <ns>__<session>:\n" + "\n".join(offenders),
             )
+
+        self._check_each_script(check)
 
 
 class LatProbeComparesBuilds(unittest.TestCase):

@@ -6,8 +6,13 @@ param(
     [int]$InterKeyDelayMs = 80,
     [switch]$SkipWSL,
     [switch]$PwshOnly,
-    [switch]$WSLOnly
+    [switch]$WSLOnly,
+    # psmux namespace (-L). Never the default one; generated if omitted.
+    [Alias('L')] [string]$Namespace = "lat-test-$PID-$(Get-Random)"
 )
+if ([string]::IsNullOrWhiteSpace($Namespace) -or $Namespace -eq 'default') {
+    throw "Refusing to run: -Namespace must be a unique non-default psmux namespace"
+}
 
 $ErrorActionPreference = "Stop"
 $psmuxExe = "$PSScriptRoot\..\target\release\psmux.exe"
@@ -59,14 +64,14 @@ function Run-LatencyTest {
     
     # Start server
     if ($UseWSL) {
-        $proc = Start-Process -FilePath $psmuxExe -ArgumentList "new-session", "-d", "-s", $sessionName, "wsl" -PassThru -WindowStyle Hidden
+        $proc = Start-Process -FilePath $psmuxExe -ArgumentList "-L", $Namespace, "new-session", "-d", "-s", $sessionName, "wsl" -PassThru -WindowStyle Hidden
     } else {
-        $proc = Start-Process -FilePath $psmuxExe -ArgumentList "new-session", "-d", "-s", $sessionName -PassThru -WindowStyle Hidden
+        $proc = Start-Process -FilePath $psmuxExe -ArgumentList "-L", $Namespace, "new-session", "-d", "-s", $sessionName -PassThru -WindowStyle Hidden
     }
     
     $homeDir = $env:USERPROFILE
-    $pf = "$homeDir\.psmux\${sessionName}.port"
-    $kf = "$homeDir\.psmux\${sessionName}.key"
+    $pf = "$homeDir\.psmux\${Namespace}__${sessionName}.port"
+    $kf = "$homeDir\.psmux\${Namespace}__${sessionName}.key"
     
     $t = 0
     while ((-not (Test-Path $pf)) -or (-not (Test-Path $kf))) {
@@ -222,7 +227,7 @@ function Run-LatencyTest {
     
     # Cleanup
     try { $tcp.Close() } catch {}
-    try { & $psmuxExe kill-server -t $sessionName 2>$null } catch {}
+    try { & $psmuxExe -L $Namespace kill-server 2>$null } catch {}
     Start-Sleep -Milliseconds 300
     if (-not $proc.HasExited) { try { $proc.Kill() } catch {} }
     Remove-Item $pf -ErrorAction SilentlyContinue
