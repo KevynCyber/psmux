@@ -9,6 +9,7 @@ mod term;
 mod platform;
 mod sched_priority;
 mod cli;
+mod cli_target;
 mod session;
 mod tree;
 mod style;
@@ -49,7 +50,7 @@ mod win32;
 mod timefmt;
 #[cfg(test)]
 mod tests_zdep_wiring;
-use cli::split_target_window_pane;
+use cli_target::split_target_window_pane;
 
 use std::io::{self, Write, Read as _, BufRead as _, IsTerminal};
 use std::time::Duration;
