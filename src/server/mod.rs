@@ -879,6 +879,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
     // Keep a sender in AppState so loop-resident code can queue follow-up work
     // (see the field's doc comment — copy-mode key tables need this).
     app.control_tx = Some(tx.clone());
+    crate::types::register_server_waker(tx.clone());
     let listener = TcpListener::bind(("127.0.0.1", 0))?;
     let port = listener.local_addr()?.port();
     app.control_port = Some(port);
@@ -1450,12 +1451,14 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
         }
         if let Some(rx) = app.control_rx.as_ref() {
             if let Ok(req) = rx.recv_timeout(Duration::from_millis(timeout_ms)) {
-                last_client_activity = Instant::now();
                 let mut pending = vec![req];
                 // Drain any additional queued messages without blocking
                 while let Ok(r) = rx.try_recv() {
                     pending.push(r);
                 }
+                // Wake only interrupts the recv; it is not client activity.
+                pending.retain(|r| !matches!(r, CtrlReq::Wake));
+                if !pending.is_empty() { last_client_activity = Instant::now(); }
                 // Also check if fresh PTY output arrived while we were
                 // waiting – mark state dirty so DumpState produces a full
                 // frame instead of "NC".
@@ -5949,6 +5952,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                         Err(e) => { let _ = resp.send(format!("error: {}", e)); }
                     }
                 }
+                CtrlReq::Wake => {} // filtered out above
             }
             // Log any active_idx change for debugging window-switch issues
             if app.active_idx != _prev_active_idx && crate::debug_log::server_log_enabled() {

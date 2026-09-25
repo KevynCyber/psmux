@@ -2270,7 +2270,7 @@ pub fn spawn_reader_thread(
                                 parser.process(b"\x1b[?25h\x1b[?1049l");
                                 cursor_shape.store(0, Ordering::Release);
                                 dv_writer.fetch_add(1, Ordering::Release);
-                                crate::types::PTY_DATA_READY.store(true, Ordering::Release);
+                                crate::types::mark_pty_data_ready();
                             }
                         }
                         return;
@@ -2352,7 +2352,7 @@ pub fn spawn_reader_thread(
             // before parsing is exactly the latency that made replies miss
             // startup probe windows.
             dv_writer.fetch_add(1, Ordering::Release);
-            crate::types::PTY_DATA_READY.store(true, Ordering::Release);
+            crate::types::mark_pty_data_ready();
         }
     });
 }

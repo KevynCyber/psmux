@@ -1885,7 +1885,11 @@ pub enum CtrlReq {
     /// path (same path as keybindings and command prompt).  Response channel
     /// carries "OK" on success or an error string.
     RunCommand(String, mpsc::Sender<String>),
+    /// PTY data is ready; wakes the server loop's recv (see crate::wake).
+    Wake,
 }
+
+pub use crate::wake::{mark_pty_data_ready, register_server_waker};
 
 /// Global flag set by PTY reader threads when new output arrives.
 /// The server loop checks this to use a shorter recv_timeout, reducing
