@@ -9,7 +9,9 @@ use crate::pty::{CommandBuilder, PtySize, native_pty_system};
 use crate::types::{AppState, Pane, Node, LayoutKind, Window};
 use crate::tree::{replace_leaf_with_split, active_pane_mut, kill_leaf};
 use crate::format::hostname_cached;
+#[cfg(test)]
 pub use crate::wake::should_coalesce;
+pub use crate::wake::should_coalesce_batch;
 
 /// Sentinel value for cursor_shape: means "no DECSCUSR received from child yet".
 /// When ConPTY passthrough mode is unavailable, DECSCUSR sequences from child
@@ -2295,7 +2297,10 @@ pub fn spawn_reader_thread(
                 lock.lock().map(|b| b.len()).unwrap_or(0)
             };
             loop {
-                if !should_coalesce(last_len) { break; } // small echo: parse now
+                // Small complete echo: parse now. Mid-escape / cursor-hidden heads wait.
+                let wait = { let (lock, _) = &*staging;
+                    lock.lock().map(|b| should_coalesce_batch(&b)).unwrap_or(false) };
+                if !wait { break; }
                 if coalesce_start.elapsed().as_millis() >= COALESCE_MAX_MS { break; }
                 thread::sleep(Duration::from_millis(COALESCE_TICK_MS));
                 let cur_len = {

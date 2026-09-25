@@ -106,3 +106,37 @@ impl Drop for WriterHandle {
 pub fn should_coalesce(len: usize) -> bool {
     len >= 256
 }
+
+/// should_coalesce, plus: a small batch that ends mid-escape or leaves the
+/// cursor hidden is the head of a multi-chunk redraw, so wait for the rest
+/// instead of snapshotting a half-applied frame. Batches past the length
+/// threshold return early, so the scan only walks fewer than 256 bytes.
+pub fn should_coalesce_batch(bytes: &[u8]) -> bool {
+    if should_coalesce(bytes.len()) {
+        return true;
+    }
+    #[derive(Clone, Copy, PartialEq)]
+    enum St { Ground, Esc, Csi(usize), Osc, OscEsc }
+    let mut st = St::Ground;
+    let mut hidden = false;
+    for (i, &b) in bytes.iter().enumerate() {
+        st = match st {
+            St::Csi(start) if (0x40..=0x7e).contains(&b) => {
+                if &bytes[start..i] == b"?25" && (b == b'l' || b == b'h') {
+                    hidden = b == b'l';
+                }
+                St::Ground
+            }
+            St::Csi(start) if b != 0x1b => St::Csi(start),
+            St::Osc if b == 0x07 => St::Ground,
+            St::Osc if b != 0x1b => St::Osc,
+            St::Osc => St::OscEsc,
+            St::OscEsc if b == b'\\' => St::Ground,
+            St::Esc | St::OscEsc if b == b'[' => St::Csi(i + 1),
+            St::Esc | St::OscEsc if b == b']' => St::Osc,
+            _ if b == 0x1b => St::Esc,
+            _ => St::Ground,
+        };
+    }
+    hidden || st != St::Ground
+}
