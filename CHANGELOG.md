@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.5.3] - 2026-09-25
+
+### Fixed
+
+- `cargo check` no longer warns about an unused `WinStatus` import in
+  `src/client.rs`; the `crate::client::WinStatus` re-export is now test-only.
+
 ## [4.5.2] - 2026-09-25
 
 ### Changed
