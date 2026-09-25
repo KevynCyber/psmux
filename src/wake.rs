@@ -9,6 +9,20 @@ use crate::types::{CtrlReq, PTY_DATA_READY};
 use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
+
+/// Minimum spacing between server frame pushes (LAG-006): caps streaming
+/// output at ~250 full JSON frames per second instead of one per Wake.
+pub const MIN_FRAME_PUSH_INTERVAL: Duration = Duration::from_millis(4);
+
+/// How long to hold a dirty frame before pushing it. ZERO after an idle gap
+/// so a keystroke echo is never delayed; otherwise the rest of the interval.
+pub fn frame_push_wait(last_push: Option<Instant>, now: Instant) -> Duration {
+    match last_push {
+        None => Duration::ZERO,
+        Some(last) => MIN_FRAME_PUSH_INTERVAL.saturating_sub(now.saturating_duration_since(last)),
+    }
+}
 
 static SERVER_WAKER: Mutex<Option<mpsc::Sender<CtrlReq>>> = Mutex::new(None);
 

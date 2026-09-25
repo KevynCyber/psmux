@@ -1196,6 +1196,10 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
         spawn_warm_server(&app);
     }
     let mut state_dirty = true;
+    // LAG-006: frame pushes are spaced MIN_FRAME_PUSH_INTERVAL apart; a
+    // deferred dirty frame goes out at push_deadline.
+    let mut last_frame_push: Option<Instant> = None;
+    let mut push_deadline: Option<Instant> = None;
     let mut cached_dump_state = String::new();
     let mut cached_data_version: u64 = 0;
     // Issue #7 batch D: the "NC" (no-change) fast path below is a *global*
@@ -1450,7 +1454,11 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
             }
         }
         if let Some(rx) = app.control_rx.as_ref() {
-            if let Ok(req) = rx.recv_timeout(Duration::from_millis(timeout_ms)) {
+            let mut recv_timeout = Duration::from_millis(timeout_ms);
+            if let Some(deadline) = push_deadline {
+                recv_timeout = recv_timeout.min(deadline.saturating_duration_since(Instant::now()));
+            }
+            if let Ok(req) = rx.recv_timeout(recv_timeout) {
                 let mut pending = vec![req];
                 // Drain any additional queued messages without blocking
                 while let Ok(r) = rx.try_recv() {
@@ -2341,7 +2349,15 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
                     // Push combined_buf (not cached_dump_state) so one-shot
                     // fields like bell and clipboard reach all clients.
                     // The cached copy omits them for NC dedup safety.
-                    crate::types::push_frame(&combined_buf);
+                    // Inside the push interval, keep the state dirty so the
+                    // bottom-of-loop push sends it at the deadline instead.
+                    let now = Instant::now();
+                    if crate::wake::frame_push_wait(last_frame_push, now).is_zero() {
+                        crate::types::push_frame(&combined_buf);
+                        last_frame_push = Some(now);
+                    } else {
+                        state_dirty = true;
+                    }
                     let _ = resp.send(combined_buf.clone());
                     dump_state_seen_full.insert(dump_client_id);
                 }
@@ -6104,7 +6120,14 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
         // echo, etc.).  This gives event-driven rendering like wezterm:
         // frames arrive within 1-5ms of ConPTY output instead of waiting
         // for the next client poll cycle (up to 50ms).
-        if (state_dirty || meta_dirty) && crate::types::has_frame_receivers() {
+        let push_due = (state_dirty || meta_dirty) && crate::types::has_frame_receivers();
+        let push_wait = if push_due {
+            crate::wake::frame_push_wait(last_frame_push, Instant::now())
+        } else {
+            Duration::ZERO
+        };
+        push_deadline = if push_wait.is_zero() { None } else { Some(Instant::now() + push_wait) };
+        if push_due && push_wait.is_zero() {
             // Check bell/activity state for the pushed frame
             let push_alert_hooks = helpers::check_window_activity(&mut app);
             for event in &push_alert_hooks {
@@ -6262,6 +6285,7 @@ pub fn run_server(session_name: String, socket_name: Option<String>, initial_com
             cached_data_version = combined_data_version(&app);
             state_dirty = false;
             crate::types::push_frame(&combined_buf);
+            last_frame_push = Some(Instant::now());
         }
         // ── Status-interval timer: fire hooks periodically ──
         if app.should_run_status_interval_timer() {
