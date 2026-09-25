@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.5.2] - 2026-09-25
+
+### Changed
+
+- Cleanup 13: `split_target_window_pane` moves from `src/cli.rs` to its own
+  module `src/cli_target.rs` (rustfmt-formatted); behavior unchanged.
+- Cleanup 14b: `manage_paste_pend` drops its unused `paste_suppress_until`
+  parameter; call sites and tests updated.
+
 ## [4.5.1] - 2026-09-25
 
 ### Fixed
